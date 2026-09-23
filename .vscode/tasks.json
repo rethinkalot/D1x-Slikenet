@@ -1,0 +1,82 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build Descent SlikeNet",
+			"type": "shell",
+			"command": "C:/Programs/msys64/msys2_shell.cmd",
+			"args": [
+				"-mingw64",
+				"-where",
+				"C:/Games/D1s",
+				"-defterm",
+				"-no-start",
+				"-lc",
+				"export PATH=/c/Programs/msys64/mingw64/bin:$PATH; cmake -G Ninja -B build; status=$?; if [ $status -ne 0 ]; then exit $status; fi; cmake --build build -- -j10; status=$?; if [ $status -ne 0 ]; then exit $status; fi; if [ -f build/main/d1x-redux.exe ]; then cp -v build/main/d1x-redux.exe /c/Games/D1x/d1x-redux.exe; elif [ -f build/D1x-SlikeNet.exe ]; then cp -v build/D1x-SlikeNet.exe /c/Games/D1x/d1x-redux.exe; else echo Build completed, but no expected executable was found. >&2; exit 1; fi"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"label": "Run Live Testbench Game Session",
+			"type": "shell",
+			"command": "C:/Programs/msys64/msys2_shell.cmd",
+			"args": [
+				"-mingw64",
+				"-where",
+				"C:/Games/D1x",
+				"-defterm",
+				"-no-start",
+				"-lc",
+				"./d1x-redux.exe -window -notitles -nomovies -use_players_dir"
+			],
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"type": "cmake",
+			"label": "CMake: build",
+			"command": "build",
+			"targets": [
+				"all"
+			],
+			"group": "build",
+			"problemMatcher": [],
+			"detail": "CMake template build task"
+		},
+		{
+			"label": "Configure D1s CMake",
+			"type": "shell",
+			"command": "C:\\Programs\\msys64\\mingw64\\bin\\cmake.exe",
+			"args": [
+				"-G",
+				"Ninja",
+				"-S",
+				"C:\\Games\\D1s",
+				"-B",
+				"C:\\Games\\D1s\\build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Reconfigure D1s CMake",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/c",
+				"del /q C:\\Games\\D1s\\build\\CMakeCache.txt && rmdir /s /q C:\\Games\\D1s\\build\\CMakeFiles && C:\\Programs\\msys64\\mingw64\\bin\\cmake.exe -G Ninja -S C:\\Games\\D1s -B C:\\Games\\D1s\\build"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

@@ -1,0 +1,26 @@
+{
+    "configurations": [
+        {
+            "name": "MinGW64",
+            "includePath": [
+                "C:/Games/D1s/**",
+                "C:/Games/D1s/main",
+                "C:/Games/D1s/include",
+                "C:/msys64/mingw64/include/**",
+                "C:/msys64/mingw64/include/SDL",
+                "C:/msys64/mingw64/include/physfs"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "DESCENT_VERSION=\"D1X_SLIKENET\""
+            ],
+            "compilerPath": "C:/msys64/mingw64/bin/gcc.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}

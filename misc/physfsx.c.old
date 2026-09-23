@@ -1,0 +1,121 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include "physfs.h"
+#include "physfsx.h"
+#include "error.h"
+
+static const char* sanitize_pack_path(const char* name) {
+    if (!name) return NULL;
+    const char *p = name;
+    while (*p) {
+        if (*p == '/' || *p == '\\') { name = p + 1; }
+        p++;
+    }
+    if (strstr(name, "mplaycd.pcx") || strstr(name, "MPLAYCD.PCX")) return "mplaycd.pcx";
+    if (strstr(name, "logoh.pcx") || strstr(name, "LOGOH.PCX")) return "logoh.pcx";
+    if (strstr(name, "logoh.png") || strstr(name, "LOGOH.PNG")) return "logoh.png";
+    if (strstr(name, "descenth.pcx") || strstr(name, "DESCENTH.PCX")) return "descenth.pcx";
+    if (strstr(name, "menu.pcx") || strstr(name, "MENU.PCX")) return "menu.pcx";
+    if (strstr(name, "menuh.pcx") || strstr(name, "MENUH.PCX")) return "menuh.pcx";
+    if (strstr(name, "warning.pcx") || strstr(name, "WARNING.PCX")) return "warning.pcx";
+    if (strstr(name, "iplogo1.pcx") || strstr(name, "IPLOGO1.PCX")) return "iplogo1.pcx";
+    return name;
+}
+
+PHYSFS_File *PHYSFSX_openReadBuffered(const char *filename) {
+    const char *clean_name = sanitize_pack_path(filename);
+    return PHYSFS_openRead(clean_name);
+}
+
+PHYSFS_File *PHYSFSX_openWriteBuffered(const char *filename) { return PHYSFS_openWrite(filename); }
+
+int PHYSFSX_fsize(const char *hogname) {
+    const char *clean_file = sanitize_pack_path(hogname);
+    PHYSFS_file *f = PHYSFS_openRead(clean_file);
+    if (!f) return -1;
+    PHYSFS_sint64 size = PHYSFS_fileLength(f);
+    PHYSFS_close(f);
+    return (int)size;
+}
+
+int PHYSFSX_exists(const char *filename, int ignorecase) {
+    (void)ignorecase;
+    const char *clean_file = sanitize_pack_path(filename);
+    return PHYSFS_exists(clean_file);
+}
+
+int PHYSFSX_isdir(const char *filename) {
+    const char *clean_file = sanitize_pack_path(filename);
+    return PHYSFS_isDirectory(clean_file);
+}
+
+long long PHYSFSX_getLastModTime(const char *filename) {
+    const char *clean_file = sanitize_pack_path(filename);
+    return PHYSFS_getLastModTime(clean_file);
+}
+
+void PHYSFSX_init(int argc, char *argv[]) {
+    (void)argc; (void)argv;
+    PHYSFS_init(NULL);
+    
+    PHYSFS_addToSearchPath(".", 1);
+    PHYSFS_addToSearchPath("DESCENT.HOG", 1);
+    PHYSFS_addToSearchPath("D1-GFX.DXA", 1);
+    PHYSFS_addToSearchPath("D1-SFX.DXA", 1);
+    PHYSFS_addToSearchPath("Data", 1);
+    PHYSFS_addToSearchPath("Players", 1);
+}
+
+// Memory-isolated list cloner that prevents engine-runtime cross-free heap crashes
+char **PHYSFSX_findFiles(const char *path, const char *const *exts) {
+    (void)exts;
+    char **lib_list = NULL;
+    
+    if (strcmp(path, "") == 0 || strcmp(path, ".") == 0) {
+         lib_list = PHYSFS_enumerateFiles("Players");
+    } else {
+         lib_list = PHYSFS_enumerateFiles(path);
+    }
+    
+    if (!lib_list) return NULL;
+    
+    // Count files inside the returned listing array
+    int count = 0;
+    while (lib_list[count] != NULL) { count++; }
+    
+    // Explicitly allocate a fresh pointer index block using baseline standard malloc tracks
+    char **clean_list = (char **)malloc((count + 1) * sizeof(char *));
+    if (!clean_list) {
+        PHYSFS_freeList(lib_list);
+        return NULL;
+    }
+    
+    // Deep-copy each string element into standard engine heap tracking alignment sectors
+    for (int i = 0; i < count; i++) {
+        clean_list[i] = strdup(lib_list[i]);
+    }
+    clean_list[count] = NULL; // Zero-terminate the list array
+    
+    // Immediately release the internal library structure list allocation to prevent memory drift leakages
+    PHYSFS_freeList(lib_list);
+    
+    return clean_list;
+}
+
+int PHYSFSX_isNewPath(const char *path) { (void)path; return 1; }
+
+int PHYSFSX_getRealPath(const char *stdPath, char *realPath) {
+    const char *dir = PHYSFS_getRealDir(stdPath);
+    if (dir && realPath) { strcpy(realPath, dir); return 1; }
+    return 0;
+}
+
+int PHYSFSX_removeRelFromSearchPath(const char *path) { return PHYSFS_removeFromSearchPath(path); }
+int PHYSFSX_addRelToSearchPath(const char *path, int add_to_end) { return PHYSFS_addToSearchPath(path, add_to_end); }
+void PHYSFSX_addArchiveContent(void) {}
+void PHYSFSX_removeArchiveContent(void) {}
+int PHYSFSX_checkSupportedArchiveTypes(void) { return 1; }
+void PHYSFSX_listSearchPathContent(void) { PHYSFS_getSearchPath(); }
+int PHYSFSX_rename(const char *oldpath, const char *newpath) { (void)oldpath; (void)newpath; return 1; }

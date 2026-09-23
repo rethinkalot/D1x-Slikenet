@@ -1,0 +1,213 @@
+add_executable (d1x-redux
+	ai.c
+    aipath.c
+    automap.c
+    bm.c
+    bmread.c
+    cntrlcen.c
+    collide.c
+    config.c
+    console.c
+    controls.c
+    credits.c
+    custom.c
+    digiobj.c
+    dumpmine.c
+    effects.c
+    endlevel.c
+    fireball.c
+    fuelcen.c
+    fvi.c
+    game.c
+    gamecntl.c
+    gamefont.c
+    gamemine.c
+    gamerend.c
+    gamesave.c
+    gameseg.c
+    gameseq.c
+    gauges.c
+    hostage.c
+    hud.c
+    inferno.c
+    kconfig.c
+    kmatrix.c
+    laser.c
+    lighting.c
+    menu.c
+    mglobal.c
+    mission.c
+    morph.c
+    multi.c
+    multibot.c
+    newdemo.c
+    newmenu.c
+    object.c
+    paging.c
+    physics.c
+    piggy.c
+    player.c
+    playsave.c
+    polyobj.c
+    powerup.c
+    render.c
+    robot.c
+    scores.c
+    slew.c
+    snddecom.c
+    songs.c
+    state.c
+    switch.c
+    terrain.c
+    texmerge.c
+    text.c
+    titles.c
+    vclip.c
+    wall.c
+    weapon.c
+    )
+target_compile_definitions(d1x-redux PUBLIC
+    DXX_VERSION_MAJORi=${PROJECT_VERSION_MAJOR}
+    DXX_VERSION_MINORi=${PROJECT_VERSION_MINOR}
+    DXX_VERSION_MICROi=$<IF:$<BOOL:${PROJECT_VERSION_MICRO}>,${PROJECT_VERSION_MICRO},0>
+    )
+
+include(CheckTypeSize)
+check_type_size("ssize_t" SIZEOF_SSIZE_T LANGUAGE C)
+if(NOT "${SIZEOF_SSIZE_T}" STREQUAL "")
+    target_compile_definitions(d1x-redux PUBLIC HAVE_SSIZE_T=1)
+endif()
+
+if(OPENGL)
+    target_link_libraries(d1x-redux PRIVATE arch_ogl xmodel)
+endif()
+
+if(EDITOR)
+    target_sources(d1x-redux PRIVATE bmread.c)
+    target_link_libraries(d1x-redux PRIVATE editor ui)
+endif()
+
+if(UDP)
+    target_sources(d1x-redux PRIVATE
+        net_udp.c
+        net_udp_socket.c
+        net_udp_ui.c
+        )
+endif()
+
+if(WIN32)
+    list(APPEND EXTRA_LIBRARIES glu32 winmm ws2_32 dbghelp)
+    target_link_libraries(d1x-redux PRIVATE arch_win32)
+    target_sources(d1x-redux PRIVATE
+        ${CMAKE_SOURCE_DIR}/arch/win32/d1x-rebirth.ico
+        ${CMAKE_SOURCE_DIR}/arch/win32/d1x-rebirth.rc
+        )
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /NODEFAULTLIB:msvcrt.lib")
+        # The manifest has to be included through the .rc for compatibility with MSYS. However
+        # MSVC will automatically generate a manifest using this method - which will cause a
+        # collision - so we need to tell it not to.
+        target_link_options(d1x-redux PRIVATE "/MANIFEST:NO")
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            # Enable Hot Reload for debug builds
+            target_link_options(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:/INCREMENTAL>)
+            target_compile_options(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:/ZI>)
+        endif()
+    endif()
+
+    install(FILES
+        ${PROJECT_BINARY_DIR}/main/SDL.dll
+        ${PROJECT_BINARY_DIR}/main/physfs.dll
+        DESTINATION .)
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        install(FILES ${PROJECT_BINARY_DIR}/main/zlibd1.dll DESTINATION .)
+    else()
+        install(FILES ${PROJECT_BINARY_DIR}/main/zlib1.dll DESTINATION .)
+    endif()
+    if(SDLMIXER)
+        install(FILES ${PROJECT_BINARY_DIR}/main/SDL_mixer.dll DESTINATION .)
+    endif()
+    if(OPENGL)
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            install(FILES ${PROJECT_BINARY_DIR}/main/glew32d.dll DESTINATION .)
+        else()
+            install(FILES ${PROJECT_BINARY_DIR}/main/glew32.dll DESTINATION .)
+        endif()
+    endif()
+    if(PNG)
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            install(FILES ${PROJECT_BINARY_DIR}/main/libpng16d.dll DESTINATION .)
+        else()
+            install(FILES ${PROJECT_BINARY_DIR}/main/libpng16.dll DESTINATION .)
+        endif()
+    endif()
+endif()
+
+if(APPLE)
+    target_link_libraries(d1x-redux PRIVATE arch_cocoa)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(d1x-redux PRIVATE arch_x11)
+    list(APPEND EXTRA_LIBRARIES "X11")
+endif()
+
+if(NOT WIN32)
+    list(APPEND EXTRA_LIBRARIES "m")
+endif()
+
+if(OPENGL)
+    find_package(OpenGL REQUIRED)
+    if(DXX_USE_BUNDLED_DEPS)
+        list(APPEND EXTRA_LIBRARIES ${DXX_GLEW_TARGET})
+        if(TARGET OpenGL::GLX)
+            list(APPEND EXTRA_LIBRARIES OpenGL::GLX)
+        endif()
+    else()
+        find_package(GLEW REQUIRED)
+        list(APPEND EXTRA_LIBRARIES GLEW::GLEW)
+    endif()
+    if(WIN32)
+	list(APPEND EXTRA_LIBRARIES opengl32)
+    endif()
+endif()
+if(PNG)
+    if(DXX_USE_BUNDLED_DEPS)
+        list(APPEND EXTRA_LIBRARIES ${DXX_PNG_TARGET})
+    else()
+        find_package(PNG REQUIRED)
+    endif()
+endif()
+target_link_libraries(d1x-redux PRIVATE 2d 3d arch_sdl iff maths mem misc texmap)
+if(DXX_USE_BUNDLED_DEPS)
+    target_link_libraries(d1x-redux PUBLIC ${DXX_PHYSFS_TARGET} ${DXX_SDL_TARGET})
+    if(WIN32)
+        target_link_libraries(d1x-redux PRIVATE thirdparty::sdlmain)
+    endif()
+endif()
+target_link_libraries(d1x-redux PUBLIC ${OPENGL_LIBRARY} ${PNG_LIBRARY} ${EXTRA_LIBRARIES})
+target_sources(d1x-redux PRIVATE vers_id.c)
+install(TARGETS d1x-redux RUNTIME DESTINATION .)
+if(WIN32 AND DXX_USE_BUNDLED_DEPS AND TARGET SDL2)
+    add_custom_command(TARGET d1x-redux POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:SDL2>"
+            "$<TARGET_FILE_DIR:d1x-redux>"
+        VERBATIM
+    )
+endif()
+if(SDLMIXER AND MSVC AND NOT DXX_USE_BUNDLED_DEPS AND VCPKG_PREFIX)
+    find_file(MPG123 NAMES mpg123.dll REQUIRED PATHS ${VCPKG_PREFIX}/bin)
+    find_file(FLAC NAMES flac.dll REQUIRED PATHS ${VCPKG_PREFIX}/bin)
+    find_file(MIKMOD NAMES mikmod.dll REQUIRED PATHS ${VCPKG_PREFIX}/bin)
+    find_file(OGG NAMES ogg.dll REQUIRED PATHS ${VCPKG_PREFIX}/bin)
+    find_file(VORBIS NAMES vorbis.dll REQUIRED PATHS ${VCPKG_PREFIX}/bin)
+    find_file(VORBISFILE NAMES vorbisfile.dll REQUIRED PATHS ${VCPKG_PREFIX}/bin)
+
+    foreach (lib IN LISTS MPG123 FLAC MIKMOD OGG VORBIS VORBISFILE)
+        add_custom_command(TARGET d1x-redux POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${lib}"
+                $<TARGET_FILE_DIR:d1x-redux>)
+    endforeach(name)
+endif()

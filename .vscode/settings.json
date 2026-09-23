@@ -1,0 +1,17 @@
+{
+    "terminal.integrated.profiles.windows": {
+        "Command Prompt": {
+            "path": "${env:ComSpec}"
+        },
+        "MSYS2 MinGW64": {
+            "path": "C:\\Programs\\msys64\\msys2_shell.cmd",
+            "args": ["-mingw64", "-defterm", "-no-start", "-use-full-path"]
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "cmake.cmakePath": "C:/Programs/msys64/mingw64/bin/cmake.exe",
+    "cmake.generator": "Ninja",
+    "cmake.configureSettings": {
+        "CMAKE_MAKE_PROGRAM": "C:/Programs/msys64/mingw64/bin/ninja.exe"
+    }
+}

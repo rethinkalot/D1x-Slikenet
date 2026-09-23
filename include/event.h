@@ -1,0 +1,48 @@
+#ifndef D1X_VIRTUAL_EVENT_H
+#define D1X_VIRTUAL_EVENT_H
+#include <SDL_events.h>
+
+#define JOY_MAX_AXES 8
+#define JOY_MAX_BUTTONS 32
+
+enum event_type {
+    EVENT_IDLE = 0,
+    EVENT_WINDOW_DRAW,
+    EVENT_WINDOW_CLOSE,
+    EVENT_WINDOW_CLOSED,
+    EVENT_WINDOW_ACTIVATED,
+    EVENT_WINDOW_DEACTIVATED,
+    EVENT_KEY_COMMAND,
+    EVENT_KEY_RELEASE,
+    EVENT_MOUSE_MOVED,
+    EVENT_MOUSE_BUTTON_DOWN,
+    EVENT_MOUSE_BUTTON_UP,
+    EVENT_MOUSE_DOUBLE_CLICKED,
+    EVENT_JOYSTICK_MOVED,
+    EVENT_JOYSTICK_BUTTON_DOWN,
+    EVENT_JOYSTICK_BUTTON_UP,
+    EVENT_QUIT,
+    EVENT_NEWMENU_CHANGED,
+    EVENT_NEWMENU_SELECTED,
+    EVENT_NEWMENU_DRAW,
+    EVENT_UI_GADGET_PRESSED,
+    EVENT_UI_DIALOG_DRAW,
+    EVENT_UI_LISTBOX_MOVED,
+    EVENT_UI_LISTBOX_SELECTED,
+    EVENT_UI_USERBOX_DRAGGED,
+    EVENT_ENGINE_LAST
+};
+
+typedef enum event_type event_type;
+
+typedef struct d_event {
+    int type;
+    SDL_Event win_event;
+} d_event;
+
+/* Console log visibility print masks */
+#define CON_NORMAL 0
+#define CON_URGENT 1
+#define CON_DEBUG  2
+
+#endif
