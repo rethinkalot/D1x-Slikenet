@@ -47,14 +47,29 @@ static void con_add_buffer_line(int priority, char *buffer)
 	}
 }
 
+/* Decide whether a message at the given priority should be emitted at all.
+ *
+ * Regular messages follow the -debug / -verbose / normal scale. Network
+ * telemetry (the CON_NET_* priorities) is muted unless the game was started
+ * with -debug, since it otherwise floods the console with per packet data. */
+static int con_priority_enabled(int priority)
+{
+	if (CON_IS_NET_PRIORITY(priority))
+		return (int)GameArg.DbgVerbose >= CON_DEBUG;
+
+	return priority <= (int)GameArg.DbgVerbose;
+}
+
 void con_printf(int priority, const char *fmt, ...)
 {
 	va_list arglist;
 	char buffer[CON_LINE_LENGTH];
+	char display_buffer[CON_LINE_LENGTH];
 
-	if (priority <= ((int)GameArg.DbgVerbose))
+	if (con_priority_enabled(priority))
 	{
 		memset(buffer,'\0',CON_LINE_LENGTH);
+		memset(display_buffer,'\0',CON_LINE_LENGTH);
 
 		char *p1, *p2;
 
@@ -62,9 +77,21 @@ void con_printf(int priority, const char *fmt, ...)
 		vsprintf (buffer,  fmt, arglist);
 		va_end (arglist);
 
-		/* Produce a sanitised version and send it to the console */
-		p1 = p2 = buffer;
+		/* Produce a sanitized copy for the rendered console. */
+		memcpy(display_buffer, buffer, CON_LINE_LENGTH);
+		p1 = p2 = display_buffer;
 		do
+		{
+			if (*p1 == '\033' && p1[1] == '[')
+			{
+				p1 += 2;
+				while (*p1 && !((*p1 >= 'A' && *p1 <= 'Z') ||
+					(*p1 >= 'a' && *p1 <= 'z')))
+					p1++;
+				if (*p1)
+					p1++;
+				continue;
+			}
 			switch (*p1)
 			{
 				case CC_COLOR:
@@ -76,11 +103,12 @@ void con_printf(int priority, const char *fmt, ...)
 				default:
 					*p2++ = *p1++;
 			}
+		}
 		while (*p1);
 		*p2 = 0;
 
 		/* add given string to con_buffer */
-		con_add_buffer_line(priority, buffer);
+		con_add_buffer_line(priority, display_buffer);
 
 		/* Print output to stdout */
 		printf("%s",buffer);
@@ -100,7 +128,7 @@ void con_printf(int priority, const char *fmt, ...)
 				buffer[strlen(buffer)]='\n';
 			}
 #endif
-			PHYSFSX_printf(gamelog_fp,"%s",buffer);
+			PHYSFSX_printf(gamelog_fp,"%s",display_buffer);
 		}
 	}
 }
@@ -126,6 +154,18 @@ static void con_draw(void)
 
 		switch (con_buffer[CON_LINES_MAX-1-i].priority)
 		{
+			case CON_NET_TX:
+				gr_set_fontcolor(BM_XRGB(63,32,0),-1);
+				break;
+			case CON_NET_RX:
+				gr_set_fontcolor(BM_XRGB(0,0,40),-1);
+				break;
+			case CON_NET_STATUS:
+				gr_set_fontcolor(BM_XRGB(0,63,0),-1);
+				break;
+			case CON_NET_DEALLOC:
+				gr_set_fontcolor(BM_XRGB(63,0,0),-1);
+				break;
 			case CON_CRITICAL:
 				gr_set_fontcolor(BM_XRGB(28,0,0),-1);
 				break;

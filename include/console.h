@@ -12,6 +12,18 @@
 #define CON_NORMAL    0
 #define CON_VERBOSE   1
 #define CON_DEBUG     2
+#define CON_NET_TX    -4
+#define CON_NET_RX    -5
+#define CON_NET_STATUS -6
+#define CON_NET_DEALLOC -7
+
+/* Network telemetry priorities. The console renders these with their own
+ * colours (see con_draw) and only shows them while the game is running with
+ * -debug, so that per packet traffic does not flood the console. */
+#define CON_NET_LOWEST  CON_NET_DEALLOC
+#define CON_NET_HIGHEST CON_NET_TX
+#define CON_IS_NET_PRIORITY(p) ((p) >= CON_NET_LOWEST && (p) <= CON_NET_HIGHEST)
+
 
 #define CON_LINES_ONSCREEN 18
 #define CON_SCROLL_OFFSET  (CON_LINES_ONSCREEN - 3)
@@ -35,4 +47,3 @@ void con_showup(void);
 void con_switch_log(const char* filename);
 
 #endif /* _CONSOLE_H_ */
-

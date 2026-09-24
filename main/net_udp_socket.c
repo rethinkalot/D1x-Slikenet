@@ -9,13 +9,23 @@ int UDP_Socket[3] = { -1, -1, -1 };
 ssize_t dxx_sendto(int sockfd, const void *msg, int len, unsigned int flags,
 	const struct sockaddr *to, socklen_t tolen)
 {
-	return sendto(sockfd, msg, len, flags, to, tolen);
+	ssize_t result = sendto(sockfd, msg, len, flags, to, tolen);
+	if (result >= 0)
+		con_printf(CON_NET_TX,
+			"\033[38;5;208m[TX] SLikeNet Packet OUT: SENT %d Bytes Traffic\033[0m\n",
+			(int)result);
+	return result;
 }
 
 ssize_t dxx_recvfrom(int sockfd, void *buf, int len, unsigned int flags,
 	struct sockaddr *from, socklen_t *fromlen)
 {
-	return recvfrom(sockfd, buf, len, flags, from, fromlen);
+	ssize_t result = recvfrom(sockfd, buf, len, flags, from, fromlen);
+	if (result > 0)
+		con_printf(CON_NET_RX,
+			"\033[34m[RX] SLikeNet Packet IN: Received %d Bytes Traffic\033[0m\n",
+			(int)result);
+	return result;
 }
 
 void udp_traffic_stat(void) {}
@@ -57,6 +67,9 @@ void udp_close_socket(int socknum)
 		close(UDP_Socket[socknum]);
 #endif
 		UDP_Socket[socknum] = -1;
+		con_printf(CON_NET_DEALLOC,
+			"\033[32mSLikeNet Channel %d \033[31mDEALLOCATED\033[0m\n",
+			socknum);
 	}
 }
 
@@ -93,6 +106,10 @@ int udp_open_socket(int socknum, int port)
 	freeaddrinfo(result);
 	setsockopt(UDP_Socket[socknum], SOL_SOCKET, SO_BROADCAST,
 		(const char *)&broadcast, sizeof(broadcast));
+	if (socknum == 0)
+		con_printf(CON_NET_STATUS, "\033[32mSLikeNet Telemetry Active\033[0m\n");
+	con_printf(CON_NET_STATUS,
+		"\033[32mSLikeNet is ACTIVE on PORT: %d\033[0m\n", port);
 	return 0;
 }
 
@@ -130,4 +147,9 @@ char *msg_name(int type)
 	return "UDP";
 }
 
-void net_log_comment(char *comment) {}
+void net_log_comment(char *comment)
+{
+	if (comment)
+		con_printf(CON_NET_STATUS, "\033[32mSLikeNet HandShake: %s\033[0m\n",
+			comment);
+}
