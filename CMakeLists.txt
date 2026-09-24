@@ -148,6 +148,13 @@ add_dependencies(d1x-redux 2d 3d arch_sdl iff maths mem misc texmap)
 if(WIN32)
     add_subdirectory(arch/win32)
     add_dependencies(d1x-redux arch_win32)
+
+    # Build as a GUI subsystem application so that Windows never creates a
+    # console window for the game. main() still receives argc/argv through the
+    # libmingw32 WinMain wrapper, and inferno.c allocates a console on demand
+    # when -debug or -verbose is given, so the game window is the only window
+    # on screen during a normal launch.
+    set_target_properties(d1x-redux PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()
 
 if(APPLE)

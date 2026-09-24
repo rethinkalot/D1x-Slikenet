@@ -82,6 +82,9 @@ char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE CORPORAT
 #ifdef USE_UDP
 #include "net_udp.h"
 #endif
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 int Screen_mode=-1;					//game screen or editor screen?
 int descent_critical_error = 0;
@@ -309,12 +312,31 @@ int main(int argc, char *argv[])
 	error_init(msgbox_error);
 	set_warn_func(msgbox_warning);
 	PHYSFSX_init(argc, argv);
+
 	con_init();  // Initialise the console
 
 	setbuf(stdout, NULL); // unbuffered output via printf
+
 #ifdef _WIN32
-	freopen( "CON", "w", stdout );
-	freopen( "CON", "w", stderr );
+	/* This is a GUI subsystem build, so Windows never gives us a console.
+	 * Create one only when console output was actually requested; -help is
+	 * included so that the help text stays readable. Opening the "CON" device
+	 * here instead would allocate a console unconditionally, which is why the
+	 * no-console case is pointed at the null device. */
+	if (GameArg.SysShowCmdHelp || GameArg.DbgVerbose >= CON_VERBOSE)
+	{
+		if (AllocConsole())
+		{
+			freopen("CONOUT$", "w", stdout);
+			freopen("CONOUT$", "w", stderr);
+			freopen("CONIN$", "r", stdin);
+		}
+	}
+	else
+	{
+		freopen("NUL", "w", stdout);
+		freopen("NUL", "w", stderr);
+	}
 #endif
 
 	if (GameArg.SysShowCmdHelp) {
