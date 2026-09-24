@@ -336,3 +336,8 @@ target_include_directories(slikenet_modern
     "${CMAKE_CURRENT_SOURCE_DIR}/SLikeNet/Source/include"
 )
 
+if(WIN32)
+    target_link_libraries(slikenet_modern PUBLIC ws2_32 iphlpapi)
+else()
+    target_link_libraries(slikenet_modern PUBLIC pthread)
+endif()
