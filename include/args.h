@@ -72,6 +72,7 @@ typedef struct Arg
 	int MplTrackerPort;
 #endif
 	int DbgVerbose;
+	int DbgNetPackets;	// -debug and -verbose: per packet network telemetry
 	int DbgSafelog;
 	int DbgNoRun;
 	int DbgRenderStats;

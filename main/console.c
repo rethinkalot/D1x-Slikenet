@@ -49,13 +49,15 @@ static void con_add_buffer_line(int priority, char *buffer)
 
 /* Decide whether a message at the given priority should be emitted at all.
  *
- * Regular messages follow the -debug / -verbose / normal scale. Network
- * telemetry (the CON_NET_* priorities) is muted unless the game was started
- * with -debug, since it otherwise floods the console with per packet data. */
+ * Regular messages follow the -debug / -verbose / normal scale. The one
+ * exception is the per packet network telemetry, which needs both -debug and
+ * -verbose because a line per packet is both noisy and expensive. The network
+ * status notices use negative priorities, so they always pass this test and
+ * still reach gamelog.txt on a normal launch. */
 static int con_priority_enabled(int priority)
 {
-	if (CON_IS_NET_PRIORITY(priority))
-		return (int)GameArg.DbgVerbose >= CON_DEBUG;
+	if (CON_IS_NET_PACKET_PRIORITY(priority))
+		return GameArg.DbgNetPackets;
 
 	return priority <= (int)GameArg.DbgVerbose;
 }

@@ -3,17 +3,30 @@
 #include <stdlib.h>
 #include "net_udp_socket.h"
 #include "net_udp.h"
+#include "timer.h"
 
 int UDP_Socket[3] = { -1, -1, -1 };
+
+/* Running totals since the last udp_traffic_stat() call. These count packets
+ * rather than averaging packet sizes, so the once-per-second summary actually
+ * tracks Netgame.PacketsPerSec - the per packet lines below only ever show the
+ * size of a single packet. */
+static unsigned int UDP_num_sendto = 0, UDP_len_sendto = 0;
+static unsigned int UDP_num_recvfrom = 0, UDP_len_recvfrom = 0;
 
 ssize_t dxx_sendto(int sockfd, const void *msg, int len, unsigned int flags,
 	const struct sockaddr *to, socklen_t tolen)
 {
 	ssize_t result = sendto(sockfd, msg, len, flags, to, tolen);
 	if (result >= 0)
+	{
+		UDP_num_sendto++;
+		UDP_len_sendto += (unsigned int)result;
+
 		con_printf(CON_NET_TX,
 			"\033[38;5;208m[TX] SLikeNet Packet OUT: SENT %d Bytes Traffic\033[0m\n",
 			(int)result);
+	}
 	return result;
 }
 
@@ -22,13 +35,50 @@ ssize_t dxx_recvfrom(int sockfd, void *buf, int len, unsigned int flags,
 {
 	ssize_t result = recvfrom(sockfd, buf, len, flags, from, fromlen);
 	if (result > 0)
+	{
+		UDP_num_recvfrom++;
+		UDP_len_recvfrom += (unsigned int)result;
+
 		con_printf(CON_NET_RX,
 			"\033[34m[RX] SLikeNet Packet IN: Received %d Bytes Traffic\033[0m\n",
 			(int)result);
+	}
 	return result;
 }
 
-void udp_traffic_stat(void) {}
+/* Report the traffic that moved during the last second. Called once per frame
+ * from net_udp_do_frame(). The per packet lines above can only ever show the
+ * size of a single packet; this is the readout that shows how many actually
+ * went out, so it is the one that responds to Netgame.PacketsPerSec. Colours
+ * are kept identical to the per packet OUT / IN lines. */
+void udp_traffic_stat(void)
+{
+	static fix64 last_traf_time = 0;
+	fix64 now = timer_query();
+
+	if (now < last_traf_time + F1_0)
+		return;
+
+	last_traf_time = now;
+
+	if (UDP_num_sendto)
+	{
+		con_printf(CON_NET_TX,
+			"\033[38;5;208m[TX] SLikeNet Traffic OUT: %.2fKB/s %uPPS\033[0m\n",
+			(float)UDP_len_sendto / 1024, UDP_num_sendto);
+		UDP_num_sendto = 0;
+		UDP_len_sendto = 0;
+	}
+
+	if (UDP_num_recvfrom)
+	{
+		con_printf(CON_NET_RX,
+			"\033[34m[RX] SLikeNet Traffic IN: %.2fKB/s %uPPS\033[0m\n",
+			(float)UDP_len_recvfrom / 1024, UDP_num_recvfrom);
+		UDP_num_recvfrom = 0;
+		UDP_len_recvfrom = 0;
+	}
+}
 
 int udp_dns_filladdr(char *host, int port, struct _sockaddr *sAddr)
 {
@@ -52,6 +102,41 @@ int udp_dns_filladdr(char *host, int port, struct _sockaddr *sAddr)
 		result->ai_addrlen < sizeof(*sAddr) ? result->ai_addrlen : sizeof(*sAddr));
 	freeaddrinfo(result);
 	return 0;
+}
+
+/* Describe this machine's address so that log lines read as "<host>:<port>".
+ * Falls back to "*" when the local address cannot be determined. */
+static const char *udp_local_addr_string(void)
+{
+	static char buf[64];
+	struct addrinfo hints, *result = NULL;
+	char hostname[256];
+	int resolved = 0;
+
+	if (buf[0] != '\0')
+		return buf;
+
+	if (gethostname(hostname, sizeof(hostname)) == 0)
+	{
+		hostname[sizeof(hostname) - 1] = '\0';
+
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = _af;
+		hints.ai_socktype = SOCK_DGRAM;
+
+		if (getaddrinfo(hostname, NULL, &hints, &result) == 0 && result &&
+			getnameinfo(result->ai_addr, (socklen_t)result->ai_addrlen,
+				buf, sizeof(buf), NULL, 0, NI_NUMERICHOST) == 0)
+			resolved = 1;
+	}
+
+	if (result)
+		freeaddrinfo(result);
+
+	if (!resolved)
+		snprintf(buf, sizeof(buf), "*");
+
+	return buf;
 }
 
 void udp_close_socket(int socknum)
@@ -109,7 +194,8 @@ int udp_open_socket(int socknum, int port)
 	if (socknum == 0)
 		con_printf(CON_NET_STATUS, "\033[32mSLikeNet Telemetry Active\033[0m\n");
 	con_printf(CON_NET_STATUS,
-		"\033[32mSLikeNet is ACTIVE on PORT: %d\033[0m\n", port);
+		"\033[32mSLikeNet is ACTIVE on %s:%d\033[0m\n",
+		udp_local_addr_string(), port);
 	return 0;
 }
 
