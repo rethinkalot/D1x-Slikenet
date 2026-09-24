@@ -49,15 +49,23 @@ static void con_add_buffer_line(int priority, char *buffer)
 
 /* Decide whether a message at the given priority should be emitted at all.
  *
- * Regular messages follow the -debug / -verbose / normal scale. The one
- * exception is the per packet network telemetry, which needs both -debug and
- * -verbose because a line per packet is both noisy and expensive. The network
- * status notices use negative priorities, so they always pass this test and
- * still reach gamelog.txt on a normal launch. */
+ * Two tiers are gated on a specific flag rather than on the numeric level,
+ * because -debug raises the level above CON_VERBOSE and the two flag
+ * combinations have to stay distinguishable:
+ *
+ *   -debug   : SLikeNet / network telemetry (the CON_NET_* priorities)
+ *   -verbose : event, input and window diagnostics (CON_VERBOSE)
+ *
+ * Either flag on its own shows only its own tier; both together show both.
+ * Everything else keeps the plain level comparison, so CON_DEBUG rides on
+ * -debug and the notices below it are always emitted. */
 static int con_priority_enabled(int priority)
 {
-	if (CON_IS_NET_PACKET_PRIORITY(priority))
-		return GameArg.DbgNetPackets;
+	if (CON_IS_NET_PRIORITY(priority))
+		return (int)GameArg.DbgVerbose >= CON_DEBUG;
+
+	if (priority == CON_VERBOSE)
+		return GameArg.DbgVerboseGiven;
 
 	return priority <= (int)GameArg.DbgVerbose;
 }

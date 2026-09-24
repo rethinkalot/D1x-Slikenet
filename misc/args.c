@@ -198,9 +198,10 @@ void ReadCmdArgs(void)
 	else if (FindArg("-verbose"))	GameArg.DbgVerbose = CON_VERBOSE;
 	else				GameArg.DbgVerbose = CON_NORMAL;
 
-	// Per packet telemetry is both noisy and expensive, so it needs the two
-	// explicit opt-in flags rather than just the verbosity level.
-	GameArg.DbgNetPackets = (FindArg("-debug") && FindArg("-verbose"));
+	// -verbose is tracked separately as well: -debug raises the numeric level
+	// above CON_VERBOSE, and the two tiers have to stay distinguishable so that
+	// -debug on its own does not pull in the event and input diagnostics.
+	GameArg.DbgVerboseGiven = (FindArg("-verbose") != 0);
 
 	GameArg.DbgSafelog 		= FindArg("-safelog");
 	GameArg.DbgNoRun 		= FindArg("-norun");

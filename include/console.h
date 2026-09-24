@@ -18,20 +18,15 @@
 #define CON_NET_DEALLOC -7
 
 /* Network telemetry priorities. The console renders these with their own
- * colours (see con_draw).
+ * colours (see con_draw) and only emits them when the game was started with
+ * -debug, so that per packet traffic stays out of a normal session.
  *
- * CON_NET_STATUS / CON_NET_DEALLOC are connection level notices - the host
- * address, the port in use and channel teardown. They are emitted at every
- * verbosity level so that a normal launch still records them in gamelog.txt;
- * the Windows console window simply stays hidden unless -debug is given.
- *
- * CON_NET_TX / CON_NET_RX carry one line per packet. That is far too noisy
- * and too expensive for normal play, so they additionally require both -debug
- * and -verbose; see con_printf. */
-#define CON_NET_PACKET_LOWEST  CON_NET_RX
-#define CON_NET_PACKET_HIGHEST CON_NET_TX
-#define CON_IS_NET_PACKET_PRIORITY(p) \
-	((p) >= CON_NET_PACKET_LOWEST && (p) <= CON_NET_PACKET_HIGHEST)
+ * CON_NET_STATUS / CON_NET_DEALLOC are connection level notices: the host
+ * address, the port in use and channel teardown. CON_NET_TX / CON_NET_RX
+ * carry one line per packet. */
+#define CON_NET_LOWEST  CON_NET_DEALLOC
+#define CON_NET_HIGHEST CON_NET_TX
+#define CON_IS_NET_PRIORITY(p) ((p) >= CON_NET_LOWEST && (p) <= CON_NET_HIGHEST)
 
 
 #define CON_LINES_ONSCREEN 18

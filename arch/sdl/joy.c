@@ -70,7 +70,7 @@ void joy_button_handler(SDL_JoyButtonEvent *jbe)
 
 	event.type = (jbe->type == SDL_JOYBUTTONDOWN) ? EVENT_JOYSTICK_BUTTON_DOWN : EVENT_JOYSTICK_BUTTON_UP;
 	event.button = button;
-	con_printf(CON_DEBUG, "Sending event %s, button %d\n", (jbe->type == SDL_JOYBUTTONDOWN) ? "EVENT_JOYSTICK_BUTTON_DOWN" : "EVENT_JOYSTICK_JOYSTICK_UP", event.button);
+	con_printf(CON_VERBOSE, "Sending event %s, button %d\n", (jbe->type == SDL_JOYBUTTONDOWN) ? "EVENT_JOYSTICK_BUTTON_DOWN" : "EVENT_JOYSTICK_JOYSTICK_UP", event.button);
 	event_send((d_event *)&event);
 }
 
@@ -99,14 +99,14 @@ void joy_hat_handler(SDL_JoyHatEvent *jhe)
 		{
 			event.type = EVENT_JOYSTICK_BUTTON_DOWN;
 			event.button = hat+hbi;
-			con_printf(CON_DEBUG, "Sending event EVENT_JOYSTICK_BUTTON_DOWN, button %d\n", event.button);
+			con_printf(CON_VERBOSE, "Sending event EVENT_JOYSTICK_BUTTON_DOWN, button %d\n", event.button);
 			event_send((d_event *)&event);
 		}
 		else if(Joystick.button_last_state[hat+hbi] && !Joystick.button_state[hat+hbi])  //last_state down, current state up
 		{
 			event.type = EVENT_JOYSTICK_BUTTON_UP;
 			event.button = hat+hbi;
-			con_printf(CON_DEBUG, "Sending event EVENT_JOYSTICK_BUTTON_UP, button %d\n", event.button);
+			con_printf(CON_VERBOSE, "Sending event EVENT_JOYSTICK_BUTTON_UP, button %d\n", event.button);
 			event_send((d_event *)&event);
 		}
 	}
@@ -126,7 +126,7 @@ int joy_axis_handler(SDL_JoyAxisEvent *jae)
 	event.type = EVENT_JOYSTICK_MOVED;
 	event.axis = axis;
 	event.value = Joystick.axis_value[axis] = jae->value/256;
-	con_printf(CON_DEBUG, "Sending event EVENT_JOYSTICK_MOVED, axis: %d, value: %d\n",event.axis, event.value);
+	con_printf(CON_VERBOSE, "Sending event EVENT_JOYSTICK_MOVED, axis: %d, value: %d\n",event.axis, event.value);
 	event_send((d_event *)&event);
 
 	return 1;
@@ -149,7 +149,7 @@ static int send_axis_button_event(unsigned button, event_type e)
 	Joystick.button_state[button] = (e == EVENT_JOYSTICK_BUTTON_UP) ? 0 : 1;
 	event.type = e;
 	event.button = button;
-	con_printf(CON_DEBUG, "Sending event %sEVENT_JOYSTICK_BUTTON_DOWN, button %d\n",
+	con_printf(CON_VERBOSE, "Sending event %sEVENT_JOYSTICK_BUTTON_DOWN, button %d\n",
 		(e == EVENT_JOYSTICK_BUTTON_UP ? "EVENT_JOYSTICK_BUTTON_UP" : "EVENT_JOYSTICK_BUTTON_DOWN"), button);
 	event_send((d_event *)&event);
 	return 1;
