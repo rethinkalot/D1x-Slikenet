@@ -84,6 +84,9 @@ char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE CORPORAT
 #endif
 #ifdef _WIN32
 #include <windows.h>
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#endif
 #endif
 
 int Screen_mode=-1;					//game screen or editor screen?
@@ -327,9 +330,21 @@ int main(int argc, char *argv[])
 	{
 		if (AllocConsole())
 		{
+			HANDLE hOut;
+			DWORD mode;
+
 			freopen("CONOUT$", "w", stdout);
 			freopen("CONOUT$", "w", stderr);
 			freopen("CONIN$", "r", stdin);
+
+			/* A freshly allocated console does not interpret ANSI escapes, so
+			 * enable virtual terminal processing to keep the SlikeNet colour
+			 * codes rendering. The console Windows used to create for the
+			 * console subsystem build had this on already, which is why the
+			 * codes stopped being coloured after that change. */
+			hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+			if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &mode))
+				SetConsoleMode(hOut, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
 		}
 	}
 	else
