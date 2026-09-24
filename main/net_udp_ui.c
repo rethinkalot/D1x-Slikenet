@@ -30,6 +30,25 @@
 
 char UDP_MyPort[6] = "";
 
+/* Port to fall back on. -udp_myport from the command line or d1x.ini takes
+ * precedence over the built in UDP_PORT_DEFAULT. */
+static void net_udp_my_port_default(void)
+{
+	if (GameArg.MplUdpMyPort != 0)
+		snprintf(UDP_MyPort, sizeof(UDP_MyPort), "%d", GameArg.MplUdpMyPort);
+	else
+		snprintf(UDP_MyPort, sizeof(UDP_MyPort), "%d", UDP_PORT_DEFAULT);
+}
+
+/* Seed UDP_MyPort the first time it is needed. Deliberately not re-seeded on
+ * every menu entry, so that a port typed in game is not silently discarded
+ * and reverted to the default. */
+static void net_udp_my_port_init(void)
+{
+	if (UDP_MyPort[0] == '\0')
+		net_udp_my_port_default();
+}
+
 int load_preset(newmenu *menu_settings);
 void save_preset(void);
 
@@ -253,9 +272,9 @@ menu:
 	}
 	Netgame.ShortPackets=m[opt_shortpack].value;
 
-	if ((atoi(UDP_MyPort)) < 0 ||(atoi(UDP_MyPort)) > 65535)
+	if ((atoi(UDP_MyPort)) <= 0 ||(atoi(UDP_MyPort)) > 65535)
 	{
-		snprintf (UDP_MyPort, sizeof(UDP_MyPort), "%d", UDP_PORT_DEFAULT);
+		net_udp_my_port_default();
 		nm_messagebox(TXT_ERROR, 1, TXT_OK, "Illegal port");
 	}
 
@@ -733,10 +752,7 @@ int net_udp_setup_game()
 			Players[i].callsign[0]=0;
 
 	sprintf( Netgame.game_name, "%s%s", Players[Player_num].callsign, TXT_S_GAME );
-	if (GameArg.MplUdpMyPort != 0)
-		snprintf (UDP_MyPort, sizeof(UDP_MyPort), "%d", GameArg.MplUdpMyPort);
-	else
-		snprintf (UDP_MyPort, sizeof(UDP_MyPort), "%d", UDP_PORT_DEFAULT);
+	net_udp_my_port_init();
 
 	netgame_set_defaults();
 
@@ -873,9 +889,9 @@ static int manual_join_game_handler(newmenu *menu, d_event *event, direct_join *
 
 			net_udp_init(); // yes, redundant call but since the menu does not know any better it would allow any IP entry as long as Netgame-entry looks okay... my head hurts...
 			
-			if ((atoi(UDP_MyPort)) <= 1024 ||(atoi(UDP_MyPort)) > 65535)
+			if ((atoi(UDP_MyPort)) <= 0 ||(atoi(UDP_MyPort)) > 65535)
 			{
-				snprintf (UDP_MyPort, sizeof(UDP_MyPort), "%d", UDP_PORT_DEFAULT);
+				net_udp_my_port_default();
 				nm_messagebox(TXT_ERROR, 1, TXT_OK, "Illegal port");
 				return 1;
 			}
@@ -947,10 +963,7 @@ void net_udp_manual_join_game()
 	else
 		snprintf(dj->portbuf, sizeof(dj->portbuf), "%d", UDP_PORT_DEFAULT);
 
-	if (GameArg.MplUdpMyPort != 0)
-		snprintf (UDP_MyPort, sizeof(UDP_MyPort), "%d", GameArg.MplUdpMyPort);
-	else
-		snprintf (UDP_MyPort, sizeof(UDP_MyPort), "%d", UDP_PORT_DEFAULT);
+	net_udp_my_port_init();
 
 	nitems = 0;
 	

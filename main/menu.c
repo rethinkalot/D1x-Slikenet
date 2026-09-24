@@ -39,6 +39,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "gamesave.h"
 #include "palette.h"
 #include "args.h"
+#include "console.h"
 #include "newdemo.h"
 #include "timer.h"
 #include "sounds.h"
@@ -496,7 +497,10 @@ void create_main_menu(newmenu_item *m, int *menu_choice, int *callers_num_option
 		ADD_ITEM("  Editor", MENU_EDITOR, KEY_E);
 		#endif
 	}
-	ADD_ITEM("  SANDBOX", MENU_SANDBOX, -1);
+	/* The sandbox viewers are developer tools, so only offer them when the
+	 * game was started with -debug. */
+	if (GameArg.DbgVerbose >= CON_DEBUG)
+		ADD_ITEM("  SANDBOX", MENU_SANDBOX, -1);
 	#endif
 
 	*callers_num_options = num_options;
