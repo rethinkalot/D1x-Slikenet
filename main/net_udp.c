@@ -4572,6 +4572,15 @@ void net_udp_process_p2p_ping(ubyte *data, struct _sockaddr sender_addr, int dat
 	len++; // Skip packet id
 	len += 4; // token
 	int from_player = data[len]; len++; 
+
+	// Bound the player number before it indexes Netgame.players and
+	// connection_statuses; the latter only has MAX_PLAYERS entries. Senders
+	// always use their own Player_num, which is 0..MAX_PLAYERS-1 and includes
+	// OBSERVER_PLAYER_ID for observers, so no valid packet is rejected here.
+	if (from_player >= MAX_PLAYERS) {
+		return;
+	}
+
 	fix64 time;
 	memcpy(&time, data + len, 8); len += 8; 
 	int direct_ping = data[len]; len++;
@@ -4601,16 +4610,13 @@ void net_udp_process_p2p_ping(ubyte *data, struct _sockaddr sender_addr, int dat
 	
 	// If I can hear a direct ping, I can probably reply
 	if(direct_ping) {
-		// Don't update master, non-existent player, or me
-		if( (from_player == multi_who_is_master()) || 
-			(from_player > MAX_PLAYERS) || 
-			(from_player == Player_num)) {
-
-			char log_comment[100];
-			snprintf(log_comment, 100, "Cannot update address -- illegal player num %d (==%d, >%d, == %d)", from_player,
-				multi_who_is_master(), MAX_PLAYERS, Player_num); 
-			net_log_comment(log_comment); 
-		} else {
+		// Master, non-existent players and ourselves are all perfectly normal
+		// here, so they are ignored silently. This used to emit an "illegal
+		// player num" comment, which fired constantly during ordinary play and
+		// carried no useful information.
+		if( (from_player != multi_who_is_master()) &&
+			(from_player <= MAX_PLAYERS) &&
+			(from_player != Player_num)) {
 			update_address_for_player(from_player, sender_addr);
 		}
 

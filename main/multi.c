@@ -4874,7 +4874,12 @@ void multi_send_obs_update(ubyte event, ubyte event_data) {
 void multi_do_obs_update(const ubyte *buf) {
 	if(multi_i_am_master()) { return; }
 
+	// buf[3] arrives straight off the network, so bound it before it is used to
+	// size the loops below - the observer array only has MAX_OBSERVERS slots.
 	Netgame.numobservers = buf[3];
+	if(Netgame.numobservers > MAX_OBSERVERS) {
+		Netgame.numobservers = MAX_OBSERVERS;
+	}
 	if(Netgame.max_numobservers < Netgame.numobservers) {
 		Netgame.max_numobservers = Netgame.numobservers;
 	}
