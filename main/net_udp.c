@@ -3337,7 +3337,6 @@ void net_udp_noloss_add_queue_pkt(uint32_t pkt_num, fix64 time, ubyte *data, ush
 
 	if (UDP_mdata_queue[found].used) // seems the slot we found is used (list is full) so screw  those who still need ack's.
 	{
-		con_printf(CON_DEBUG, "P#%i: MData store list is full!\n", Player_num);
 		if (multi_i_am_master())
 		{
 			for ( i=1; i<N_players; i++ )
@@ -3360,7 +3359,6 @@ void net_udp_noloss_add_queue_pkt(uint32_t pkt_num, fix64 time, ubyte *data, ush
 		}
 	}
 
-	con_printf(CON_DEBUG, "P#%i: Adding MData pkt_num %i, type %i from P#%i to MData store list\n", Player_num, pkt_num, data[0], pnum);
 	UDP_mdata_queue[found].used = 1;
 	UDP_mdata_queue[found].pkt_initial_timestamp = time;
 	for (i = 0; i < MAX_PLAYERS; i++)
@@ -3398,7 +3396,6 @@ void net_udp_noloss_obs_add_queue_pkt(uint32_t pkt_num, fix64 time, ubyte *data,
 
 	if (UDP_mdata_obs_queue[found].used) // seems the slot we found is used (list is full) so screw  those who still need ack's.
 	{
-		con_printf(CON_DEBUG, "P#%i: MData store list is full!\n", Player_num);
 		if (multi_i_am_master())
 		{
 			for ( i=1; i<Netgame.max_numobservers; i++ )
@@ -3421,7 +3418,6 @@ void net_udp_noloss_obs_add_queue_pkt(uint32_t pkt_num, fix64 time, ubyte *data,
 		}
 	}
 
-	con_printf(CON_DEBUG, "Observer: Adding MData pkt_num %i, type %i from P#%i to MData store list\n", pkt_num, data[0], pnum);
 	UDP_mdata_obs_queue[found].used = 1;
 	UDP_mdata_obs_queue[found].pkt_initial_timestamp = time;
 	for (i = 0; i < MAX_PLAYERS; i++)
@@ -3456,7 +3452,6 @@ int net_udp_noloss_validate_mdata(uint32_t pkt_num, ubyte sender_pnum, struct _s
 	}
 	*/
 	
-	con_printf(CON_DEBUG, "P#%i: Sending MData ACK for pkt %i - pnum %i\n",Player_num, pkt_num, sender_pnum);
 	memset(&buf,0,sizeof(buf));
 	buf[len] = UPID_MDATA_ACK;													len++;
 	buf[len] = Player_num;														len++;
@@ -3506,7 +3501,6 @@ void net_udp_noloss_got_ack(ubyte *data, int data_len, struct _sockaddr sender_a
 					return;
 				}
 				
-				con_printf(CON_DEBUG, "P#%i: Got MData ACK for pkt_num %i from observer %i for pnum %i\n",Player_num, pkt_num, obsnum, dest_pnum);
 				UDP_mdata_obs_queue[i].observer_ack[obsnum] = 1;
 				break;
 			}
@@ -3516,7 +3510,6 @@ void net_udp_noloss_got_ack(ubyte *data, int data_len, struct _sockaddr sender_a
 		{
 			if ((pkt_num == UDP_mdata_queue[i].pkt_num) && (dest_pnum == UDP_mdata_queue[i].Player_num))
 			{
-				con_printf(CON_DEBUG, "P#%i: Got MData ACK for pkt_num %i from pnum %i for pnum %i\n",Player_num, pkt_num, sender_pnum, dest_pnum);
 				UDP_mdata_queue[i].player_ack[sender_pnum] = 1;
 				break;
 			}
@@ -3527,7 +3520,6 @@ void net_udp_noloss_got_ack(ubyte *data, int data_len, struct _sockaddr sender_a
 /* Init/Free the queue. Call at start and end of a game or level. */
 void net_udp_noloss_init_mdata_queue(void)
 {
-	con_printf(CON_DEBUG, "P#%i: Clearing MData store/GOT list\n",Player_num);
 	memset(&UDP_mdata_queue,0,sizeof(UDP_mdata_store)*UDP_MDATA_STOR_QUEUE_SIZE);
 	memset(&UDP_mdata_obs_queue,0,sizeof(UDP_mdata_obs_store)*UDP_MDATA_STOR_QUEUE_SIZE);
 	memset(&UDP_mdata_got,0,sizeof(UDP_mdata_recv)*MAX_PLAYERS);
@@ -3536,7 +3528,6 @@ void net_udp_noloss_init_mdata_queue(void)
 /* Reset the trace list for given player when (dis)connect happens */
 void net_udp_noloss_clear_mdata_got(ubyte player_num)
 {
-	con_printf(CON_DEBUG, "P#%i: Clearing GOT list for %i\n",Player_num, player_num);
 	memset(&UDP_mdata_got[player_num].pkt_num,0,sizeof(uint32_t)*UDP_MDATA_STOR_QUEUE_SIZE);
 	UDP_mdata_got[player_num].cur_slot = 0;
 }
@@ -3577,7 +3568,6 @@ void net_udp_noloss_process_queue(fix64 time)
 					ubyte buf[sizeof(UDP_mdata_info)];
 					int len = 0;
 					
-					con_printf(CON_DEBUG, "P#%i: Resending pkt_num %i from pnum %i to pnum %i\n",Player_num, UDP_mdata_queue[queuec].pkt_num, UDP_mdata_queue[queuec].Player_num, plc);
 					
 					UDP_mdata_queue[queuec].pkt_timestamp[plc] = time;
 					memset(&buf, 0, sizeof(UDP_mdata_info));
@@ -3622,7 +3612,6 @@ void net_udp_noloss_process_queue(fix64 time)
 					multi_reset_stuff();
 				}
 			}
-			con_printf(CON_DEBUG, "P#%i: Removing stored pkt_num %i - missing ACKs: %i\n",Player_num, UDP_mdata_queue[queuec].pkt_num, needack);
 			memset(&UDP_mdata_queue[queuec],0,sizeof(UDP_mdata_store));
 		}
 
@@ -3653,7 +3642,6 @@ void net_udp_noloss_process_queue(fix64 time)
 					ubyte buf[sizeof(UDP_mdata_info)];
 					int len = 0;
 					
-					con_printf(CON_DEBUG, "P#%i: Resending pkt_num %i from pnum %i to observer %i\n", Player_num, UDP_mdata_queue[queuec].pkt_num, UDP_mdata_queue[queuec].Player_num, plc);
 					
 					UDP_mdata_obs_queue[queuec].pkt_timestamp[plc] = time;
 					memset(&buf, 0, sizeof(UDP_mdata_info));
@@ -3698,7 +3686,6 @@ void net_udp_noloss_process_queue(fix64 time)
 					multi_reset_stuff();
 				}
 			}
-			con_printf(CON_DEBUG, "P#%i: Removing stored pkt_num %i - missing ACKs: %i\n",Player_num, UDP_mdata_obs_queue[queuec].pkt_num, needack);
 			memset(&UDP_mdata_obs_queue[queuec],0,sizeof(UDP_mdata_obs_store));
 		}
 

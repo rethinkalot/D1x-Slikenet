@@ -8,11 +8,14 @@
 int UDP_Socket[3] = { -1, -1, -1 };
 
 /* Running totals since the last udp_traffic_stat() call. These count packets
- * rather than averaging packet sizes, so the once-per-second summary actually
- * tracks Netgame.PacketsPerSec - the per packet lines below only ever show the
- * size of a single packet. */
+ * rather than averaging packet sizes, so the periodic summary actually tracks
+ * Netgame.PacketsPerSec - the per packet lines below only ever show the size
+ * of a single packet. */
 static unsigned int UDP_num_sendto = 0, UDP_len_sendto = 0;
 static unsigned int UDP_num_recvfrom = 0, UDP_len_recvfrom = 0;
+
+/* Seconds between traffic summary lines. */
+#define TRAFFIC_STAT_INTERVAL 5
 
 ssize_t dxx_sendto(int sockfd, const void *msg, int len, unsigned int flags,
 	const struct sockaddr *to, socklen_t tolen)
@@ -46,17 +49,18 @@ ssize_t dxx_recvfrom(int sockfd, void *buf, int len, unsigned int flags,
 	return result;
 }
 
-/* Report the traffic that moved during the last second. Called once per frame
- * from net_udp_do_frame(). The per packet lines above can only ever show the
- * size of a single packet; this is the readout that shows how many actually
- * went out, so it is the one that responds to Netgame.PacketsPerSec. Colours
- * are kept identical to the per packet OUT / IN lines. */
+/* Report the traffic that moved since the last report. Called once per frame
+ * from net_udp_do_frame(), but only emits every TRAFFIC_STAT_INTERVAL
+ * seconds. The per packet lines above can only ever show the size of a single
+ * packet; this is the readout that shows how many actually went out, so it is
+ * the one that responds to Netgame.PacketsPerSec. Colours are kept identical
+ * to the per packet OUT / IN lines. */
 void udp_traffic_stat(void)
 {
 	static fix64 last_traf_time = 0;
 	fix64 now = timer_query();
 
-	if (now < last_traf_time + F1_0)
+	if (now < last_traf_time + (F1_0 * TRAFFIC_STAT_INTERVAL))
 		return;
 
 	last_traf_time = now;
