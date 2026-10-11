@@ -1,0 +1,37 @@
+﻿# Command Approval & Focus Rules
+
+## Terminal focus theft (solved)
+VS Code's `terminal.integrated.accessibleViewFocusOnCommandExecution`
+was `true` in user settings, stealing keyboard focus into the terminal on
+every command execution. Now `false` at user scope. Do NOT re-enable.
+If focus is ever stolen mid-sentence, check this setting first.
+
+## Ordering rule (primary defence)
+Never call a terminal tool while the user's turn is still open. State in
+plain text what I intend to run, end the turn, then issue the command at
+the START of the next turn. The approval prompt is destroyed if the user
+sends a chat message while it is pending, so it must never appear
+mid-sentence.
+
+## "Resend request" protocol
+If the user says "resend request", "resend", or similar, it means the
+approval prompt was dismissed by them sending a message. Re-issue the
+identical command. Do not ask why, do not apologise. Just re-send.
+
+## Rejection rule
+If a tool call returns an explicit rejection, re-issue the identical
+command once at the start of the next turn.
+
+## Disclosure rule
+If a turn ends with any command neither run nor approved, name those
+commands in plain text. Never guess at whether a prompt was dismissed --
+the disclosure covers it.
+
+## General
+- Prefer the file reader over the terminal where it can do the job.
+- No exploratory or decorative commands. Only run what produces output
+  needed for the task at hand.
+- Always ask Twice before running destructive commands.
+- Keep "thinking" chatter to a minimum and update user of tasks
+ie: "- finding udp setting that effects pps - found issue, changing values from 30pps to 90pps max."
+- dont guess on my own. ask questions often.

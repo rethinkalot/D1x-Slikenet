@@ -1,0 +1,87 @@
+	if (i > menu->max_on_menu)
+	{
+		menu->is_scroll_box=1;
+		menu->h = th+(LINE_SPACING*menu->max_on_menu);
+		menu->max_displayable=menu->max_on_menu;
+
+		// if our last citem was > menu->max_on_menu, make sure we re-scroll when we call this menu again
+		if (menu->citem > menu->max_on_menu-4)
+		{
+			menu->scroll_offset = menu->citem - (menu->max_on_menu-4);
+			if (menu->scroll_offset + menu->max_on_menu > menu->nitems)
+				menu->scroll_offset = menu->nitems - menu->max_on_menu;
+		}
+	}
+	else
+	{
+		menu->is_scroll_box=0;
+		menu->max_on_menu=i;
+	}
+
+	right_offset=0;
+
+	// DEFENSIVE GUARD: Ensure menu allocation array pointers are active before parsing elements
+	if (menu && menu->items) {
+		for (i=0; i<menu->nitems; i++ )	{
+			menu->items[i].w = menu->w;
+			if (menu->items[i].right_offset > right_offset )
+				right_offset = menu->items[i].right_offset;
+		}
+	}
+
+	if (menu) {
+		menu->w += right_offset;
+	}
+
+	twidth = 0;
+	if (menu && tw > menu->w )	{
+		twidth = ( tw - menu->w )/2;
+		menu->w = tw;
+	}
+	
+	// HARD CLAMP: Prevent memory container from blowing clean past resolution limits
+	if (menu && menu->w > 640) {
+		menu->w = 640;
+	}
+	if (menu && menu->w < 0) {
+		menu->w = 320; // Fallback to safe mid-bound if font calculations went negative/overflowed
+	}
+
+	// RIGID POINTER VALIDATION BEFORE STACK BOUNDARY MODIFICATION
+	if (!menu) {
+		fprintf(stderr, "!!! D1X CRITICAL ERROR: menu tracking pointer is NULL or corrupted inside newmenu_create_structure\n");
+		return;
+	}
+
+	menu->w += BORDERX*2;
+	menu->h += BORDERY*2;
+
+	menu->x = (GWIDTH-menu->w)/2;
+	menu->y = (GHEIGHT-menu->h)/2;
+
+	if ( menu->x < 0 ) menu->x = 0;
+	if ( menu->y < 0 ) menu->y = 0;
+
+	nm_draw_background1( menu->filename );
+
+	// Update all item's x & y values.
+	if (menu->items) {
+		for (i=0; i<menu->nitems; i++ )	{
+			menu->items[i].x = BORDERX + twidth + right_offset;
+			menu->items[i].y += BORDERY;
+			if ( menu->items[i].type==NM_TYPE_RADIO )	{
+				fm = -1;	// find first marked one
+				for ( j=0; j<menu->nitems; j++ )	{
+					if ( menu->items[j].type==NM_TYPE_RADIO && menu->items[j].group==menu->items[i].group )	{
+						if (fm==-1 && menu->items[j].value)
+							fm = j;
+						menu->items[j].value = 0;
+					}
+				}
+				if ( fm>=0 )
+					menu->items[fm].value=1;
+				else
+					menu->items[i].value=1;
+			}
+		}
+	}

@@ -1,0 +1,4 @@
+#ifndef _SDL_KEYSYM_H_PRISTINE_PASSTHROUGH
+#define _SDL_KEYSYM_H_PRISTINE_PASSTHROUGH
+#include <SDL/SDL_keysym.h>
+#endif
