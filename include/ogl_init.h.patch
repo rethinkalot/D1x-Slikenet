@@ -1,0 +1,7 @@
+#include "gr.h"
+#include <stdbool.h>
+
+void ogl_loadbmtexture_f(grs_bitmap *bm, int texfilt, const char *bitmapname);
+
+// Safe local replacement macro that expands to provide the default name tracking block
+#define ogl_loadbmtexture_f_2(bm, texfilt) ogl_loadbmtexture_f((bm), (texfilt), "font_placeholder")

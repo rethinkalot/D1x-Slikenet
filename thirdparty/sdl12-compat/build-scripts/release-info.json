@@ -1,0 +1,89 @@
+{
+  "name": "sdl12-compat",
+  "remote": "libsdl-org/sdl12-compat",
+  "dependencies": {
+    "sdl2-compat": {
+      "startswith": "2.",
+      "repo": "libsdl-org/sdl2-compat"
+    }
+  },
+  "version": {
+    "file": "include/SDL/SDL_version.h",
+    "re_major": "^#define SDL_MAJOR_VERSION\\s+([0-9]+)$",
+    "re_minor": "^#define SDL_MINOR_VERSION\\s+([0-9]+)$",
+    "re_micro": "^#define SDL_PATCHLEVEL\\s+([0-9]+)$"
+  },
+  "source": {
+    "checks": [
+      "src/SDL12_compat.c",
+      "include/SDL/SDL.h",
+      "test/testsprite.c"
+    ]
+  },
+  "msvc": {
+    "cmake": {
+      "archs": [
+        "x86",
+        "x64"
+      ],
+      "args": [
+        "-DSDL12COMPAT_VENDOR_INFO=libsdl.org",
+        "-DSDL12COMPAT_INSTALL_SDL2=ON",
+        "-DSDL12COMPAT_INSTALL_SDL3=ON",
+        "-DSDL12TESTS=OFF",
+        "-DSDL12DEVEL=ON",
+        "-DSTATICDEVEL=OFF"
+      ],
+      "files-lib": {
+        "": [
+          "bin/SDL.dll"
+        ]
+      },
+      "files-devel": {
+        "lib/@<@ARCH@>@": [
+          "bin/SDL.dll",
+          "lib/SDL.lib",
+          "lib/SDLmain.lib"
+        ]
+      }
+    },
+    "files-lib": {
+      "": [
+        "build-scripts/pkg-support/msvc/@<@ARCH@>@/INSTALL.md.in:INSTALL.md",
+        "LICENSE.txt",
+        "build-scripts/pkg-support/msvc/README.md",
+        "@<@ARCH@>@/SDL2.dll",
+        "@<@ARCH@>@/SDL3.dll"
+      ]
+    },
+    "files-devel": {
+      "": [
+        "build-scripts/pkg-support/msvc/INSTALL.md",
+        "LICENSE.txt",
+        "build-scripts/pkg-support/msvc/README.md"
+      ],
+      "include": [
+        "include/SDL/*"
+      ],
+      "lib/@<@ARCH@>@": [
+        "@<@ARCH@>@/SDL2.dll",
+        "@<@ARCH@>@/SDL3.dll"
+      ]
+    },
+    "dependencies": {
+      "sdl2-compat": {
+        "artifact": "sdl2-compat-devel-2.??.??-VC.zip",
+        "copy": [
+          {
+            "src": "lib/@<@ARCH@>@/SDL3.dll",
+            "dst": "@<@ARCH@>@"
+          },
+          {
+            "src": "lib/@<@ARCH@>@/SDL2.dll",
+            "dst": "@<@ARCH@>@"
+          }
+        ]
+      }
+    }
+  }
+}

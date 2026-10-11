@@ -1,0 +1,130 @@
+Compiling D1X-Redux Sourcecode
+
+This file describes how to compile D1X-Redux from Source. There are also binary packages available from
+https://dxx-redux.com
+
+
+Requirements:
+=============
+
+   1. C/C++ compiler (gcc/g++ or MSVC)
+   2. CMake
+   3. SDL(-devel)
+   4. PhysFS(-devel)
+   5. GLU/GL
+   6. GLEW
+   7. libpng
+   8. NASM (optional for Assembler-based Texture-mapper in non-OpenGL Build)
+   9. SDL_mixer(-devel) (+ dependencies) for external music support
+
+
+Compiling:
+==========
+
+   Type 'cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo' to prepare the build.
+   Type 'cmake --build build' to compile the build.
+   You can also give additional options like 'cmake -DOPENGL=OFF'. See
+   'cmake -LH -B build' for available options.
+
+
+Needed files:
+=============
+
+   Since D1X-Redux is a Sourceport of the Descent-Engine you will need the Game-Content data files to run
+   the game. You don't own the full game, yet?
+   Just visit GOOD OLD GAMES via:
+   https://www.gog.com/game/descent
+   and download it for a very low price! DRM-FREE!
+
+   Following files are needed to run the game:
+   descent.hog
+   descent.pig
+
+   For the Mac CD-ROM, download The Unarchiver (http://wakaba.c3.cx/s/apps/unarchiver.html) and drag the
+   installer program onto it. Alternatively, for Mac OS 9 or earlier simply run the installer.
+
+   Of course you can also use the Shareware game content with D1X-Redux which you can find here:
+   https://dxx-redux.com/dl/descent-pc-shareware.zip
+
+   For the PC CD-ROM, these files should be located on the Descent1 CD-Rom. The PC version data files need
+   to be patched to version 1.4a.
+
+   There is a patch suitable for Windows/Unix/Mac OS X available at:
+   https://dxx-redux.com/dl/descent-game-content-10to14a-patch.zip
+
+   To play the Multiplayer levelset 'Total Chaos', make sure the files
+
+   chaos.hog
+   chaos.msn
+
+   are in the subdirectory 'Missions'. These files should also be located on the Descent1 CD. For the
+   Mac CD data, simply move these files, after installing, from 'Data' to 'Missions'.
+
+
+Where to put these files:
+=========================
+
+   *NIX
+   ----
+   The Sharepath (/usr/share/games/d1x-redux by default) or
+   ~/.d1x-redux or
+   another directory specified by -hogdir via d1x.ini
+
+   MacOS
+   -----
+   Same directory as where the binary is located or
+   another directory specified by -hogdir via d1x.ini
+
+   Win32
+   -----
+   Same directory as where the binary is located
+   another directory specified by -hogdir via d1x.ini
+   
+
+Optional files:
+===============
+
+   D1X-Redux is expandable. You can add additional content to the game.
+
+   Missions:
+   ---------
+   Those can be found on several websites. Add them to the game by copying them to subdirectory
+   ‘missions/’. They can also go in subdirectories of 'missions/', unlike with the original version.
+   A good place to find additional mission might be the Descent Mission Archive:
+   https://sectorgame.com/dxma/
+
+   Custom Music (MP3, OGG, AIF, etc.):
+   -----------------------------------
+   Custom Music can be played via the CUSTOM MUSIC options by specifying it in the Sound Options menu.
+   Please note that all custom music has to be in 44Khz format. Supported formats depend on the capabilities of SDL_mixer.
+
+   AddOn Packs:
+   ------------
+   Custom AddOn packs will expand the game in many differnt ways. These are usually provided as ZIP or 7Z and can easily
+   be installed by putting them to where your game content resides (OS-dependent - see above).
+   NO EXTRACTION OR ADDITIONAL CONFIGURATION NEEDED.
+   AddOns for D1X-Rebirth generally also work with D1X-Redux, see for example:
+   https://web.archive.org/web/20160515232548/http://www.dxx-rebirth.com/addons/
+
+Launching the program
+=====================
+
+   *NIX
+   ----
+   After compiling and installing, the program can be launched with the command: d1x-redux
+
+   MacOS
+   -----
+   Simply double-click "D1X-Redux".
+
+   Win32
+   -----
+   Doubleclick d1x-redux.exe
+
+   To see a full list of available command-line options append ‘-h’, ‘-?’ to the command or refer file
+   d1x.ini
+
+
+Appendix
+========
+   https://dxx-redux.com
