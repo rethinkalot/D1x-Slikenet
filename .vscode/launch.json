@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "d1x-redux.exe",
+            "name": "D1x-Redux-SLikeNet.exe",
             "type": "cppdbg",
             "request": "launch",
-            "program": "C:/Games/D1x/d1x-redux.exe",
+            "program": "C:/Games/D1x/D1x-Redux-SLikeNet.exe",
             "args": [
                 "-nostickykeys",
                 "-verbose",
@@ -24,7 +24,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "Build Descent SlikeNet",
+            "preLaunchTask": "Build D1x-Redux-SLikeNet",
             "sourceFileMap": {
                 "C:/Games/D1s": "${workspaceFolder}"
             }
