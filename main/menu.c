@@ -1498,33 +1498,64 @@ opt_gr_multisample = nitems;
 			// avoids re-uploading every bitmap in the game plus every 3D model,
 			// which is what made this toggle feel like a long freeze.
 			//
-			// Anything else (filtering, multisample, models) genuinely needs the
+			// When ONLY 3D models changed, touch nothing but the models: the
+			// ASE parse/free already happened above via xmodel_load_all() /
+			// xmodel_free_all(), and each model's own textures GL-upload lazily
+			// on first draw (see xmodel_show_at). This keeps the models toggle
+			// from re-paging GameBitmaps, which belongs to Custom Textures only.
+			//
+			// Anything else (filtering, multisample) genuinely needs the
 			// full rebuild, because those settings are baked into every texture
 			// that is already resident.
 			int only_ctex = ctex_dirty && !texfilt_dirty && !multisample_dirty && !models_dirty;
+			int only_models = models_dirty && !texfilt_dirty && !multisample_dirty && !ctex_dirty;
 
 			if (only_ctex)
 			{
-				// The override tables in the level's .pg1/.dtx were read at level
-				// load time (see load_custom_data in gameseq.c), so flipping the
-				// flag alone is not enough -- GameBitmaps still holds whatever
-				// was loaded then. Re-read them for the current level, THEN drop
-				// the PNG entries so they repopulate lazily from the new data.
-				// Without this the toggle appeared to do nothing until the next
-				// level change.
-				if (Game_wind && Current_level_num != 0)
+				if (GameCfg.UseCustomTextures)
 				{
-					char *level_file = get_level_file(Current_level_num);
+					// Re-TICK (ON): stale plain-bitmap GL handles from the OFF state
+					// would make ogl_loadbmtexture_f() early-exit ("already loaded")
+					// and never re-ask for the PNG. So invalidate ALL handles via
+					// gr_set_attributes() + gr_set_mode(), re-read the level's
+					// override tables, then walk EVERY bitmap (level + HUD, weapons,
+					// projectiles, explosions, powerups, robots) so each one checks
+					// for its "<name>.png" override again. One-time hitch, correct.
+					show_boxed_message("Applying Texture Settings...", 0);
 
-					if (level_file)
+					gr_set_attributes();
+					gr_set_mode(Game_screen_mode);
+
+					if (Game_wind && Current_level_num != 0)
 					{
-						show_boxed_message("Applying Texture Settings...", 0);
-						load_custom_data(level_file);
-					}
-				}
+						char *level_file = get_level_file(Current_level_num);
 
-				if (Game_wind)
-					ogl_recache_custom_textures();
+						if (level_file)
+						{
+							load_custom_data(level_file);
+						}
+					}
+
+					if (Game_wind)
+						ogl_cache_level_textures();
+				}
+				else
+				{
+					// UN-TICK (OFF): plain bitmaps are already resident, so just
+					// drop the PNG entries and let them fall back lazily. Fast.
+					show_boxed_message("Applying Texture Settings...", 0);
+
+					if (Game_wind)
+						ogl_recache_custom_textures();
+				}
+			}
+			else if (only_models)
+			{
+				// Models-only change: no bitmap or full-cache work. ASE data was
+				// already loaded/freed above; GL textures self-populate on next
+				// draw via xmodel_show_at -> xmodel_load_gl. Popup names the
+				// toggle so the player gets feedback for the (usually fast) op.
+				show_boxed_message("Applying Model Settings...", 0);
 			}
 			else
 			{
