@@ -110,17 +110,24 @@ void draw_powerup(object *obj)
 		g3s_lrgb lrgb = { light, light, light };
 		int vclip_num = obj->rtype.vclip_info.vclip_num;
 
-		if (obj->id == POW_EXTRA_LIFE || obj->id == POW_ENERGY == obj->id == POW_SHIELD_BOOST ||
+		if (obj->id == POW_EXTRA_LIFE || obj->id == POW_ENERGY || obj->id == POW_SHIELD_BOOST ||
 			obj->id == POW_CLOAK || obj->id == POW_INVULNERABILITY) {
 			angles.p = 0;
+		} else if (obj->id == POW_QUAD_FIRE) {
+			angles.p = F1_0 / 12;
 		} else { 
 			angles.p = obj->id == POW_LASER ||
 				(obj->id >= POW_VULCAN_WEAPON && obj->id <= POW_FUSION_WEAPON) ?
 				F1_0 / 4 - F1_0 / 20 : F1_0 * 7 / 8;
 		}
 		angles.b = 0;
-		angles.h = (fixang)
-			(GameTime64 * F1_0 / (Vclip[vclip_num].num_frames * Vclip[vclip_num].frame_time));
+		fix64 rotation_duration = (fix64)Vclip[vclip_num].num_frames * Vclip[vclip_num].frame_time;
+		if (obj->id == POW_SHIELD_BOOST || obj->id == POW_CLOAK ||
+			obj->id == POW_EXTRA_LIFE || obj->id == POW_INVULNERABILITY)
+			rotation_duration = rotation_duration * 100 / 65;
+		else if (obj->id == POW_PROXIMITY_WEAPON)
+			rotation_duration *= 2;
+		angles.h = (fixang)(GameTime64 * F1_0 / rotation_duration);
 		vm_angles_2_matrix(&orient, &angles);
 
 		//compute_object_light(obj, NULL);
@@ -149,7 +156,10 @@ void powerup_basic(int redadd, int greenadd, int blueadd, int score, char *forma
 	va_list	args;
 
 	va_start(args, format );
-	HUD_init_message_va(HM_DEFAULT, format, args);
+	// Pickup lines are classed HM_REDUNDANT so "No redundant pickup messages"
+	// suppresses them wholesale (SP and MP). Guide-Bot uses buddy_message() and
+	// warnings use their own HM_MULTI messages, so both are unaffected here.
+	HUD_init_message_va(HM_DEFAULT|HM_REDUNDANT, format, args);
 	va_end(args);
 
 	if (!reduced_flash_wanted())

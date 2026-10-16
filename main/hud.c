@@ -118,6 +118,14 @@ static int is_worth_showing(int class_flag)
 	if (PlayerCfg.NoRedundancy && (class_flag & HM_REDUNDANT))
 		return 0;
 
+	// "Suppress HUD Messages (SP)": in single player drop everything on the
+	// HUD except the two things with their own toggles --
+	// ammo/shield warnings (HM_MULTI class, gated by their own checkboxes)
+	// and Guide-Bot chatter (HM_GUIDEBOT, gated by Shift+F4).
+	if (PlayerCfg.NoRedundancy && !(Game_mode & GM_MULTI) &&
+		!(class_flag & (HM_MULTI | HM_GUIDEBOT)))
+		return 0;
+
 	if (PlayerCfg.MultiMessages && (Game_mode & GM_MULTI) && !(class_flag & HM_MULTI))
 		return 0;
 

@@ -2297,7 +2297,7 @@ void do_misc_menu()
 		m[15].type = NM_TYPE_TEXT;
 		m[15].text = "";
 
-		ADD_CHECK(15, "No redundant pickup messages",PlayerCfg.NoRedundancy);
+		ADD_CHECK(15, "Suppress HUD Messages (SP)",PlayerCfg.NoRedundancy);
 		ADD_CHECK(16, "Show Player chat only (Multi)",PlayerCfg.MultiMessages);
 		ADD_CHECK(17, "No Rankings (Multi)",PlayerCfg.NoRankings);
 		ADD_CHECK(18, "Show D2-style Prox. Bomb Gauge",PlayerCfg.BombGauge);
