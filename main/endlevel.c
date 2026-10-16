@@ -291,6 +291,7 @@ void start_endlevel_sequence()
 	songs_play_song( SONG_ENDLEVEL, 0 );
 	#endif
 
+	speedrun_transition_start();
 	Endlevel_sequence = EL_FLYTHROUGH;
 
 	ConsoleObject->movement_type = MT_NONE;			//movement handled by flythrough

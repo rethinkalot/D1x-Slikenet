@@ -96,21 +96,26 @@ extern int reset_high_scores();
 extern void init_player_stats_level(int secret_flag);
 
 // Speedrun timers (IGT / RTA). See the block in gameseq.c for semantics.
-extern fix64 Speedrun_igt;
 extern fix64 Speedrun_rta;
-extern int Speedrun_igt_running;
+extern fix64 Speedrun_igt;
 extern int Speedrun_rta_running;
+extern int Speedrun_igt_running;
 extern int Speedrun_continued;
 extern int Speedrun_gameplay;
 extern void speedrun_tick(void);
+extern void speedrun_transition_tick(void);
+extern void speedrun_pause_menu_set(int visible);
+extern int speedrun_pause_menu_is_visible(void);
+extern void speedrun_transition_start(void);
+extern void speedrun_transition_stop(void);
 extern void speedrun_new_game(void);
 extern void speedrun_level_start(void);
 extern void speedrun_set_gameplay(int active);
 extern void speedrun_level_finished(void);
 extern void speedrun_quit_to_menu(void);
 extern void speedrun_game_loaded(void);
-extern void speedrun_rta_restored(fix64 ms);
 extern void speedrun_igt_restored(fix64 ms);
+extern void speedrun_rta_restored(fix64 ms);
 
 void open_message_window(void);
 void close_message_window(void);

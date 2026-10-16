@@ -169,52 +169,9 @@ int hud_stack_y(void)
 	return y;
 }
 
-// Speedrun timers: IGT (whole session) and RTA (total time spent flying).
-//
-// Deliberately a SEPARATE function from show_framerate(), and called
-// independently of it. The timers used to live INSIDE show_framerate(), which
-// tied them to GameCfg.FPSIndicator and to the rear-view check -- so switching
-// the FPS counter off silently hid the timers as well. The IGT is a run
-// integrity readout and must stay visible regardless of any other HUD
-// preference, including during cutscenes and letterboxed sequences.
-//
-// Both are CUMULATIVE for the entire run -- neither resets when a new level
-// spawns. They differ in what they include:
-//
-//   IGT - the whole session from the first spawn after the
-//         prepare-for-descent screen until quitting to the main menu,
-//         INCLUDING time spent paused, behind a menu, or watching a cutscene.
-//
-//   RTA - only time actually spent flying, accumulated across every level
-//         of the run, so pause, menus and cutscenes never pollute it.
-//
-// The gap between the two lines is therefore exactly the non-gameplay time,
-// which is what makes them useful as a pair. Both accumulate in whole
-// milliseconds, so the framerate cap cannot skew them and the hundredths
-// are exact.
-//
-// Green while the run is legitimate; white when it is a NULL ATTEMPT, i.e.
-// the times shown are still real and correct but the run cannot count as an
-// official one. Two independent reasons turn it white:
-//
-//   1. Speedrun_continued -- a saved game was loaded, so the run was
-//      interrupted mid-flight.
-//   2. cheats.enabled     -- any cheat code was entered. Read directly here
-//      rather than latched into Speedrun_continued by a hook, because that
-//      flag is set inside a cheat-string matcher that would otherwise have to
-//      be touched, and because cheats are also restored straight from the
-//      save file (state.c), so a loaded save that used cheats is flagged too.
-//
-// cheats.enabled is sticky for the whole game -- it is only cleared by
-// game_disable_cheats() on a new game or an abort -- so there is no window in
-// which a cheat could be active but the counters still read green.
-//
-// NOTE: this does NOT stop or alter either clock. The times remain a true
-// record of the session; they are simply not a submittable result.
-//
-// Gated on PlayerCfg.ShowSpeedrunTimers (Misc Options menu). Hiding it does NOT
-// stop the clocks -- they keep accumulating, so re-enabling the option shows the
-// true elapsed time rather than restarting from zero.
+// RTA is shown during gameplay and transitions. IGT is shown during gameplay
+// only (and remains visible, frozen, over the Escape pause screen).
+
 void show_speedrun_timers(void)
 {
 	int y;
@@ -232,7 +189,7 @@ void show_speedrun_timers(void)
 		return;
 
 	// Nothing meaningful to show before a run has started.
-	if (!(Speedrun_igt_running || Speedrun_rta_running || Speedrun_igt > 0))
+	if (!(Speedrun_rta_running || Speedrun_rta > 0))
 		return;
 
 	y = hud_stack_y();
@@ -253,8 +210,11 @@ void show_speedrun_timers(void)
 		speedrun_format_time(buf, sizeof(buf), "RTA", Speedrun_rta);
 		gr_printf(speedrun_timer_line_x(1, "RTA"), y + LINE_SPACING * 2, "%s", buf);
 
-		speedrun_format_time(buf, sizeof(buf), "IGT", Speedrun_igt);
-		gr_printf(speedrun_timer_line_x(0, "IGT"), y + LINE_SPACING * 3, "%s", buf);
+		if (Speedrun_igt_running || speedrun_pause_menu_is_visible())
+		{
+			speedrun_format_time(buf, sizeof(buf), "IGT", Speedrun_igt);
+			gr_printf(speedrun_timer_line_x(0, "IGT"), y + LINE_SPACING * 3, "%s", buf);
+		}
 	}
 }
 
@@ -641,12 +601,8 @@ void game_draw_hud_stuff()
 	if (!is_observer() && GameCfg.FPSIndicator && PlayerCfg.CurrentCockpitMode != CM_REAR_VIEW)
 		show_framerate();
 
-	// The speedrun timers are deliberately NOT bundled with show_framerate().
-	// They were, previously, which meant they were hidden whenever the FPS
-	// indicator was switched off or while the rear view was up. The IGT is a
-	// run-integrity readout and must always be on screen while a run is live --
-	// cutscenes, letterboxed sequences, cockpit changes and full-screen mode
-	// included. Only PlayerCfg.ShowSpeedrunTimers can hide it.
+	// Keep both timer readouts independent from the FPS indicator. RTA remains
+	// visible through transitions; IGT is drawn only while active gameplay runs.
 	show_speedrun_timers();
 
 	if (Newdemo_state == ND_STATE_PLAYBACK)
@@ -816,6 +772,8 @@ void show_boxed_message(char *msg, int RenderFlag)
 	nm_draw_background(x-BORDERX,y-BORDERY,x+w+BORDERX,y+h+BORDERY);
 	
 	gr_string( 0x8000, y, msg );
+	speedrun_transition_tick();
+	show_speedrun_timers();
 	
 	// If we haven't drawn behind it, need to flip
 	if (!RenderFlag)

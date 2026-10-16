@@ -12,6 +12,7 @@ option(PNG "Build with PNG support for screenshots and textures [default: ON]" O
 option(OPENGLMERGE "Use an OpenGL shader for texmerge [default: ON]" ON)
 option(DXX_USE_BUNDLED_DEPS "Build dependencies from the vendored thirdparty tree" ON)
 option(DXX_USE_SDL12_COMPAT "Use the SDL 1.2 compatibility layer backed by SDL2" OFF)
+option(DXX_SPEEDRUN_TEST_BUILD "Give the executable a separate name for timer testing" OFF)
 option(SDL2 "Use SDL2 library [default: OFF]" OFF)
 
 if(SDL2)

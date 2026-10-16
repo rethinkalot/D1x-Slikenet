@@ -98,8 +98,9 @@ uint state_game_id;
 // instead of blindly reinterpreting trailing bytes.
 //
 //   0 - no speedrun data at all (saves from before the feature).
-//   1 - RTA only (an intermediate build; loading one leaves the IGT at 0).
-//   2 - RTA and IGT, both restored so the pair stays self-consistent.
+//   1 - legacy RTA only (restored as current IGT).
+//   2 - legacy RTA/IGT slots; their meanings are reversed from the current HUD
+//       labels, so the loader maps each slot to the matching current timer.
 #define SPEEDRUN_SAVE_VERSION 2
 
 // Following functions convert object to object_rw and back to be written to/read from Savegames. Mostly object differs to object_rw in terms of timer values (fix/fix64). as we reset GameTime64 for writing so it can fit into fix it's not necessary to increment savegame version. But if we once store something else into object which might be useful after restoring, it might be handy to increment Savegame version and actually store these new infos.
@@ -1089,17 +1090,16 @@ int state_save_all_sub(char *filename, char *desc)
 	// interrupted run as a clean one. Restoring both from the same instant makes
 	// the pair self-consistent, and the white "null attempt" marker stays on.
 	//
-	// The leading SPEEDRUN_VER tag lets older saves be recognised: this build's
-	// saves carry both clocks, the previous build's carried RTA only, and
-	// anything older carries neither.
+	// Keep the version-2 byte order for compatibility: the legacy RTA slot
+	// carries current IGT, and the legacy IGT slot carries current RTA.
 	{
 		PHYSFS_sint32 ver = SPEEDRUN_SAVE_VERSION;
-		PHYSFS_sint64 rta_ms = (PHYSFS_sint64)Speedrun_rta;
-		PHYSFS_sint64 igt_ms = (PHYSFS_sint64)Speedrun_igt;
+		PHYSFS_sint64 legacy_rta_slot_ms = (PHYSFS_sint64)Speedrun_igt;
+		PHYSFS_sint64 legacy_igt_slot_ms = (PHYSFS_sint64)Speedrun_rta;
 
 		PHYSFS_write(fp, &ver, sizeof(PHYSFS_sint32), 1);
-		PHYSFS_write(fp, &rta_ms, sizeof(PHYSFS_sint64), 1);
-		PHYSFS_write(fp, &igt_ms, sizeof(PHYSFS_sint64), 1);
+		PHYSFS_write(fp, &legacy_rta_slot_ms, sizeof(PHYSFS_sint64), 1);
+		PHYSFS_write(fp, &legacy_igt_slot_ms, sizeof(PHYSFS_sint64), 1);
 	}
 
 	PHYSFS_close(fp);
@@ -1575,29 +1575,26 @@ RetryObjectLoading:
 		if (remaining >= (PHYSFS_sint64)(sizeof(PHYSFS_sint32) + sizeof(PHYSFS_sint64) * 2))
 		{
 			PHYSFS_sint32 ver = 0;
-			PHYSFS_sint64 rta_ms = 0, igt_ms = 0;
+			PHYSFS_sint64 legacy_rta_slot_ms = 0, legacy_igt_slot_ms = 0;
 
 			if (PHYSFS_read(fp, &ver, sizeof(PHYSFS_sint32), 1) == 1 &&
-				PHYSFS_read(fp, &rta_ms, sizeof(PHYSFS_sint64), 1) == 1 &&
-				PHYSFS_read(fp, &igt_ms, sizeof(PHYSFS_sint64), 1) == 1 &&
+				PHYSFS_read(fp, &legacy_rta_slot_ms, sizeof(PHYSFS_sint64), 1) == 1 &&
+				PHYSFS_read(fp, &legacy_igt_slot_ms, sizeof(PHYSFS_sint64), 1) == 1 &&
 				ver >= SPEEDRUN_SAVE_VERSION)
 			{
-				// Both clocks come from the SAME instant in the save, so the pair stays
-				// internally consistent and the gap between them remains exactly the
-				// non-gameplay time. Restoring only one of them would let that gap be
-				// re-synchronised just by idling in a menu, which would disguise an
-				// interrupted run as a clean one.
-				speedrun_rta_restored((fix64)rta_ms);
-				speedrun_igt_restored((fix64)igt_ms);
+				// Version 2 has the pre-label-swap slot meanings; preserve their
+				// values while restoring them into the correctly named current clocks.
+				speedrun_igt_restored((fix64)legacy_rta_slot_ms);
+				speedrun_rta_restored((fix64)legacy_igt_slot_ms);
 			}
 		}
 		else if (remaining >= (PHYSFS_sint64)sizeof(PHYSFS_sint64))
 		{
 			// Legacy layout: a bare RTA with no version tag.
-			PHYSFS_sint64 rta_ms = 0;
+			PHYSFS_sint64 legacy_rta_slot_ms = 0;
 
-			if (PHYSFS_read(fp, &rta_ms, sizeof(PHYSFS_sint64), 1) == 1)
-				speedrun_rta_restored((fix64)rta_ms);
+			if (PHYSFS_read(fp, &legacy_rta_slot_ms, sizeof(PHYSFS_sint64), 1) == 1)
+				speedrun_igt_restored((fix64)legacy_rta_slot_ms);
 		}
 	}
 

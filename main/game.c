@@ -1,4 +1,4 @@
-﻿/*
+/*
 THE COMPUTER CODE CONTAINED HEREIN IS THE SOLE PROPERTY OF PARALLAX
 SOFTWARE CORPORATION ("PARALLAX").  PARALLAX, IN DISTRIBUTING THE CODE TO
 END-USERS, AND SUBJECT TO ALL OF THE TERMS AND CONDITIONS HEREIN, GRANTS A
@@ -341,9 +341,8 @@ int reduced_flash_wanted(void)
 	return 0;
 }
 
-// Exposed so the speedrun timers (gameseq.c) can tell whether the simulation
-// is currently frozen. IGT deliberately keeps running while this is non-zero;
-// RTA does not.
+// Exposed so the speedrun timers (gameseq.c) can tell whether gameplay is
+// frozen. IGT stops while this is non-zero; RTA continues through a pause.
 int game_time_is_paused(void)
 {
 	return time_paused != 0;
@@ -1177,10 +1176,10 @@ int game_handler(window *wind, d_event *event, void *data)
 		case EVENT_WINDOW_DRAW:
 			calc_frame_time();
 			
-			// Speedrun clocks are advanced OUTSIDE the time_paused guard on
-			// purpose: IGT must keep counting while the game is paused, so it
-			// measures real wall-clock. RTA stays frozen on pause because it
-			// is gated on actual gameplay further down.
+			// Speedrun clocks are sampled OUTSIDE the time_paused guard. Their
+			// independent gates make IGT count only during gameplay and RTA count
+			// gameplay plus marked transitions, including load delays. Neither clock
+			// includes the Escape pause screen while the run remains active.
 			speedrun_tick();
 
 			if (!time_paused)

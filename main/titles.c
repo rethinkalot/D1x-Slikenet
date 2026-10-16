@@ -47,11 +47,14 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "menu.h"
 #include "mouse.h"
 #include "console.h"
+#include "gameseq.h"
 #include "args.h"
 
 #ifdef OGL
 #include "ogl_init.h"
 #endif
+
+extern void show_speedrun_timers(void);
 
 #define MAX_BRIEFING_COLORS     7
 #define DEFAULT_BRIEFING_BKG		"brief03.pcx"
@@ -1097,6 +1100,9 @@ static int briefing_handler(window *wind, d_event *event, briefing *br)
 				flash_cursor(br, br->flashing_cursor);
 			else if (br->flashing_cursor)
 				gr_printf(br->text_x, br->text_y, "_");
+
+			speedrun_transition_tick();
+			show_speedrun_timers();
 			break;
 
 		case EVENT_WINDOW_CLOSE:

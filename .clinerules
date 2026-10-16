@@ -35,3 +35,28 @@ the disclosure covers it.
 - Keep "thinking" chatter to a minimum and update user of tasks
 ie: "- finding udp setting that effects pps - found issue, changing values from 30pps to 90pps max."
 - dont guess on my own. ask questions often.
+
+#FolderPathing and build requests
+** D2s project folderx PATHS****
+
+ root dir:                         📂C:/Games/D2s/build
+ build command:              cmake --build build -- -j10
+ exe landing folder:          📂C:/Games/D2s/build/main
+ target straight to:            📂C:/Games/D2s/build/main/d2x-redux.exe
+"please copy exe to both test bench folders when we make a fresh build renaming d2x-redux.exe to D2x-Redux-SLikeNet.exe in both leaving the build exe intact."
+ testbench folder:             📂C:/Games/D2x/  📂C:/Games/D2x2/     "fyi: D2x2 are a Duplicate for extra multiplayer testing"
+ launch cmds:                  "-window -background -nostickykeys"
+ backup D2s D2x:             📂C:/BackUpDescent/backups/D2sBackup  .zip file for both if needed Work and Test bench folders. d2s is work and d2x is test
+
+** D1s project folderx PATHS****
+
+ root dir:                         📂C:/Games/D1s/build
+ build command:              cmake --build build -- -j10
+ exe landing folder:          📂C:/Games/D1s/build/main
+ target straight to:            📂C:/Games/D1s/build/main/d2x-redux.exe
+ testbench folder:             📂C:/Games/D1x/   📂C:/Games/D1x2/   "fyi: D1x2 are a Duplicate for extra multiplayer testing"
+"please copy exe to both test bench folders when we make a fresh build renaming d1x-redux.exe to D1x-Redux-SLikeNet.exe in both leaving the build exe intact."
+ launch cmds:                  "-window -background -nostickykeys"
+ backup D1s and  D1x:             📂E:/BackUpDescent/backups/D1sBackup .zip file for both if needed Work and Test bench folders. d1s is work and d1x is text
+
+nothing is to be destroyed. nothing reverted unless specified and agreed by user. all work areas are perfect as is. no changes to be made unless authorized or asked to change by user
