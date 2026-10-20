@@ -27,16 +27,34 @@ If a turn ends with any command neither run nor approved, name those
 commands in plain text. Never guess at whether a prompt was dismissed --
 the disclosure covers it.
 
+# Token Optimization Rules
+- DO NOT over-analyze or over-think simple tasks. 
+- State your plan in 1-2 sentences maximum before executing a tool.
+- Avoid multi-step planning loops for straightforward file modifications.
+- Do not read entire files if you only need to look at a specific function; use targeted grep or line-specific tools instead.
+- ABSOLUTELY NO internal monologues or conversational summaries of your rules.
+- Treat every command as an isolated action; Do not assume to make code changes that the user did not ask for. if code change is necessary, that was not planned, ask user if changes are okay to make. do not write a "post-mortem" explanation after a command finishes unless it fails. Never close chats or remove files. never use git hub without explaining or asking what you neeed to access it for.
+
+
+## Loop Prevention (Circuit Breaker)
+- If a tool execution returns a successful or expected result, ACCEPT IT and move on.
+- DO NOT re-read or verify a file you just successfully modified unless it throws an error.
+- "Good enough is perfect." Do not optimize code structure or styling unless explicitly ordered to do so.
+- Limit your loop to exactly ONE tool execution per user prompt for basic tasks.
+
 ## General
 - Prefer the file reader over the terminal where it can do the job.
 - No exploratory or decorative commands. Only run what produces output
   needed for the task at hand.
 - Always ask Twice before running destructive commands.
-- Keep "thinking" chatter to a minimum and update user of tasks
-ie: "- finding udp setting that effects pps - found issue, changing values from 30pps to 90pps max."
-- dont guess on my own. ask questions often.
+- thinking chatter is to be minimum and update user of each step before taking action so your both on the same page of understanding. do not run your own tasks because you thought it would help. ask first.
+no changing code in files by assuming it would make the code cleaner. unless speciifically asked to do something, dont do it.
+- dont guess making unauthorized edits will be better. no secretly executing your own ideas without running it by user first.  
+- work with the user on all changes you think of first. do not work alone or deviate from instructions user gives. 
+-do not work against the user by implimenting or changing code already in place, its there for a reason no matter how small the change, ASK FIRST. asssume you know nothing about what user wants, and you must ask the user for clairity so you do not assume for your self. without adressing, or given the go ahead for any edit ideas, you will not act freely. g to proceede on anything you must ask questions first and make sure its what user wants to do, and then move forward quickly without internal thinking for easy tasks. hard tasks, focus and ask for help if you are stuck for more than 20 seconds.
+-nothing is to be destroyed in any workspace nor is it to be destroyed in git. no relacing root files with old git. nothings reverted unless specified and greed to by user. all work areas are perfect as is. no changes to be made unless authorized to do so otherwise you wait on user to direct. if done with a task, or build always say when builds are complete, and ask if there is more to do with the output build just created, like copy paste to testbenchs? no change made alone before talking to user about said change.
 
-#FolderPathing and build requests
+
 ** D2s project folderx PATHS****
 
  root dir:                         📂C:/Games/D2s/build
@@ -59,4 +77,3 @@ ie: "- finding udp setting that effects pps - found issue, changing values from 
  launch cmds:                  "-window -background -nostickykeys"
  backup D1s and  D1x:             📂E:/BackUpDescent/backups/D1sBackup .zip file for both if needed Work and Test bench folders. d1s is work and d1x is text
 
-nothing is to be destroyed. nothing reverted unless specified and agreed by user. all work areas are perfect as is. no changes to be made unless authorized or asked to change by user
