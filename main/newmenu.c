@@ -159,7 +159,8 @@ void nm_draw_background(int x1, int y1, int x2, int y2 )
 		(void)pcx_error;
 		gr_remap_bitmap_good( &nm_background, background_palette, -1, -1 );
 #ifdef OGL
-		ogl_loadbmtexture_f(&nm_background, GameCfg.TexFilt, "scores");
+		if (GameCfg.TexFilt)
+			ogl_loadbmtexture_f(&nm_background, GameCfg.TexFilt, "scoresb");
 #endif
 		BGScaleX=((float)SWIDTH/nm_background.bm_w);
 		BGScaleY=((float)SHEIGHT/nm_background.bm_h);
