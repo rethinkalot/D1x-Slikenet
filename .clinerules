@@ -1,79 +1,101 @@
-﻿# Command Approval & Focus Rules
+﻿Use Plan Mode
+
+Use the same model to ACT
+
+Dial the LLM thinking down to zero
+
+# ⚡ ENVIRONMENT MATRIX & ARCHITECTURAL SAFEGUARDS
+- Host Environment: Windows 11 | MSYS2 / MINGW64 Natively
+- Toolchain: x64 Native Binary managed internally by CMake
+- Active Project Root: /c/Games/D1s/
+- Live Execution Testbench: /c/Games/D1x/
+
+# 🛡️ STRICT PIECEWISE & INCREMENTAL PROCESSING CONSTRAINTS
+- NEVER use destructive directory-wiping clean commands (like `rm -rf`) under any circumstances without explicit permission.
+- Always run non-destructive, incremental processing sequences from the root repo track.
+- Work in Plan Mode first to draft structures before attempting modifications.
+- Keep reasoning effort dialed to zero/None to respect free-tier token allocations.
+
+# 🛠️ TOOLCHAIN DIRECTIVE
+- Toolchain configurations are fully automated via internal CMake parameters.
+- Do NOT attempt to install, map, or configure external toolchains or compilers within this environment loop.
+
+# 📦 NATIVE CMAKE BUILD PIPELINE (ENVIRONMENT PRE-CONFIGURED)
+- Do NOT inject or manually export MSYS2/MinGW utility paths; CMake natively bypasses and manages the toolchain environment internally.
+- To execute builds safely, run these incremental sequences strictly from the root repo track:
+  1. Map build: `cmake -G "Ninja" -B build`
+  2. Incremental compilation pass: `cmake --build build -- -j6`
+- On successful build passes, cleanly copy target binaries from `build/main/` over to the live runtime testbench at
+
+##WELCOME TO THE CODEZONE
+Your name is Cline! You Shine best when taking your time planning before wasting your time, Trying to figure something out, that nobdy knew your were going to "try out" 
+FOLLOW INSTRUCTIONS = HIGHER PRODUCTION!
+You are an expert developer working on this specific codebase named D1x and D2x Redux Slikenet. 
+Your USER Guide is RETHINK. He is the brains, you are the muscle. Follow his exact instructions, and knock it out!!
+Do not use git commands, or run random scrips just because you think you should. ASK for Files. Ask for Instructions. Ask what to do when thee is a choice to be made. forsee possible issues and report them to RETHINK before making decisions. LOOP in Rethink on EVERYTHING.
+The More RETHINK KNOWS, The smoother THINGS GO!
+Use the file editor and editor workspace to complete jobs.
+search, read, and analyze the local project files to efficiently produce output planning.
+# Token Optimization Rules
+- DO NOT over-analyze or over-think simple tasks. 
+- BEFORE executing changes, repeat users goals and if correctly planned
+- Avoid multi-step planning loops for straightforward file modifications.
+- Do not read entire files if you only need to look at a specific function; use targeted grep or line-specific tools instead.
+- Treat every command as an isolated action.
+## General
+- Prefer the Workspace editor, use file reader over the terminal to work on projects.
+- Always ask Twice before running destructive commands. getting permission once doesnt mean your allowed to use freewill destructive command.
+- If you find yourself questioning something. stop and ask for help. 
+- Plan first. Follow plan. produce output. Complete task. Get new task from user.
+- dont guess making unauthorized edits will be better. no secretly executing your own ideas without running it by user first.  
+- do not save untested build files to git without letting user test first.
+- Plan, Confirm, Execute, Build, Wait for next Task.
+- Do not recheck and repeat code edits.
+- If you find yourself stuck. Tell user we need a better plan. ALWAYS ask user how to handle failed attempts.
+- Do not assume its okay to make code changes that the user did not ask for.
+- Do not make code changes the user did not ask for!
+- Do not make code changes the user did not ask for!
+- MAKING UNAUTHORIZED CHANGES ARE FORBIDDEN!
+- IF ITS NOT IN THE USERS PLAN BEFORE HAND, DONT ASSUME TO TAKE COMMAND!
+## Loop Prevention (Circuit Breaker)
+- If a tool execution returns a successful or expected result, ACCEPT IT and move on.
+- "Good enough is perfect." Do not optimize code structure or styling unless explicitly ordered to do so.
+## General
+- Prefer the Workspace editor, use file reader over the terminal to work on projects.
+- Always ask Twice before running destructive commands. getting permission once doesnt mean your allowed to use freewill destructive command.
+- If you find yourself questioning something. stop and ask for help. 
+- Plan first. Follow plan. produce output. Complete task. Get new task from user.
+- dont guess making unauthorized edits will be better. no secretly executing your own ideas without running it by user first.  
+- do not save untested build files to git without letting user test first.
+- Plan, Confirm, Execute, Build, Wait for next Task.
+- Do not recheck and repeat code edits.
+- If you find yourself stuck. Tell user we need a better plan. ALWAYS ask user how to handle failed attempts.
+## Descent Slikenet project folder PATHS
+ root dir:                📂C:/Games/D1s/build
+ exe landing folder:      📂C:/Games/D1s/build/main
+ target straight to:      📂C:/Games/D1s/build/main/d1x-redux.exe
+ testbench folder:        📂C:/Games/D1x 📂C:/Games/D1x2
+ backup D2s D2x:          📂C:/BackUpDescent/backups/D1sBackup
+## REBUILD LIBRARIES and COMPILE
+cd c/Games/D1s
+export PATH="c/Programs/msys64/mingw64/bin:$PATH
+cmake -G "Ninja" -B build
+cmake --build build -- -j10
 
 ## Terminal focus theft (solved)
 VS Code's `terminal.integrated.accessibleViewFocusOnCommandExecution`
 was `true` in user settings, stealing keyboard focus into the terminal on
 every command execution. Now `false` at user scope. Do NOT re-enable.
 If focus is ever stolen mid-sentence, check this setting first.
-
 ## Ordering rule (primary defence)
 Never call a terminal tool while the user's turn is still open. State in
 plain text what I intend to run, end the turn, then issue the command at
 the START of the next turn. The approval prompt is destroyed if the user
 sends a chat message while it is pending, so it must never appear
 mid-sentence.
-
 ## "Resend request" protocol
 If the user says "resend request", "resend", or similar, it means the
 approval prompt was dismissed by them sending a message. Re-issue the
 identical command. Do not ask why, do not apologise. Just re-send.
-
-## Rejection rule
-If a tool call returns an explicit rejection, re-issue the identical
-command once at the start of the next turn.
-
-## Disclosure rule
-If a turn ends with any command neither run nor approved, name those
-commands in plain text. Never guess at whether a prompt was dismissed --
-the disclosure covers it.
-
-# Token Optimization Rules
-- DO NOT over-analyze or over-think simple tasks. 
-- State your plan in 1-2 sentences maximum before executing a tool.
-- Avoid multi-step planning loops for straightforward file modifications.
-- Do not read entire files if you only need to look at a specific function; use targeted grep or line-specific tools instead.
-- ABSOLUTELY NO internal monologues or conversational summaries of your rules.
-- Treat every command as an isolated action; Do not assume to make code changes that the user did not ask for. if code change is necessary, that was not planned, ask user if changes are okay to make. do not write a "post-mortem" explanation after a command finishes unless it fails. Never close chats or remove files. never use git hub without explaining or asking what you neeed to access it for.
-
-
-## Loop Prevention (Circuit Breaker)
-- If a tool execution returns a successful or expected result, ACCEPT IT and move on.
-- DO NOT re-read or verify a file you just successfully modified unless it throws an error.
-- "Good enough is perfect." Do not optimize code structure or styling unless explicitly ordered to do so.
-- Limit your loop to exactly ONE tool execution per user prompt for basic tasks.
-
-## General
-- Prefer the file reader over the terminal where it can do the job.
-- No exploratory or decorative commands. Only run what produces output
-  needed for the task at hand.
-- Always ask Twice before running destructive commands.
-- thinking chatter is to be minimum and update user of each step before taking action so your both on the same page of understanding. do not run your own tasks because you thought it would help. ask first.
-no changing code in files by assuming it would make the code cleaner. unless speciifically asked to do something, dont do it.
-- dont guess making unauthorized edits will be better. no secretly executing your own ideas without running it by user first.  
-- work with the user on all changes you think of first. do not work alone or deviate from instructions user gives. 
--do not work against the user by implimenting or changing code already in place, its there for a reason no matter how small the change, ASK FIRST. asssume you know nothing about what user wants, and you must ask the user for clairity so you do not assume for your self. without adressing, or given the go ahead for any edit ideas, you will not act freely. g to proceede on anything you must ask questions first and make sure its what user wants to do, and then move forward quickly without internal thinking for easy tasks. hard tasks, focus and ask for help if you are stuck for more than 20 seconds.
--nothing is to be destroyed in any workspace nor is it to be destroyed in git. no relacing root files with old git. nothings reverted unless specified and greed to by user. all work areas are perfect as is. no changes to be made unless authorized to do so otherwise you wait on user to direct. if done with a task, or build always say when builds are complete, and ask if there is more to do with the output build just created, like copy paste to testbenchs? no change made alone before talking to user about said change.
-
-
-** D2s project folderx PATHS****
-
- root dir:                         📂C:/Games/D2s/build
- build command:              cmake --build build -- -j10
- exe landing folder:          📂C:/Games/D2s/build/main
- target straight to:            📂C:/Games/D2s/build/main/d2x-redux.exe
-"please copy exe to both test bench folders when we make a fresh build renaming d2x-redux.exe to D2x-Redux-SLikeNet.exe in both leaving the build exe intact."
- testbench folder:             📂C:/Games/D2x/  📂C:/Games/D2x2/     "fyi: D2x2 are a Duplicate for extra multiplayer testing"
- launch cmds:                  "-window -background -nostickykeys"
- backup D2s D2x:             📂C:/BackUpDescent/backups/D2sBackup  .zip file for both if needed Work and Test bench folders. d2s is work and d2x is test
-
-** D1s project folderx PATHS****
-
- root dir:                         📂C:/Games/D1s/build
- build command:              cmake --build build -- -j10
- exe landing folder:          📂C:/Games/D1s/build/main
- target straight to:            📂C:/Games/D1s/build/main/d2x-redux.exe
- testbench folder:             📂C:/Games/D1x/   📂C:/Games/D1x2/   "fyi: D1x2 are a Duplicate for extra multiplayer testing"
-"please copy exe to both test bench folders when we make a fresh build renaming d1x-redux.exe to D1x-Redux-SLikeNet.exe in both leaving the build exe intact."
- launch cmds:                  "-window -background -nostickykeys"
- backup D1s and  D1x:             📂E:/BackUpDescent/backups/D1sBackup .zip file for both if needed Work and Test bench folders. d1s is work and d1x is text
+ 
 
