@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 ﻿Use Plan Mode
 
 Use the same model to ACT
@@ -87,6 +88,66 @@ VS Code's `terminal.integrated.accessibleViewFocusOnCommandExecution`
 was `true` in user settings, stealing keyboard focus into the terminal on
 every command execution. Now `false` at user scope. Do NOT re-enable.
 If focus is ever stolen mid-sentence, check this setting first.
+=======
+# .clinerules Redux Slikenet (Fixed - exe stays in build/main for reproducibility)
+
+##  ENVIRONMENT MATRIX & ARCHITECTURAL SAFEGUARDS
+- Host Environment: Windows 11 | MSYS2 / MINGW64 Natively
+- Toolchain: x64 Native Binary managed internally by CMake
+- Current root /c/Games/D1s
+- Project has a 2nd root folder for D2.
+- Dynamic Project Root: /c/Games/D2s/ (read .clinerules in D2s's .clinerules for D2s Builds)
+
+
+##  STRICT PIECEWISE & INCREMENTAL PROCESSING CONSTRAINTS
+- NEVER use destructive directory-wiping clean commands (like `rm -rf`) under any circumstances unless with explicit permission given ei: when renaming/copy/pase sequence for exe's during build sequence.
+- Always run non-destructive, incremental processing sequences from the root repo track.
+- Work in Plan Mode first to draft structures before attempting modifications.
+- KEY: Never remove the exe from build/main/ - it must remain available for ninja to rebuild/reference
+
+##  TOOLCHAIN DIRECTIVE
+- Toolchain configurations are fully automated via internal CMake parameters.
+- Do NOT attempt to install, map, or configure external toolchains or compilers within this environment loop.
+
+## NATIVE CMAKE BUILD PIPELINE (ENVIRONMENT PRE-CONFIGURED)
+- Do NOT inject or manually export MSYS2/MinGW utility paths; CMake natively bypasses and manages the toolchain environment internally.
+
+## D1s Redux Slikenet folder PATHS
+- root dir:                		 ≡ C:/Games/D1s/
+- exe landing folder:     	 ≡ C:/Games/D1s/build/main
+- target straight to:     	 ≡ C:/Games/D1s/build/main/d1x-redux.exe
+- testbench folders:      	 ≡ C:/Games/D1x/ ≡ C:/Games/D1x2/
+- backup D1s D1x:          ≡ E:/BackUpDescent/backups/D1sBackup
+
+- must copy d2x-redux.exe to BOTH testbench folders (D2x AND D2x2)
+- must keep d2x-redux.exe in build/main/ so ninja can rebuild/reference it
+- kill running D2x-Redux-SLikeNet.exe processes before copying (so testbench copy works)
+- do NOT remove the exe from build/main/ - this breaks reproducibility
+
+## REBUILD LIBRARIES and COMPILE
+
+cd /c/Games/D1s
+export PATH="/c/Programs/msys64/mingw64/bin:\$PATH"
+cmake --build build -- -j10
+   # Testbench Prep
+if [ -f build/main/d1x-redux.exe ]; then
+  mkdir -p /c/Games/D1x /c/Games/D1x2
+  
+  # Kill live game sessions safely
+  taskkill //F //IM D1x-Redux-SLikeNet.exe 2>/dev/null || tskill D2x-Redux-SLikeNet 2>/dev/null; sleep 1
+  
+  # Only wipe files from the destination testbenches, never from build/main/
+  rm -f /c/Games/D1x/D1x-Redux-SLikeNet.exe /c/Games/D1x2/D1x-Redux-SLikeNet.exe
+  
+  # Stage the fresh executable binaries
+  cp -v build/main/d1x-redux.exe /c/Games/D1x/D1x-Redux-SLikeNet.exe
+  cp -v build/main/d1x-redux.exe /c/Games/D1x2/D1x-Redux-SLikeNet.exe  
+  echo "Confirm Complete"
+fi
+
+- at the end of the rebuild libraries and compile sequence for D2s, include Confirm Complete in cline chat or terminal window.
+
+>>>>>>> Stashed changes
 ## Ordering rule (primary defence)
 Never call a terminal tool while the user's turn is still open. State in
 plain text what I intend to run, end the turn, then issue the command at
@@ -97,5 +158,13 @@ mid-sentence.
 If the user says "resend request", "resend", or similar, it means the
 approval prompt was dismissed by them sending a message. Re-issue the
 identical command. Do not ask why, do not apologise. Just re-send.
+<<<<<<< Updated upstream
  
 
+=======
+
+## Confirm Complete
+After running the above sequence, confirm complete in cline chat.
+exe in build/main/: AVAILABLE for rebuilds
+exe in testbenches: COPIED to D1x AND D1x2
+>>>>>>> Stashed changes

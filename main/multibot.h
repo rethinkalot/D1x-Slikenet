@@ -43,6 +43,7 @@ int multi_send_robot_frame(int sent);
 
 void multi_do_robot_explode(const ubyte *buf);
 void multi_do_robot_position(const ubyte *buf);
+void multi_blend_robot_positions(void);
 void multi_do_claim_robot(const ubyte *buf);
 void multi_do_release_robot(const ubyte *buf);
 void multi_do_robot_fire(const ubyte *buf);

@@ -12,7 +12,7 @@
 				"-defterm",
 				"-no-start",
 				"-lc",
-				"export PATH=/c/Programs/msys64/mingw64/bin:$PATH; cmake -G Ninja -B build; status=$?; if [ $status -ne 0 ]; then exit $status; fi; cmake --build build -- -j10; status=$?; if [ $status -ne 0 ]; then exit $status; fi; if [ -f build/main/d1x-redux.exe ]; then mkdir -p /c/Games/D1x /c/Games/D1x2; taskkill //F //IM D1x-Redux-SLikeNet.exe 2>/dev/null; sleep 1; rm -f /c/Games/D1x/D1x-Redux-SLikeNet.exe /c/Games/D1x2/D1x-Redux-SLikeNet.exe; cp -v build/main/d1x-redux.exe /c/Games/D1x/D1x-Redux-SLikeNet.exe; cp -v build/main/d1x-redux.exe /c/Games/D1x2/D1x-Redux-SLikeNet.exe; else echo Build completed, but no expected executable was found. >&2; exit 1; fi"
+				"cd /c/Games/D1s && export PATH=/c/Programs/msys64/mingw64/bin:$PATH && cmake -G Ninja -B build && cmake --build build --target main/clean 2>/dev/null || rm -f build/main/d1x-redux.exe && cmake --build build -- -j10 && if [ -f build/main/d1x-redux.exe ]; then mkdir -p /c/Games/D1x /c/Games/D1x2; taskkill //F //IM D1x-Redux-SLikeNet.exe 2>/dev/null || tskill D1x-Redux-SLikeNet 2>/dev/null; sleep 1; rm -f /c/Games/D1x/D1x-Redux-SLikeNet.exe /c/Games/D1x2/D1x-Redux-SLikeNet.exe; cp -v build/main/d1x-redux.exe /c/Games/D1x/D1x-Redux-SLikeNet.exe; cp -v build/main/d1x-redux.exe /c/Games/D1x2/D1x-Redux-SLikeNet.exe; echo 'Confirm Complete'; else echo 'Build completed, but no expected executable was found.' >&2; exit 1; fi"
 			],
 			"group": {
 				"kind": "build",
@@ -33,7 +33,7 @@
 				"-defterm",
 				"-no-start",
 				"-lc",
-				"./D1x-Redux-SLikeNet.exe -window -notitles -nostickykeys"
+				"cd /c/Games/D1x && ./D1x-Redux-SLikeNet.exe -window -notitles -noststickykeys"
 			],
 			"group": {
 				"kind": "test",
@@ -73,7 +73,7 @@
 			"command": "cmd.exe",
 			"args": [
 				"/c",
-				"del /q C:\\Games\\D1s\\build\\CMakeCache.txt && rmdir /s /q C:\\Games\\D1s\\build\\CMakeFiles && C:\\Programs\\msys64\\mingw64\\bin\\cmake.exe -G Ninja -S C:\\Games\\D1s -B C:\\Games\\D1s\\build"
+				"if exist C:\\Games\\D1s\\build del /q C:\\Games\\D1s\\build\\CMakeCache.txt && rmdir /s /q C:\\Games\\D1s\\build\\CMakeFiles && C:\\Programs\\msys64\\mingw64\\bin\\cmake.exe -G Ninja -S C:\\Games\\D1s -B C:\\Games\\D1s\\build"
 			],
 			"isBackground": false,
 			"problemMatcher": []

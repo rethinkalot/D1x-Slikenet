@@ -58,11 +58,12 @@ int multi_add_controlled_robot(int objnum, int agitation);
 //
 
 #define STANDARD_EXPL_DELAY (F1_0/4)
-#define MIN_CONTROL_TIME	F1_0*2
-#define ROBOT_TIMEOUT		F1_0*3
+#define MIN_CONTROL_TIME	F1_0*1
+#define ROBOT_TIMEOUT		F1_0*4 // Extended timeout cushion (was 2 seconds)
 
-#define MIN_TO_ADD	60
-#define MAX_TO_DELETE	67
+// PERSISTENT pool targets: Lowest possible thresholds to prevent premature handover drops
+#define MIN_TO_ADD	10
+#define MAX_TO_DELETE	11
 
 int robot_controlled[MAX_ROBOTS_CONTROLLED];
 int robot_agitation[MAX_ROBOTS_CONTROLLED];
@@ -218,6 +219,10 @@ multi_add_controlled_robot(int objnum, int agitation)
 		return 0;
 	}
 
+	if (Robot_info[Objects[objnum].id].boss_flag) // this is a boss, so make sure he gets a slot
+		agitation=(agitation*3)+Player_num;
+
+
 	for (i = 0; i < MAX_ROBOTS_CONTROLLED; i++)
 	{
 		if ((robot_controlled[i] == -1) || (Objects[robot_controlled[i]].type != OBJ_ROBOT)) {
@@ -243,7 +248,7 @@ multi_add_controlled_robot(int objnum, int agitation)
 	if (first_free_robot != -1)  // Room left for new robots
 		i = first_free_robot;
 
-	else if ((agitation > lowest_agitation) && (lowest_agitation <= MAX_TO_DELETE)) // Replace some old robot with a more agitated one
+	else if ((agitation > lowest_agitation)) // Replace some old robot with a more agitated one
 	{
 		if (robot_send_pending[lowest_agitated_bot])
 			multi_send_robot_position(robot_controlled[lowest_agitated_bot], 1);
@@ -283,7 +288,11 @@ multi_delete_controlled_robot(int objnum)
 	if (i == MAX_ROBOTS_CONTROLLED)
 		return;
 
-	Assert(Objects[objnum].ctype.ai_info.REMOTE_SLOT_NUM == i);
+	if (Objects[objnum].ctype.ai_info.REMOTE_SLOT_NUM != i)
+	 {
+	  Int3();  // can't release this bot!
+	  return;
+	 }
 
 	Objects[objnum].ctype.ai_info.REMOTE_OWNER = -1;
 	Objects[objnum].ctype.ai_info.REMOTE_SLOT_NUM = 0;
@@ -296,6 +305,7 @@ void
 multi_send_claim_robot(int objnum)
 {
 	short s;
+	quaternionpos qpp;
 	
 	if ((objnum < 0) || (objnum > Highest_object_index))
 	{
@@ -346,7 +356,7 @@ multi_send_release_robot(int objnum)
 	multi_send_data(multibuf, 5, 2);
 }
 
-#define MIN_ROBOT_COM_GAP F1_0/12
+#define MIN_ROBOT_COM_GAP F1_0/20
 
 int
 multi_send_robot_frame(int sent)
@@ -370,7 +380,7 @@ multi_send_robot_frame(int sent)
 			if (robot_fired[sending])
 			{
 				robot_fired[sending] = 0;
-				multi_send_data(robot_fire_buf[sending], 18, 2); // reliable: shots must not drop
+				multi_send_data(robot_fire_buf[sending], 18, 1); // reliable: shots must not drop
 			}
 
 			if (!(Game_mode & GM_NETWORK))
@@ -664,18 +674,17 @@ multi_do_release_robot(const ubyte *buf)
 
 	Objects[botnum].ctype.ai_info.REMOTE_OWNER = -1;
 	Objects[botnum].ctype.ai_info.REMOTE_SLOT_NUM = 0;
+	
 }
-
 void
-multi_do_robot_position(const ubyte *buf)
-{
-	// Process robot movement sent by another player
-
+multi_do_robot_position(const ubyte *buf){
+	// Start of multi_do_robot_position function
 	short botnum, remote_botnum;
 	char pnum;
 	int loc = 1;
 #ifdef WORDS_BIGENDIAN
-	shortpos sp;
+	quaternionpos qpp;
+	create_quaternionpos(&qpp, Objects+objnum, 0);
 #endif
 
 	pnum = buf[loc];										loc += 1;
@@ -713,7 +722,54 @@ multi_do_robot_position(const ubyte *buf)
 //	Objects[botnum].phys_info.drag = Robot_info[Objects[botnum].id].drag >> 4; // Set drag to low
 
 #ifndef WORDS_BIGENDIAN
-	extract_shortpos(&Objects[botnum], (shortpos *)(buf+loc), 0);
+	{
+		vms_vector client_pos = Objects[botnum].pos;
+		vms_matrix client_orient = Objects[botnum].orient;
+
+		if (Objects[botnum].ctype.ai_info.REMOTE_OWNER != Player_num)
+		{
+			Objects[botnum].mtype.phys_info.velocity.x = 0;
+			Objects[botnum].mtype.phys_info.velocity.y = 0;
+			Objects[botnum].mtype.phys_info.velocity.z = 0;
+		}
+
+		extract_shortpos(&Objects[botnum], (shortpos *)(buf+loc), 0);
+
+		if (Objects[botnum].ctype.ai_info.REMOTE_OWNER != Player_num)
+		{
+			vms_vector pos_error;
+			vm_vec_sub(&pos_error, &Objects[botnum].pos, &client_pos);
+
+			if (vm_vec_mag_quick(&pos_error) > F1_0 * 15) {
+				update_object_seg(&Objects[botnum]);
+			} else {
+				vms_matrix target_orient = Objects[botnum].orient;
+				Objects[botnum].pos = client_pos;
+
+				Objects[botnum].orient.fvec.x = client_orient.fvec.x + ((target_orient.fvec.x - client_orient.fvec.x) >> 2);
+				Objects[botnum].orient.fvec.y = client_orient.fvec.y + ((target_orient.fvec.y - client_orient.fvec.y) >> 2);
+				Objects[botnum].orient.fvec.z = client_orient.fvec.z + ((target_orient.fvec.z - client_orient.fvec.z) >> 2);
+
+				Objects[botnum].orient.uvec.x = client_orient.uvec.x + ((target_orient.uvec.x - client_orient.uvec.x) >> 2);
+				Objects[botnum].orient.uvec.y = client_orient.uvec.y + ((target_orient.uvec.y - client_orient.uvec.y) >> 2);
+				Objects[botnum].orient.uvec.z = client_orient.uvec.z + ((target_orient.uvec.z - client_orient.uvec.z) >> 2);
+
+				Objects[botnum].orient.rvec.x = client_orient.rvec.x + ((target_orient.rvec.x - client_orient.rvec.x) >> 2);
+				Objects[botnum].orient.rvec.y = client_orient.rvec.y + ((target_orient.rvec.y - client_orient.rvec.y) >> 2);
+				Objects[botnum].orient.rvec.z = client_orient.rvec.z + ((target_orient.rvec.z - client_orient.rvec.z) >> 2);
+
+				vm_vec_normalize_quick(&Objects[botnum].orient.fvec);
+				vm_vec_normalize_quick(&Objects[botnum].orient.uvec);
+				vm_vec_normalize_quick(&Objects[botnum].orient.rvec);
+
+				Objects[botnum].mtype.phys_info.velocity.x = (pos_error.x * 4);
+				Objects[botnum].mtype.phys_info.velocity.y = (pos_error.y * 4);
+				Objects[botnum].mtype.phys_info.velocity.z = (pos_error.z * 4);
+
+				update_object_seg(&Objects[botnum]);
+			}
+		}
+	}
 #else
 	memcpy((ubyte *)(sp.bytemat), (ubyte *)(buf + loc), 9);		loc += 9;
 	memcpy((ubyte *)&(sp.xo), (ubyte *)(buf + loc), 14);
@@ -1367,3 +1423,13 @@ void multi_robot_request_change(object *robot, int player_num)
 
 #endif
 #endif
+
+/*
+ * multi_blend_robot_positions - blend robot positions from multiple players
+ * Called under #ifdef NETWORK in ai.c
+ */
+void multi_blend_robot_positions(void)
+{
+    /* TODO: implement blending of quaternion robot positions */
+    return;
+}

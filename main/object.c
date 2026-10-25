@@ -389,9 +389,10 @@ void draw_polygon_object(object *obj)
 		light.r = light.g = light.b = F1_0*2;
 
 	//	If option set for bright players in netgame, brighten them!
+	//	In demo playback, always brighten ships and missiles for visibility.
 #ifdef NETWORK
-	if ((Newdemo_state == ND_STATE_PLAYBACK ? Newdemo_game_mode : Game_mode) & GM_MULTI)
-		if (Netgame.BrightPlayers)
+	if (Newdemo_state == ND_STATE_PLAYBACK || ((Newdemo_state == ND_STATE_PLAYBACK ? Newdemo_game_mode : Game_mode) & GM_MULTI))
+		if (Newdemo_state == ND_STATE_PLAYBACK || Netgame.BrightPlayers)
 			light.r = light.g = light.b = F1_0*2;
 #endif
 

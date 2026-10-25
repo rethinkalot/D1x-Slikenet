@@ -401,7 +401,11 @@ int HandleDemoKey(int key)
 				else
 					break;
 			}
-			newdemo_stop_playback();
+			{
+				int choice = nm_messagebox( NULL, 2, TXT_YES, TXT_NO, "Exit Demo Playback?" );
+				if (choice == 0)
+					newdemo_stop_playback();
+			}
 			break;
 		case KEY_UP:
 			Newdemo_vcr_state = ND_STATE_PLAYBACK;
@@ -904,179 +908,179 @@ kasf_done: ;
 
 }
 
-#ifndef RELEASE
-int HandleTestKey(int key)
-{
-	switch (key)
-	{
-
-#ifdef SHOW_EXIT_PATH
-		case KEY_DEBUGGED+KEY_1:	create_special_path();	break;
-#endif
-
-		case KEY_DEBUGGED+KEY_Y:
-			do_controlcen_destroyed_stuff(NULL);
-			break;
-		case KEY_BACKSP:
-		case KEY_CTRLED+KEY_BACKSP:
-		case KEY_ALTED+KEY_BACKSP:
-		case KEY_SHIFTED+KEY_BACKSP:
-		case KEY_SHIFTED+KEY_ALTED+KEY_BACKSP:
-		case KEY_CTRLED+KEY_ALTED+KEY_BACKSP:
-		case KEY_SHIFTED+KEY_CTRLED+KEY_BACKSP:
-		case KEY_SHIFTED+KEY_CTRLED+KEY_ALTED+KEY_BACKSP:
-
-			Int3(); break;
-
-		case KEY_DEBUGGED+KEY_S:				digi_reset(); break;
-
-		case KEY_DEBUGGED+KEY_P:
-			if (Game_suspended & SUSP_ROBOTS)
-				Game_suspended &= ~SUSP_ROBOTS;		//robots move
-			else
-				Game_suspended |= SUSP_ROBOTS;		//robots don't move
-			break;
-
-
-
-		case KEY_DEBUGGED+KEY_K:	Players[Player_num].shields = 1;	break;							//	a virtual kill
-		case KEY_DEBUGGED+KEY_SHIFTED + KEY_K:  Players[Player_num].shields = -1;	 break;  //	an actual kill
-		case KEY_DEBUGGED+KEY_X: Players[Player_num].lives++; break; // Extra life cheat key.
-		case KEY_DEBUGGED+KEY_H:
-			if (Player_is_dead)
-				return 0;
-
-			Players[Player_num].flags ^= PLAYER_FLAGS_CLOAKED;
-			if (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED) {
-#ifdef NETWORK
-				if (Game_mode & GM_MULTI)
-					multi_send_cloak();
-#endif
-				ai_do_cloak_stuff();
-				Players[Player_num].cloak_time = GameTime64;
-			}
-			break;
-
-
-		case KEY_DEBUGGED+KEY_R:
-			cheats.robotfiringsuspended = !cheats.robotfiringsuspended;
-			break;
-
-#ifdef EDITOR		//editor-specific functions
-
-		case KEY_E + KEY_DEBUGGED:
-			window_set_visible(Game_wind, 0);	// don't let the game do anything while we set the editor up
-			init_editor();
-			window_close(Game_wind);
-			break;
-		case KEY_C + KEY_SHIFTED + KEY_DEBUGGED:
-			if (!Player_is_dead && !( Game_mode & GM_MULTI ))
-				move_player_2_segment(Cursegp,Curside);
-			break;   //move eye to curseg
-
-
-		case KEY_DEBUGGED+KEY_W:	draw_world_from_game(); break;
-
-		#endif  //#ifdef EDITOR
-
-		case KEY_DEBUGGED+KEY_LAPOSTRO: Show_view_text_timer = 0x30000; object_goto_next_viewer(); break;
-		case KEY_DEBUGGED+KEY_SHIFTED+KEY_LAPOSTRO: Viewer=ConsoleObject; break;
-		case KEY_DEBUGGED+KEY_O: toggle_outline_mode(); break;
-		case KEY_DEBUGGED+KEY_T:
-			*Toggle_var = !*Toggle_var;
-			break;
-		case KEY_DEBUGGED + KEY_L:
-			if (++Lighting_on >= 2) Lighting_on = 0; break;
-		case KEY_DEBUGGED + KEY_SHIFTED + KEY_L:
-			Beam_brightness=0x38000-Beam_brightness; break;
-		case KEY_PAD5: slew_stop(); break;
-
-#ifndef NDEBUG
-		case KEY_DEBUGGED + KEY_F11: play_test_sound(); break;
-		case KEY_DEBUGGED + KEY_SHIFTED+KEY_F11: advance_sound(); play_test_sound(); break;
-#endif
-
-		case KEY_DEBUGGED + KEY_M:
-			Debug_spew = !Debug_spew;
-			if (Debug_spew) {
-				HUD_init_message_literal(HM_DEFAULT,  "Debug Spew: ON" );
-			} else {
-				HUD_init_message_literal(HM_DEFAULT,  "Debug Spew: OFF" );
-			}
-			break;
-
-		case KEY_DEBUGGED + KEY_C:
-			do_cheat_menu();
-			break;
-		case KEY_DEBUGGED + KEY_SHIFTED + KEY_A:
-			do_megawow_powerup(10);
-			break;
-		case KEY_DEBUGGED + KEY_A:	{
-			do_megawow_powerup(200);
-				break;
-		}
-
-		case KEY_DEBUGGED+KEY_SPACEBAR:		//KEY_F7:				// Toggle physics flying
-			slew_stop();
-		
-			game_flush_inputs();
-			if ( ConsoleObject->control_type != CT_FLYING ) {
-				fly_init(ConsoleObject);
-				Game_suspended &= ~SUSP_ROBOTS;	//robots move
-			} else {
-				slew_init(ConsoleObject);			//start player slewing
-				Game_suspended |= SUSP_ROBOTS;	//robots don't move
-			}
-			break;
-
-		case KEY_DEBUGGED+KEY_COMMA: Render_zoom = fixmul(Render_zoom,62259); break;
-		case KEY_DEBUGGED+KEY_PERIOD: Render_zoom = fixmul(Render_zoom,68985); break;
-
-		#ifndef NDEBUG
-		case KEY_DEBUGGED+KEY_D:
-			if ((GameArg.DbgUseDoubleBuffer = !GameArg.DbgUseDoubleBuffer)!=0)
-				init_cockpit();
-			break;
-		#endif
-
-#ifdef EDITOR
-		case KEY_DEBUGGED+KEY_Q:
-			stop_time();
-			dump_used_textures_all();
-			start_time();
-			break;
-#endif
-
-		case KEY_DEBUGGED+KEY_B: {
-			newmenu_item m;
-			char text[FILENAME_LEN]="";
-			int item;
-			m.type=NM_TYPE_INPUT; m.text_len = FILENAME_LEN; m.text = text;
-			item = newmenu_do( NULL, "Briefing to play?", 1, &m, NULL, NULL );
-			if (item != -1) {
-				do_briefing_screens(text,1);
-			}
-			break;
-		}
-
-		case KEY_DEBUGGED+KEY_SHIFTED+KEY_B:
-			if (Player_is_dead)
-				return 0;
-
-			kill_and_so_forth();
-			break;
-		case KEY_DEBUGGED+KEY_G:
-			GameTime64 = (0x7fffffffffffffffLL) - (F1_0*10);
-			HUD_init_message(HM_DEFAULT, "GameTime %li - Reset in 10 seconds!", GameTime64);
-			break;
-		default:
-			return 0;
-			break;
-	}
-
-	return 1;
-}
-#endif		//#ifndef RELEASE
+//#ifndef RELEASE
+//int HandleTestKey(int key)
+//{
+//	switch (key)
+//	{
+//
+//#ifdef SHOW_EXIT_PATH
+//		case KEY_DEBUGGED+KEY_1:	create_special_path();	break;
+//#endif
+//
+//		case KEY_DEBUGGED+KEY_Y:
+//			do_controlcen_destroyed_stuff(NULL);
+//			break;
+//		case KEY_BACKSP:
+//		case KEY_CTRLED+KEY_BACKSP:
+//		case KEY_ALTED+KEY_BACKSP:
+//		case KEY_SHIFTED+KEY_BACKSP:
+//		case KEY_SHIFTED+KEY_ALTED+KEY_BACKSP:
+//		case KEY_CTRLED+KEY_ALTED+KEY_BACKSP:
+//		case KEY_SHIFTED+KEY_CTRLED+KEY_BACKSP:
+//		case KEY_SHIFTED+KEY_CTRLED+KEY_ALTED+KEY_BACKSP:
+//
+//			Int3(); break;
+//
+//		case KEY_DEBUGGED+KEY_S:				digi_reset(); break;
+//
+//		case KEY_DEBUGGED+KEY_P:
+//			if (Game_suspended & SUSP_ROBOTS)
+//				Game_suspended &= ~SUSP_ROBOTS;		//robots move
+//			else
+//				Game_suspended |= SUSP_ROBOTS;		//robots don't move
+//			break;
+//
+//
+//
+//		case KEY_DEBUGGED+KEY_K:	Players[Player_num].shields = 1;	break;							//	a virtual kill
+//		case KEY_DEBUGGED+KEY_SHIFTED + KEY_K:  Players[Player_num].shields = -1;	 break;  //	an actual kill
+//		case KEY_DEBUGGED+KEY_X: Players[Player_num].lives++; break; // Extra life cheat key.
+//		case KEY_DEBUGGED+KEY_H:
+//			if (Player_is_dead)
+//				return 0;
+//
+//			Players[Player_num].flags ^= PLAYER_FLAGS_CLOAKED;
+//			if (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED) {
+//#ifdef NETWORK
+//				if (Game_mode & GM_MULTI)
+//					multi_send_cloak();
+//#endif
+//				ai_do_cloak_stuff();
+//				Players[Player_num].cloak_time = GameTime64;
+//			}
+//			break;
+//
+//
+//		case KEY_DEBUGGED+KEY_R:
+//			cheats.robotfiringsuspended = !cheats.robotfiringsuspended;
+//			break;
+//
+//#ifdef EDITOR		//editor-specific functions
+//
+//		case KEY_E + KEY_DEBUGGED:
+//			window_set_visible(Game_wind, 0);	// don't let the game do anything while we set the editor up
+//			init_editor();
+//			window_close(Game_wind);
+//			break;
+//		case KEY_C + KEY_SHIFTED + KEY_DEBUGGED:
+//			if (!Player_is_dead && !( Game_mode & GM_MULTI ))
+//				move_player_2_segment(Cursegp,Curside);
+//			break;   //move eye to curseg
+//
+//
+//		case KEY_DEBUGGED+KEY_W:	draw_world_from_game(); break;
+//
+//		#endif  //#ifdef EDITOR
+//
+//		case KEY_DEBUGGED+KEY_LAPOSTRO: Show_view_text_timer = 0x30000; object_goto_next_viewer(); break;
+//		case KEY_DEBUGGED+KEY_SHIFTED+KEY_LAPOSTRO: Viewer=ConsoleObject; break;
+//		case KEY_DEBUGGED+KEY_O: toggle_outline_mode(); break;
+//		case KEY_DEBUGGED+KEY_T:
+//			*Toggle_var = !*Toggle_var;
+//			break;
+//		case KEY_DEBUGGED + KEY_L:
+//			if (++Lighting_on >= 2) Lighting_on = 0; break;
+//		case KEY_DEBUGGED + KEY_SHIFTED + KEY_L:
+//			Beam_brightness=0x38000-Beam_brightness; break;
+//		case KEY_PAD5: slew_stop(); break;
+//
+//#ifndef NDEBUG
+//		case KEY_DEBUGGED + KEY_F11: play_test_sound(); break;
+//		case KEY_DEBUGGED + KEY_SHIFTED+KEY_F11: advance_sound(); play_test_sound(); break;
+//#endif
+//
+//		case KEY_DEBUGGED + KEY_M:
+//			Debug_spew = !Debug_spew;
+//			if (Debug_spew) {
+//				HUD_init_message_literal(HM_DEFAULT,  "Debug Spew: ON" );
+//			} else {
+//				HUD_init_message_literal(HM_DEFAULT,  "Debug Spew: OFF" );
+//			}
+//			break;
+//
+//		case KEY_DEBUGGED + KEY_C:
+//			do_cheat_menu();
+//			break;
+//		case KEY_DEBUGGED + KEY_SHIFTED + KEY_A:
+//			do_megawow_powerup(10);
+//			break;
+//		case KEY_DEBUGGED + KEY_A:	{
+//			do_megawow_powerup(200);
+//				break;
+//		}
+//
+//		case KEY_DEBUGGED+KEY_SPACEBAR:		//KEY_F7:				// Toggle physics flying
+//			slew_stop();
+//		
+//			game_flush_inputs();
+//			if ( ConsoleObject->control_type != CT_FLYING ) {
+//				fly_init(ConsoleObject);
+//				Game_suspended &= ~SUSP_ROBOTS;	//robots move
+//			} else {
+//				slew_init(ConsoleObject);			//start player slewing
+//				Game_suspended |= SUSP_ROBOTS;	//robots don't move
+//			}
+//			break;
+//
+//		case KEY_DEBUGGED+KEY_COMMA: Render_zoom = fixmul(Render_zoom,62259); break;
+//		case KEY_DEBUGGED+KEY_PERIOD: Render_zoom = fixmul(Render_zoom,68985); break;
+//
+//		#ifndef NDEBUG
+//		case KEY_DEBUGGED+KEY_D:
+//			if ((GameArg.DbgUseDoubleBuffer = !GameArg.DbgUseDoubleBuffer)!=0)
+//				init_cockpit();
+//			break;
+//		#endif
+//
+//#ifdef EDITOR
+//		case KEY_DEBUGGED+KEY_Q:
+//			stop_time();
+//			dump_used_textures_all();
+//			start_time();
+//			break;
+//#endif
+//
+//		case KEY_DEBUGGED+KEY_B: {
+//			newmenu_item m;
+//			char text[FILENAME_LEN]="";
+//			int item;
+//			m.type=NM_TYPE_INPUT; m.text_len = FILENAME_LEN; m.text = text;
+//			item = newmenu_do( NULL, "Briefing to play?", 1, &m, NULL, NULL );
+//			if (item != -1) {
+//				do_briefing_screens(text,1);
+//			}
+//			break;
+//		}
+//
+//		case KEY_DEBUGGED+KEY_SHIFTED+KEY_B:
+//			if (Player_is_dead)
+//				return 0;
+//
+//			kill_and_so_forth();
+//			break;
+//		case KEY_DEBUGGED+KEY_G:
+//			GameTime64 = (0x7fffffffffffffffLL) - (F1_0*10);
+//			HUD_init_message(HM_DEFAULT, "GameTime %li - Reset in 10 seconds!", GameTime64);
+//			break;
+//		default:
+//			return 0;
+//			break;
+//	}
+//
+//	return 1;
+//}
+//#endif		//#ifndef RELEASE
 
 //	Cheat functions ------------------------------------------------------------
 #define CHEAT_MAX_LEN 15
@@ -1283,62 +1287,62 @@ int FinalCheats(int key)
 }
 
 // Internal Cheat Menu
-#ifndef RELEASE
-void do_cheat_menu()
-{
-	int mmn;
-	newmenu_item mm[16];
-	char score_text[21];
-
-	sprintf( score_text, "%d", Players[Player_num].score );
-
-	mm[0].type=NM_TYPE_CHECK; mm[0].value=Players[Player_num].flags & PLAYER_FLAGS_INVULNERABLE; mm[0].text="Invulnerability";
-	mm[1].type=NM_TYPE_CHECK; mm[1].value=Players[Player_num].flags & PLAYER_FLAGS_CLOAKED; mm[1].text="Cloaked";
-	mm[2].type=NM_TYPE_CHECK; mm[2].value=0; mm[2].text="All keys";
-	mm[3].type=NM_TYPE_NUMBER; mm[3].value=f2i(Players[Player_num].energy); mm[3].text="% Energy"; mm[3].min_value=0; mm[3].max_value=200;
-	mm[4].type=NM_TYPE_NUMBER; mm[4].value=f2i(Players[Player_num].shields); mm[4].text="% Shields"; mm[4].min_value=0; mm[4].max_value=200;
-	mm[5].type=NM_TYPE_TEXT; mm[5].text = "Score:";
-	mm[6].type=NM_TYPE_INPUT; mm[6].text_len = 10; mm[6].text = score_text;
-	mm[7].type=NM_TYPE_RADIO; mm[7].value=(Players[Player_num].laser_level==0); mm[7].group=0; mm[7].text="Laser level 1";
-	mm[8].type=NM_TYPE_RADIO; mm[8].value=(Players[Player_num].laser_level==1); mm[8].group=0; mm[8].text="Laser level 2";
-	mm[9].type=NM_TYPE_RADIO; mm[9].value=(Players[Player_num].laser_level==2); mm[9].group=0; mm[9].text="Laser level 3";
-	mm[10].type=NM_TYPE_RADIO; mm[10].value=(Players[Player_num].laser_level==3); mm[10].group=0; mm[10].text="Laser level 4";
-	mm[11].type=NM_TYPE_NUMBER; mm[11].value=Players[Player_num].secondary_ammo[CONCUSSION_INDEX]; mm[11].text="Missiles"; mm[11].min_value=0; mm[11].max_value=200;
-
-	mmn = newmenu_do("Wimp Menu",NULL,12, mm, NULL, NULL );
-
-	if (mmn > -1 )  {
-		if ( mm[0].value )  {
-			Players[Player_num].flags |= PLAYER_FLAGS_INVULNERABLE;
-			Players[Player_num].invulnerable_time = GameTime64+i2f(1000);
-		} else
-			Players[Player_num].flags &= ~PLAYER_FLAGS_INVULNERABLE;
-		if ( mm[1].value )
-		{
-			Players[Player_num].flags |= PLAYER_FLAGS_CLOAKED;
-			#ifdef NETWORK
-			if (Game_mode & GM_MULTI)
-				multi_send_cloak();
-			#endif
-			ai_do_cloak_stuff();
-			Players[Player_num].cloak_time = GameTime64;
-		}
-		else
-			Players[Player_num].flags &= ~PLAYER_FLAGS_CLOAKED;
-
-		if (mm[2].value) Players[Player_num].flags |= PLAYER_FLAGS_BLUE_KEY | PLAYER_FLAGS_RED_KEY | PLAYER_FLAGS_GOLD_KEY;
-		Players[Player_num].energy=i2f(mm[3].value);
-		Players[Player_num].shields=i2f(mm[4].value);
-		Players[Player_num].score = atoi(mm[6].text);
-		if (mm[7].value) Players[Player_num].laser_level=0;
-		if (mm[8].value) Players[Player_num].laser_level=1;
-		if (mm[9].value) Players[Player_num].laser_level=2;
-		if (mm[10].value) Players[Player_num].laser_level=3;
-		Players[Player_num].secondary_ammo[CONCUSSION_INDEX] = mm[11].value;
-		init_gauges();
-	}
-}
-#endif
+//#ifndef RELEASE
+//void do_cheat_menu()
+//{
+//	int mmn;
+//	newmenu_item mm[16];
+//	char score_text[21];
+//
+//	sprintf( score_text, "%d", Players[Player_num].score );
+//
+//	mm[0].type=NM_TYPE_CHECK; mm[0].value=Players[Player_num].flags & PLAYER_FLAGS_INVULNERABLE; mm[0].text="Invulnerability";
+//	mm[1].type=NM_TYPE_CHECK; mm[1].value=Players[Player_num].flags & PLAYER_FLAGS_CLOAKED; mm[1].text="Cloaked";
+//	mm[2].type=NM_TYPE_CHECK; mm[2].value=0; mm[2].text="All keys";
+//	mm[3].type=NM_TYPE_NUMBER; mm[3].value=f2i(Players[Player_num].energy); mm[3].text="% Energy"; mm[3].min_value=0; mm[3].max_value=200;
+//	mm[4].type=NM_TYPE_NUMBER; mm[4].value=f2i(Players[Player_num].shields); mm[4].text="% Shields"; mm[4].min_value=0; mm[4].max_value=200;
+//	mm[5].type=NM_TYPE_TEXT; mm[5].text = "Score:";
+//	mm[6].type=NM_TYPE_INPUT; mm[6].text_len = 10; mm[6].text = score_text;
+//	mm[7].type=NM_TYPE_RADIO; mm[7].value=(Players[Player_num].laser_level==0); mm[7].group=0; mm[7].text="Laser level 1";
+//	mm[8].type=NM_TYPE_RADIO; mm[8].value=(Players[Player_num].laser_level==1); mm[8].group=0; mm[8].text="Laser level 2";
+//	mm[9].type=NM_TYPE_RADIO; mm[9].value=(Players[Player_num].laser_level==2); mm[9].group=0; mm[9].text="Laser level 3";
+//	mm[10].type=NM_TYPE_RADIO; mm[10].value=(Players[Player_num].laser_level==3); mm[10].group=0; mm[10].text="Laser level 4";
+//	mm[11].type=NM_TYPE_NUMBER; mm[11].value=Players[Player_num].secondary_ammo[CONCUSSION_INDEX]; mm[11].text="Missiles"; mm[11].min_value=0; mm[11].max_value=200;
+//
+//	mmn = newmenu_do("Wimp Menu",NULL,12, mm, NULL, NULL );
+//
+//	if (mmn > -1 )  {
+//		if ( mm[0].value )  {
+//			Players[Player_num].flags |= PLAYER_FLAGS_INVULNERABLE;
+//			Players[Player_num].invulnerable_time = GameTime64+i2f(1000);
+//		} else
+//			Players[Player_num].flags &= ~PLAYER_FLAGS_INVULNERABLE;
+//		if ( mm[1].value )
+//		{
+//			Players[Player_num].flags |= PLAYER_FLAGS_CLOAKED;
+//			#ifdef NETWORK
+//			if (Game_mode & GM_MULTI)
+//				multi_send_cloak();
+//			#endif
+//			ai_do_cloak_stuff();
+//			Players[Player_num].cloak_time = GameTime64;
+//		}
+//		else
+//			Players[Player_num].flags &= ~PLAYER_FLAGS_CLOAKED;
+//
+//		if (mm[2].value) Players[Player_num].flags |= PLAYER_FLAGS_BLUE_KEY | PLAYER_FLAGS_RED_KEY | PLAYER_FLAGS_GOLD_KEY;
+//		Players[Player_num].energy=i2f(mm[3].value);
+//		Players[Player_num].shields=i2f(mm[4].value);
+//		Players[Player_num].score = atoi(mm[6].text);
+//		if (mm[7].value) Players[Player_num].laser_level=0;
+//		if (mm[8].value) Players[Player_num].laser_level=1;
+//		if (mm[9].value) Players[Player_num].laser_level=2;
+//		if (mm[10].value) Players[Player_num].laser_level=3;
+//		Players[Player_num].secondary_ammo[CONCUSSION_INDEX] = mm[11].value;
+//		init_gauges();
+//	}
+//}
+//#endif
 
 
 
