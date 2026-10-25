@@ -3080,6 +3080,9 @@ void do_ai_frame_all(void)
 #endif
 
 	set_player_awareness_all();
+#ifdef NETWORK
+    multi_blend_robot_positions();
+#endif
 }
 
 // Initializations to be performed for all robots for a new level.

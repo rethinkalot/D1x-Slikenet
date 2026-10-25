@@ -3777,7 +3777,8 @@ void net_udp_do_frame(int force, int listen)
 		net_udp_send_pdata();
 	}
 	
-	if (force || (time >= (last_mdata_time+(F1_0/10))))
+	// enemy positions get a faster cadence (20Hz) so blends are short and changes show up sooner
+	if (force || (time >= (last_mdata_time+(F1_0/20))))
 	{
 		last_mdata_time = time;
 		multi_send_robot_frame(0);

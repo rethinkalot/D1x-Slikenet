@@ -141,6 +141,24 @@ static inline char *dxx_gettext(unsigned idx, const char *text)
 #define TXT_KEYS                dxx_gettext(101, "KEYS")
 #define TXT_ABORT_AUTODEMO      dxx_gettext(102, "Abort Autodemo?")
 #define TXT_ABORT_GAME          dxx_gettext(103, "Abort Game?")
+/* EXIT DEMO PLAYBACK PROMPT ------------------------------------------------
+ * These two string-table entries were originally added for the
+ * "Exit Demo Playback?" ESC prompt in main/gamecntl.c (HandleDemoKey).
+ * They were DISABLED (commented out) because text-table indices 621 and 622
+ * fall OUTSIDE the loaded text table:
+ *      main/text.h:  N_TEXT_STRINGS == 621   -> valid indices 0..620
+ *      main/text.c:  char *Text_string[N_TEXT_STRINGS];
+ * Reading Text_string[621]/[622] was an out-of-bounds read that returned
+ * garbage (it displayed "New game").
+ * The prompt text is now carried inline in the message box choice instead;
+ * see the KEY_ESC case of HandleDemoKey() in main/gamecntl.c.
+ * To switch back to a table-driven string, the table must first be extended:
+ *   - main/text.h:  bump N_TEXT_STRINGS from 621 to 622
+ *   - main/text.c:  append the new text to extra_strings[] (index 621)
+ *   - then uncomment the define below.
+ * ------------------------------------------------------------------------- */
+/* #define TXT_EXIT_DEMO_PLAYBACK  dxx_gettext(621, "Exit Demo Playback?") */
+/* #define TXT_ABORT_GAME_CONFIRM  dxx_gettext(622, "Abort Game?") */
 #define TXT_W_LASER             dxx_gettext(104, "Laser Cannon")
 #define TXT_W_VULCAN            dxx_gettext(105, "Vulcan Cannon")
 #define TXT_W_SPREADFIRE        dxx_gettext(106, "Spreadfire Cannon")

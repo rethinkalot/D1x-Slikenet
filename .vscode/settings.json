@@ -1,17 +1,133 @@
 {
+    "cmake.additionalCompilerSearchDirs": [
+        "C:/Programs/msys64/mingw64/bin"
+    ],
+    "terminal.integrated.enableMultiLinePasteWarning": "auto",
+    "terminal.integrated.focusAfterLaunch": "none",
+    "task.reveal": "silent",
+    "task.focus": false,
+    "cmake.showOptionsMovedNotification": false,
+    "git.ignoreMissingGitWarning": true,
+    "window.zoomLevel": 1,
+    "window.titleBarStyle": "native",
+    "cmake.buildArgs": [
+        "-j10"
+    ],
+    "extensions.autoUpdate": "off",
+    "workbench.startupEditor": "none",
+    "terminal.integrated.defaultProfile.windows": "Git Bash",
     "terminal.integrated.profiles.windows": {
+        "Git Bash": {
+            "path": "C:\\\\Program Files\\\\Git\\\\bin\\\\bash.exe",
+            "args": [
+                "--login",
+                "-i"
+            ],
+            "icon": "terminal-git-bash"
+        },
         "Command Prompt": {
-            "path": "${env:ComSpec}"
+            "path": "${env:ComSpec}",
+            "args": [],
+            "icon": "terminal-cmd"
+        },
+        "bash (MSYS2)": {
+            "path": "C:\\\\Programs\\\\msys64\\\\usr\\\\bin\\\\bash.exe",
+            "args": [
+                "--login",
+                "-i"
+            ],
+            "env": {
+                "CHERE_INVOKING": "1"
+            }
+        },
+        "PowerShell": {
+            "path": "C:\\\\WINDOWS\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe"
         },
         "MSYS2 MinGW64": {
-            "path": "C:\\Programs\\msys64\\msys2_shell.cmd",
-            "args": ["-mingw64", "-defterm", "-no-start", "-use-full-path"]
+            "path": "C:\\\\Programs\\\\msys64\\\\msys2_shell.cmd",
+            "args": [
+                "-mingw64",
+                "-defterm",
+                "-no-start",
+                "-use-full-path"
+            ]
         }
     },
-    "terminal.integrated.defaultProfile.windows": "Command Prompt",
-    "cmake.cmakePath": "C:/Programs/msys64/mingw64/bin/cmake.exe",
-    "cmake.generator": "Ninja",
-    "cmake.configureSettings": {
-        "CMAKE_MAKE_PROGRAM": "C:/Programs/msys64/mingw64/bin/ninja.exe"
-    }
+    "workbench.settings.applyToAllProfiles": [
+        "problems.defaultViewMode",
+        "chat.byokUtilityModelDefault",
+        "workbench.editor.revealIfOpen",
+        "zenMode.fullScreen",
+        "workbench.editor.enablePreviewFromQuickOpen",
+        "workbench.editor.dragToOpenWindow"
+    ],
+    "geminicodeassist.displayInlineContextHint": false,
+    "cmake.allowCommentsInPresetsFile": true,
+    "debug.onTaskErrors": "debugAnyway",
+    "editor.accessibilitySupport": "off",
+    "explorer.confirmDelete": false,
+    "cline.apiProvider": "openrouter",
+    "cline.openrouterModelId": "qwen/qwen3.8-27b:free",
+    "cline.apiReasoningEffort": "low",
+    "extensions.ignoreRecommendations": true,
+    "terminal.integrated.accessibleViewFocusOnCommandExecution": false,
+    "chat.editor.preferCopilotHarness": false,
+    "chat.byokUtilityModelDefault": "mainAgent",
+    "chat.subagents.defaultToAuto": true,
+    "continue.enableConsole": true,
+    "continue.disableQuickFix": true,
+    "continue.remoteConfigServerUrl": "{   \"models\": [     {       \"title\": \"Local Qwen Coder\",       \"provider\": \"ollama\",       \"model\": \"qwen2.5-coder:7b\"     }   ],   \"tabAutocompleteModel\": {     \"title\": \"Local Qwen Coder\",     \"provider\": \"ollama\",     \"model\": \"qwen2.5-coder:7b\"   } }",
+    "claudeCode.preferredLocation": "panel",
+    "window.newWindowProfile": "Default",
+    "git.confirmSync": false,
+    "githubPullRequests.pullRequestDescription": "commit",
+    "terminal.integrated.initialHint": false,
+    "powershell.integratedConsole.suppressTerminalStoppedNotification": true,
+    "workbench.editor.autoLockGroups": {
+        "workbench.editor.processExplorer": true,
+        "workbench.editor.chatSession": true
+    },
+    "workbench.editor.centeredLayoutFixedWidth": true,
+    "workbench.editor.splitSizing": "distribute",
+    "window.density.editorTabHeight": "compact",
+    "workbench.browser.showInTitleBar": true,
+    "editor.minimap.showSlider": "always",
+    "workbench.secondarySideBar.defaultVisibility": "hidden",
+    "chat.agent.sandbox.lspServers": false,
+    "chat.agent.sandbox.network.allowLocalNetwork": true,
+    "workbench.secondarySideBar.showLabels": false,
+    "chat.restoreLastPanelSession": true,
+    "chat.viewProgressBadge.enabled": true,
+    "chat.unifiedAgentsBar.enabled": true,
+    "workbench.settings.alwaysShowAdvancedSettings": true,
+    "workbench.activityBar.autoHide": true,
+    "workbench.tree.expandMode": "doubleClick",
+    "workbench.editor.alwaysShowEditorActions": true,
+    "workbench.view.showQuietly": {
+        "workbench.panel.output": true
+    },
+    "workbench.view.alwaysShowHeaderActions": true,
+    "workbench.editor.revealIfOpen": true,
+    "workbench.editor.useModal": "off",
+    "zenMode.fullScreen": false,
+    "workbench.editor.enablePreviewFromQuickOpen": false,
+    "workbench.editor.enablePreviewFromCodeNavigation": false,
+    "workbench.settings.openDefaultSettings": false,
+    "zenMode.centerLayout": false,
+    "zenMode.hideActivityBar": false,
+    "zenMode.hideLineNumbers": false,
+    "zenMode.hideStatusBar": false,
+    "zenMode.restore": false,
+    "zenMode.silentNotifications": false,
+    "editor.rename.enablePreview": true,
+    "workbench.editor.doubleClickTabToToggleEditorGroupSizes": "off",
+    "window.enableMenuBarMnemonics": false,
+    "workbench.editor.dragToOpenWindow": false,
+    "workbench.editor.enablePreview": false,
+    "workbench.editor.openPositioning": "left",
+    "window.openFilesInNewWindow": "off",
+    "workbench.editor.showTabs": "multiple",
+    "editor.wordWrap": "on",
+    "chat.agent.sandbox.fileSystem.userConfiguredPaths": {},
+    "editor.minimap.size": "fit"
 }
