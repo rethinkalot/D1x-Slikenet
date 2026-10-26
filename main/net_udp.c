@@ -3437,7 +3437,7 @@ int net_udp_send_sync(void)
 	for (i=0; i<NumNetPlayerPositions; i++ )        
 	{
 		if (Players[i].connected)
-			Players[i].connected = CONNECT_PLAYING; // Get rid of endlevel connect statuses
+		if (i < MAX_PLAYERS) Players[i].connected = CONNECT_PLAYING;
 
 		if (Game_mode & GM_MULTI_COOP)
 			Netgame.locations[i] = i;

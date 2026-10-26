@@ -465,7 +465,7 @@ void ai_turn_randomly(vms_vector *vec_to_player, object *obj, fix rate, int prev
 	//	Random turning looks too stupid, so 1/4 of time, cheat.
 	if (previous_visibility)
                 if (d_rand() > 0x7400) {
-			ai_turn_towards_vector(vec_to_player, obj, rate);
+			if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) ai_turn_towards_vector(vec_to_player, obj, rate);
 			return;
 		}
 //--debug--     if (d_rand() > 0x6000)
@@ -2511,10 +2511,12 @@ void do_ai_frame(object *obj)
 				ai_move_relative_to_player(obj, ailp, dist_to_player, &vec_to_player, circle_distance, 0);
 
 				if ((obj_ref & 1) && ((aip->GOAL_STATE == AIS_SRCH) || (aip->GOAL_STATE == AIS_LOCK))) {
-					if (player_visibility) // == 2)
-						ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
-					else
-						ai_turn_randomly(&vec_to_player, obj, robptr->turn_time[Difficulty_level], previous_visibility);
+					if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) {
+						if (player_visibility) // == 2)
+							ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
+						else
+							ai_turn_randomly(&vec_to_player, obj, robptr->turn_time[Difficulty_level], previous_visibility);
+					}
 				}
 
 				if (ai_evaded) {
@@ -2656,7 +2658,7 @@ void do_ai_frame(object *obj)
 							ai_do_actual_firing_stuff(obj, aip, ailp, robptr, &vec_to_player, dist_to_player, &gun_point, player_visibility, object_animates);
 						return;
 					}
-					ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
+					if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
 					ai_multi_send_robot_position(objnum, -1);
 				}
 
@@ -2714,7 +2716,7 @@ void do_ai_frame(object *obj)
 			compute_center_point_on_side(&center_point, &Segments[obj->segnum], aip->GOALSIDE);
 			vm_vec_sub(&goal_vector, &center_point, &obj->pos);
 			vm_vec_normalize_quick(&goal_vector);
-			ai_turn_towards_vector(&goal_vector, obj, robptr->turn_time[Difficulty_level]);
+			if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) ai_turn_towards_vector(&goal_vector, obj, robptr->turn_time[Difficulty_level]);
 			move_towards_vector(obj, &goal_vector);
 			ai_multi_send_robot_position(objnum, -1);
 
@@ -2802,10 +2804,11 @@ void do_ai_frame(object *obj)
 				compute_vis_and_vec(obj, &vis_vec_pos, ailp, &vec_to_player, &player_visibility, robptr, &visibility_and_vec_computed);
 
 				if (player_visibility) {
-					ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
+					if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
 					ai_multi_send_robot_position(objnum, -1);
-				} else if (!(Game_mode & GM_MULTI))
+				} else if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) {
 					ai_turn_randomly(&vec_to_player, obj, robptr->turn_time[Difficulty_level], previous_visibility);
+				}
 				break;
 			case	AIS_LOCK:
 				compute_vis_and_vec(obj, &vis_vec_pos, ailp, &vec_to_player, &player_visibility, robptr, &visibility_and_vec_computed);
@@ -2815,10 +2818,11 @@ void do_ai_frame(object *obj)
 						return;
 
 					if (player_visibility) {
-						ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
+						if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
 						ai_multi_send_robot_position(objnum, -1);
-					} else if (!(Game_mode & GM_MULTI))
+					} else if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) {
 						ai_turn_randomly(&vec_to_player, obj, robptr->turn_time[Difficulty_level], previous_visibility);
+					}
 				}
 				break;
 			case	AIS_FIRE:
@@ -2832,9 +2836,9 @@ void do_ai_frame(object *obj)
 							return;
 						}
 					}
-					ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
+					if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
 					ai_multi_send_robot_position(objnum, -1);
-				} else if (!(Game_mode & GM_MULTI)) {
+				} else if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) {
 					ai_turn_randomly(&vec_to_player, obj, robptr->turn_time[Difficulty_level], previous_visibility);
 				}
 
@@ -2848,9 +2852,9 @@ void do_ai_frame(object *obj)
 					if (player_visibility) {
 						if (!ai_multiplayer_awareness(obj, 69))
 							return;
-						ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
+						if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
 						ai_multi_send_robot_position(objnum, -1);
-					} else if (!(Game_mode & GM_MULTI)) {
+					} else if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) {
 						ai_turn_randomly(&vec_to_player, obj, robptr->turn_time[Difficulty_level], previous_visibility);
 					}
 				}
