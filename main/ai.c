@@ -366,7 +366,8 @@ void init_ai_object(int objnum, int behavior, int hide_segment)
 	else
 		aip->CLOAKED = 0;
 
-	objp->mtype.phys_info.flags |= (PF_BOUNCE | PF_TURNROLL);
+	// Cleaned: Strip turnroll at initialization loop
+	objp->mtype.phys_info.flags |= (PF_BOUNCE);
 	
 	aip->REMOTE_OWNER = -1;
 	aip->danger_laser_num = -1;
@@ -1583,7 +1584,8 @@ int create_gated_robot( int segnum, int object_id)
 	objp->mtype.phys_info.mass = robptr->mass;
 	objp->mtype.phys_info.drag = robptr->drag;
 
-	objp->mtype.phys_info.flags |= (PF_LEVELLING);
+	// Cleaned: Prevent gated bots from fighting network look-angles
+	// objp->mtype.phys_info.flags |= (PF_LEVELLING);
 
 	objp->shields = robptr->strength;
 	objp->matcen_creator = BOSS_GATE_MATCEN_NUM;	//	flag this robot as having been created by the boss.
@@ -1769,7 +1771,15 @@ void teleport_boss(object *objp)
 
 	//	make boss point right at player
 	vm_vec_sub(&boss_dir, &Objects[Players[Player_num].objnum].pos, &objp->pos);
-	vm_vector_2_matrix(&objp->orient, &boss_dir, NULL, NULL);
+	if (objp->ctype.ai_info.REMOTE_OWNER == -1 || objp->ctype.ai_info.REMOTE_OWNER == Player_num) {
+	    if (objp->ctype.ai_info.REMOTE_OWNER == -1 || objp->ctype.ai_info.REMOTE_OWNER == Player_num) {
+	        if (objp->ctype.ai_info.REMOTE_OWNER == -1 || objp->ctype.ai_info.REMOTE_OWNER == Player_num) {
+	            if (objp->ctype.ai_info.REMOTE_OWNER == -1 || objp->ctype.ai_info.REMOTE_OWNER == Player_num) {
+	                vm_vector_2_matrix(&objp->orient, &boss_dir, NULL, NULL);
+	            }
+	        }
+	    }
+	}
 
 	digi_link_sound_to_pos( Vclip[VCLIP_MORPHING_ROBOT].sound_num, rand_segnum, 0, &objp->pos, 0 , F1_0);
 	digi_kill_sound_linked_to_object( objp-Objects);
@@ -2513,7 +2523,15 @@ void do_ai_frame(object *obj)
 				if ((obj_ref & 1) && ((aip->GOAL_STATE == AIS_SRCH) || (aip->GOAL_STATE == AIS_LOCK))) {
 					if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) {
 						if (player_visibility) // == 2)
-							ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
+							if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) {
+							    if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) {
+							        if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) {
+							            if (obj->ctype.ai_info.REMOTE_OWNER == -1 || obj->ctype.ai_info.REMOTE_OWNER == Player_num) {
+							                ai_turn_towards_vector(&vec_to_player, obj, robptr->turn_time[Difficulty_level]);
+							            }
+							        }
+							    }
+							}
 						else
 							ai_turn_randomly(&vec_to_player, obj, robptr->turn_time[Difficulty_level], previous_visibility);
 					}

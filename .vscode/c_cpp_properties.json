@@ -13,6 +13,8 @@
                 "_DEBUG",
                 "UNICODE",
                 "_UNICODE",
+                "NETWORK",
+                "USE_UDP",
                 "DESCENT_VERSION=\"D1X_SLIKENET\""
             ],
             "compilerPath": "C:/Programs/msys64/mingw64/bin/gcc.exe",

@@ -38,22 +38,22 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 // Object types
 enum object_type_t
 {
-	OBJ_NONE	= 255, // unused object
-	OBJ_WALL	= 0,   // A wall... not really an object, but used for collisions
-	OBJ_FIREBALL	= 1,   // a fireball, part of an explosion
-	OBJ_ROBOT	= 2,   // an evil enemy
-	OBJ_HOSTAGE	= 3,   // a hostage you need to rescue
-	OBJ_PLAYER	= 4,   // the player on the console
-	OBJ_WEAPON	= 5,   // a laser, missile, etc
-	OBJ_CAMERA	= 6,   // a camera to slew around with
-	OBJ_POWERUP	= 7,   // a powerup you can pick up
-	OBJ_DEBRIS	= 8,   // a piece of robot
-	OBJ_CNTRLCEN	= 9,   // the control center
-	OBJ_FLARE	= 10,  // a flare
-	OBJ_CLUTTER	= 11,  // misc objects
-	OBJ_GHOST	= 12,  // what the player turns into when dead
-	OBJ_LIGHT	= 13,  // a light source, & not much else
-	OBJ_COOP	= 14,  // a cooperative player object.
+    OBJ_NONE	= 255, // unused object
+    OBJ_WALL	= 0,   // A wall... not really an object, but used for collisions
+    OBJ_FIREBALL	= 1,   // a fireball, part of an explosion
+    OBJ_ROBOT	= 2,   // an evil enemy
+    OBJ_HOSTAGE	= 3,   // a hostage you need to rescue
+    OBJ_PLAYER	= 4,   // the player on the console
+    OBJ_WEAPON	= 5,   // a laser, missile, etc
+    OBJ_CAMERA	= 6,   // a camera to slew around with
+    OBJ_POWERUP	= 7,   // a powerup you can pick up
+    OBJ_DEBRIS	= 8,   // a piece of robot
+    OBJ_CNTRLCEN	= 9,   // the control center
+    OBJ_FLARE	= 10,  // a flare
+    OBJ_CLUTTER	= 11,  // misc objects
+    OBJ_GHOST	= 12,  // what the player turns into when dead
+    OBJ_LIGHT	= 13,  // a light source, & not much else
+    OBJ_COOP	= 14,  // a cooperative player object.
 };
 
 // WARNING!! If you add a type here, add its name to Object_type_names
@@ -137,34 +137,34 @@ extern int Num_rendered_objects;
 #define MAX_CONTROLCEN_GUNS     4
 
 struct reactor_static {
-	/* Location of the gun on the reactor object */
-	vms_vector	gun_pos[MAX_CONTROLCEN_GUNS];
-	/* Orientation of the gun on the reactor object */
-	vms_vector	gun_dir[MAX_CONTROLCEN_GUNS];
+    /* Location of the gun on the reactor object */
+    vms_vector	gun_pos[MAX_CONTROLCEN_GUNS];
+    /* Orientation of the gun on the reactor object */
+    vms_vector	gun_dir[MAX_CONTROLCEN_GUNS];
 };
 
 // A compressed form for sending crucial data
 typedef struct shortpos {
-	sbyte   bytemat[9];
-	short   xo,yo,zo;
-	short   segment;
-	short   velx, vely, velz;
+    sbyte   bytemat[9];
+    short   xo,yo,zo;
+    short   segment;
+    short   velx, vely, velz;
 } __pack__ shortpos;
 
 // Another compressed form for object position, velocity, orientation and rotvel using quaternion
 typedef struct quaternionpos {
-	vms_quaternion orient;
-	vms_vector pos;
-	vms_vector vel;
-	vms_vector rotvel;
+    vms_quaternion orient;
+    vms_vector pos;
+    vms_vector vel;
+    vms_vector rotvel;
 } __pack__ quaternionpos;
 
 // An uncompressed form
 typedef struct uncompressed_pos {
-	vms_matrix orient;
-	vms_vector pos;
-	vms_vector vel;
-	vms_vector rotvel;
+    vms_matrix orient;
+    vms_vector pos;
+    vms_vector vel;
+    vms_vector rotvel;
 } __pack__ uncompressed_pos;
 
 
@@ -175,40 +175,40 @@ typedef struct uncompressed_pos {
 
 // information for physics sim for an object
 typedef struct physics_info {
-	vms_vector  velocity;   // velocity vector of this object
-	vms_vector  thrust;     // constant force applied to this object
-	fix         mass;       // the mass of this object
-	fix         drag;       // how fast this slows down
-	fix         brakes;     // how much brakes applied
-	vms_vector  rotvel;     // rotational velecity (angles)
-	vms_vector  rotthrust;  // rotational acceleration
-	fixang      turnroll;   // rotation caused by turn banking
-	ushort      flags;      // misc physics flags
+    vms_vector  velocity;   // velocity vector of this object
+    vms_vector  thrust;     // constant force applied to this object
+    fix         mass;       // the mass of this object
+    fix         drag;       // how fast this slows down
+    fix         brakes;     // how much brakes applied
+    vms_vector  rotvel;     // rotational velecity (angles)
+    vms_vector  rotthrust;  // rotational acceleration
+    fixang      turnroll;   // rotation caused by turn banking
+    ushort      flags;      // misc physics flags
 } __pack__ physics_info;
 
 // stuctures for different kinds of simulation
 
 typedef struct laser_info {
-	short   parent_type;        // The type of the parent of this object
-	short   parent_num;         // The object's parent's number
-	int     parent_signature;   // The object's parent's signature...
-	fix64   creation_time;      // Absolute time of creation.
-	short   last_hitobj;        // For persistent weapons (survive object collision), object it most recently hit.
-	ubyte   hitobj_list[MAX_OBJECTS]; // list of all objects persistent weapon has already damaged (useful in case it's in contact with two objects at the same time)
-	short   track_goal;         // Object this object is tracking.
-	fix     multiplier;         // Power if this is a fusion bolt (or other super weapon to be added).
-	int     creation_framecount;
+    short   parent_type;        // The type of the parent of this object
+    short   parent_num;         // The object's parent's number
+    int     parent_signature;   // The object's parent's signature...
+    fix64   creation_time;      // Absolute time of creation.
+    short   last_hitobj;        // For persistent weapons (survive object collision), object it most recently hit.
+    ubyte   hitobj_list[MAX_OBJECTS]; // list of all objects persistent weapon has already damaged (useful in case it's in contact with two objects at the same time)
+    short   track_goal;         // Object this object is tracking.
+    fix     multiplier;         // Power if this is a fusion bolt (or other super weapon to be added).
+    int     creation_framecount;
 } __pack__ laser_info;
 
 // Same as above but structure Savegames/Multiplayer objects expect
 typedef struct laser_info_rw {
-	short   parent_type;        // The type of the parent of this object
-	short   parent_num;         // The object's parent's number
-	int     parent_signature;   // The object's parent's signature...
-	fix     creation_time;      // Absolute time of creation.
-	short   last_hitobj;        // For persistent weapons (survive object collision), object it most recently hit.
-	short   track_goal;         // Object this object is tracking.
-	fix     multiplier;         // Power if this is a fusion bolt (or other super weapon to be added).
+    short   parent_type;        // The type of the parent of this object
+    short   parent_num;         // The object's parent's number
+    int     parent_signature;   // The object's parent's signature...
+    fix     creation_time;      // Absolute time of creation.
+    short   last_hitobj;        // For persistent weapons (survive object collision), object it most recently hit.
+    short   track_goal;         // Object this object is tracking.
+    fix     multiplier;         // Power if this is a fusion bolt (or other super weapon to be added).
 } __pack__ laser_info_rw;
 
 // extern ubyte hitobj_list[MAX_OBJECTS][MAX_OBJECTS]; This is a BIIIG memory hit for an array that's not even used... -roncli
@@ -227,135 +227,135 @@ typedef struct light_info {
 } __pack__ light_info;
 
 typedef struct powerup_info {
-	int     count;          // how many/much we pick up (vulcan cannon only?)
+    int     count;          // how many/much we pick up (vulcan cannon only?)
 } __pack__ powerup_info;
 
 typedef struct vclip_info {
-	int     vclip_num;
-	fix     frametime;
-	sbyte   framenum;
+    int     vclip_num;
+    fix     frametime;
+    sbyte   framenum;
 } __pack__ vclip_info;
 
 // structures for different kinds of rendering
 
 typedef struct polyobj_info {
-	int     model_num;          // which polygon model
-	vms_angvec anim_angles[MAX_SUBMODELS]; // angles for each subobject
-	int     subobj_flags;       // specify which subobjs to draw
-	int     tmap_override;      // if this is not -1, map all face to this
-	int     alt_textures;       // if not -1, use these textures instead
+    int     model_num;          // which polygon model
+    vms_angvec anim_angles[MAX_SUBMODELS]; // angles for each subobject
+    int     subobj_flags;       // specify which subobjs to draw
+    int     tmap_override;      // if this is not -1, map all face to this
+    int     alt_textures;       // if not -1, use these textures instead
 } __pack__ polyobj_info;
 
 typedef struct object {
-	int     signature;      // Every object ever has a unique signature...
-	ubyte   type;           // what type of object this is... robot, weapon, hostage, powerup, fireball
-	ubyte   id;             // which form of object...which powerup, robot, etc.
+    int     signature;      // Every object ever has a unique signature...
+    ubyte   type;           // what type of object this is... robot, weapon, hostage, powerup, fireball
+    ubyte   id;             // which form of object...which powerup, robot, etc.
 #ifdef WORDS_NEED_ALIGNMENT
-	short   pad;
+    short   pad;
 #endif
-	short   next,prev;      // id of next and previous connected object in Objects, -1 = no connection
-	ubyte   control_type;   // how this object is controlled
-	ubyte   movement_type;  // how this object moves
-	ubyte   render_type;    // how this object renders
-	ubyte   flags;          // misc flags
-	short   segnum;         // segment number containing object
-	short   attached_obj;   // number of attached fireball object
-	vms_vector pos;         // absolute x,y,z coordinate of center of object
-	vms_matrix orient;      // orientation of object in world
-	fix     size;           // 3d size of object - for collision detection
-	fix     shields;        // Starts at maximum, when <0, object dies..
-	vms_vector last_pos;    // where object was last frame
-	sbyte   contains_type;  // Type of object this object contains (eg, spider contains powerup)
-	sbyte   contains_id;    // ID of object this object contains (eg, id = blue type = key)
-	sbyte   contains_count; // number of objects of type:id this object contains
-	sbyte   matcen_creator; // Materialization center that created this object, high bit set if matcen-created
-	fix     lifeleft;       // how long until goes away, or 7fff if immortal
-	// -- Removed, MK, 10/16/95, using lifeleft instead: int     lightlevel;
+    short   next,prev;      // id of next and previous connected object in Objects, -1 = no connection
+    ubyte   control_type;   // how this object is controlled
+    ubyte   movement_type;  // how this object moves
+    ubyte   render_type;    // how this object renders
+    ubyte   flags;          // misc flags
+    short   segnum;         // segment number containing object
+    short   attached_obj;   // number of attached fireball object
+    vms_vector pos;         // absolute x,y,z coordinate of center of object
+    vms_matrix orient;      // orientation of object in world
+    fix     size;           // 3d size of object - for collision detection
+    fix     shields;        // Starts at maximum, when <0, object dies..
+    vms_vector last_pos;    // where object was last frame
+    sbyte   contains_type;  // Type of object this object contains (eg, spider contains powerup)
+    sbyte   contains_id;    // ID of object this object contains (eg, id = blue type = key)
+    sbyte   contains_count; // number of objects of type:id this object contains
+    sbyte   matcen_creator; // Materialization center that created this object, high bit set if matcen-created
+    fix     lifeleft;       // how long until goes away, or 7fff if immortal
+    // -- Removed, MK, 10/16/95, using lifeleft instead: int     lightlevel;
 
-	// movement info, determined by MOVEMENT_TYPE
-	union {
-		physics_info phys_info; // a physics object
-		vms_vector   spin_rate; // for spinning objects
-	} __pack__ mtype;
+    // movement info, determined by MOVEMENT_TYPE
+    union {
+        physics_info phys_info; // a physics object
+        vms_vector   spin_rate; // for spinning objects
+    } __pack__ mtype;
 
-	// control info, determined by CONTROL_TYPE
-	union {
-		struct laser_info      laser_info;
-		struct explosion_info  expl_info;      // NOTE: debris uses this also
-		struct ai_static       ai_info;
-		struct light_info      light_info;     // why put this here?  Didn't know what else to do with it.
-		struct powerup_info    powerup_info;
-		struct reactor_static  reactor_info;
-	} __pack__ ctype ;
+    // control info, determined by CONTROL_TYPE
+    union {
+        struct laser_info      laser_info;
+        struct explosion_info  expl_info;      // NOTE: debris uses this also
+        struct ai_static       ai_info;
+        struct light_info      light_info;     // why put this here?  Didn't know what else to do with it.
+        struct powerup_info    powerup_info;
+        struct reactor_static  reactor_info;
+    } __pack__ ctype ;
 
-	// render info, determined by RENDER_TYPE
-	union {
-		struct polyobj_info    pobj_info;      // polygon model
-		struct vclip_info      vclip_info;     // vclip
-	} __pack__ rtype ;
+    // render info, determined by RENDER_TYPE
+    union {
+        struct polyobj_info    pobj_info;      // polygon model
+        struct vclip_info      vclip_info;     // vclip
+    } __pack__ rtype ;
 
 #ifdef WORDS_NEED_ALIGNMENT
-	short   pad2;
+    short   pad2;
 #endif
 } __pack__ object;
 
 // Same as above but structure Savegames/Multiplayer objects expect
 typedef struct object_rw {
-	int     signature;      // Every object ever has a unique signature...
-	ubyte   type;           // what type of object this is... robot, weapon, hostage, powerup, fireball
-	ubyte   id;             // which form of object...which powerup, robot, etc.
+    int     signature;      // Every object ever has a unique signature...
+    ubyte   type;           // what type of object this is... robot, weapon, hostage, powerup, fireball
+    ubyte   id;             // which form of object...which powerup, robot, etc.
 #ifdef WORDS_NEED_ALIGNMENT
-	short   pad;
+    short   pad;
 #endif
-	short   next,prev;      // id of next and previous connected object in Objects, -1 = no connection
-	ubyte   control_type;   // how this object is controlled
-	ubyte   movement_type;  // how this object moves
-	ubyte   render_type;    // how this object renders
-	ubyte   flags;          // misc flags
-	short   segnum;         // segment number containing object
-	short   attached_obj;   // number of attached fireball object
-	vms_vector pos;         // absolute x,y,z coordinate of center of object
-	vms_matrix orient;      // orientation of object in world
-	fix     size;           // 3d size of object - for collision detection
-	fix     shields;        // Starts at maximum, when <0, object dies..
-	vms_vector last_pos;    // where object was last frame
-	sbyte   contains_type;  // Type of object this object contains (eg, spider contains powerup)
-	sbyte   contains_id;    // ID of object this object contains (eg, id = blue type = key)
-	sbyte   contains_count; // number of objects of type:id this object contains
-	sbyte   matcen_creator; // Materialization center that created this object, high bit set if matcen-created
-	fix     lifeleft;       // how long until goes away, or 7fff if immortal
-	// -- Removed, MK, 10/16/95, using lifeleft instead: int     lightlevel;
+    short   next,prev;      // id of next and previous connected object in Objects, -1 = no connection
+    ubyte   control_type;   // how this object is controlled
+    ubyte   movement_type;  // how this object moves
+    ubyte   render_type;    // how this object renders
+    ubyte   flags;          // misc flags
+    short   segnum;         // segment number containing object
+    short   attached_obj;   // number of attached fireball object
+    vms_vector pos;         // absolute x,y,z coordinate of center of object
+    vms_matrix orient;      // orientation of object in world
+    fix     size;           // 3d size of object - for collision detection
+    fix     shields;        // Starts at maximum, when <0, object dies..
+    vms_vector last_pos;    // where object was last frame
+    sbyte   contains_type;  // Type of object this object contains (eg, spider contains powerup)
+    sbyte   contains_id;    // ID of object this object contains (eg, id = blue type = key)
+    sbyte   contains_count; // number of objects of type:id this object contains
+    sbyte   matcen_creator; // Materialization center that created this object, high bit set if matcen-created
+    fix     lifeleft;       // how long until goes away, or 7fff if immortal
+    // -- Removed, MK, 10/16/95, using lifeleft instead: int     lightlevel;
 
-	// movement info, determined by MOVEMENT_TYPE
-	union {
-		physics_info phys_info; // a physics object
-		vms_vector   spin_rate; // for spinning objects
-	} __pack__ mtype ;
+    // movement info, determined by MOVEMENT_TYPE
+    union {
+        physics_info phys_info; // a physics object
+        vms_vector   spin_rate; // for spinning objects
+    } __pack__ mtype ;
 
-	// control info, determined by CONTROL_TYPE
-	union {
-		struct laser_info_rw   laser_info;
-		struct explosion_info  expl_info;      // NOTE: debris uses this also
-		struct ai_static    ai_info;
-		struct light_info      light_info;     // why put this here?  Didn't know what else to do with it.
-		struct powerup_info powerup_info;
-	} __pack__ ctype ;
+    // control info, determined by CONTROL_TYPE
+    union {
+        struct laser_info_rw   laser_info;
+        struct explosion_info  expl_info;      // NOTE: debris uses this also
+        struct ai_static    ai_info;
+        struct light_info      light_info;     // why put this here?  Didn't know what else to do with it.
+        struct powerup_info powerup_info;
+    } __pack__ ctype ;
 
-	// render info, determined by RENDER_TYPE
-	union {
-		struct polyobj_info    pobj_info;      // polygon model
-		struct vclip_info      vclip_info;     // vclip
-	} __pack__ rtype;
+    // render info, determined by RENDER_TYPE
+    union {
+        struct polyobj_info    pobj_info;      // polygon model
+        struct vclip_info      vclip_info;     // vclip
+    } __pack__ rtype;
 
 #ifdef WORDS_NEED_ALIGNMENT
-	short   pad2;
+    short   pad2;
 #endif
 } __pack__ object_rw;
 
 typedef struct obj_position {
-	vms_vector  pos;        // absolute x,y,z coordinate of center of object
-	vms_matrix  orient;     // orientation of object in world
-	short       segnum;     // segment number containing object
+    vms_vector  pos;        // absolute x,y,z coordinate of center of object
+    vms_matrix  orient;     // orientation of object in world
+    short       segnum;     // segment number containing object
 } obj_position;
 
 /*
