@@ -58,12 +58,11 @@ int multi_add_controlled_robot(int objnum, int agitation);
 //
 
 #define STANDARD_EXPL_DELAY (F1_0/4)
-#define MIN_CONTROL_TIME	F1_0*1
-#define ROBOT_TIMEOUT		F1_0*4 // Extended timeout cushion (was 2 seconds)
+#define MIN_CONTROL_TIME	F1_0*2
+#define ROBOT_TIMEOUT		F1_0*2
 
-// PERSISTENT pool targets: Lowest possible thresholds to prevent premature handover drops
-#define MIN_TO_ADD	10
-#define MAX_TO_DELETE	11
+#define MIN_TO_ADD	60
+#define MAX_TO_DELETE	67
 
 int robot_controlled[MAX_ROBOTS_CONTROLLED];
 int robot_agitation[MAX_ROBOTS_CONTROLLED];
@@ -219,10 +218,6 @@ multi_add_controlled_robot(int objnum, int agitation)
 		return 0;
 	}
 
-	if (Robot_info[Objects[objnum].id].boss_flag) // this is a boss, so make sure he gets a slot
-		agitation=(agitation*3)+Player_num;
-
-
 	for (i = 0; i < MAX_ROBOTS_CONTROLLED; i++)
 	{
 		if ((robot_controlled[i] == -1) || (Objects[robot_controlled[i]].type != OBJ_ROBOT)) {
@@ -248,7 +243,7 @@ multi_add_controlled_robot(int objnum, int agitation)
 	if (first_free_robot != -1)  // Room left for new robots
 		i = first_free_robot;
 
-	else if ((agitation > lowest_agitation)) // Replace some old robot with a more agitated one
+	else if ((agitation > lowest_agitation) && (lowest_agitation <= MAX_TO_DELETE)) // Replace some old robot with a more agitated one
 	{
 		if (robot_send_pending[lowest_agitated_bot])
 			multi_send_robot_position(robot_controlled[lowest_agitated_bot], 1);
@@ -288,11 +283,7 @@ multi_delete_controlled_robot(int objnum)
 	if (i == MAX_ROBOTS_CONTROLLED)
 		return;
 
-	if (Objects[objnum].ctype.ai_info.REMOTE_SLOT_NUM != i)
-	 {
-	  Int3();  // can't release this bot!
-	  return;
-	 }
+	Assert(Objects[objnum].ctype.ai_info.REMOTE_SLOT_NUM == i);
 
 	Objects[objnum].ctype.ai_info.REMOTE_OWNER = -1;
 	Objects[objnum].ctype.ai_info.REMOTE_SLOT_NUM = 0;
@@ -356,7 +347,7 @@ multi_send_release_robot(int objnum)
 	multi_send_data(multibuf, 5, 2);
 }
 
-#define MIN_ROBOT_COM_GAP F1_0/20
+#define MIN_ROBOT_COM_GAP F1_0/12
 
 int
 multi_send_robot_frame(int sent)
@@ -380,7 +371,7 @@ multi_send_robot_frame(int sent)
 			if (robot_fired[sending])
 			{
 				robot_fired[sending] = 0;
-				multi_send_data(robot_fire_buf[sending], 18, 1); // reliable: shots must not drop
+				multi_send_data(robot_fire_buf[sending], 18, 2); // reliable: shots must not drop
 			}
 
 			if (!(Game_mode & GM_NETWORK))
@@ -399,8 +390,9 @@ multi_send_robot_position_sub(int objnum, int now)
 {
 	int loc = 0;
 	short s;
+	quaternionpos qpp;
 #ifdef WORDS_BIGENDIAN
-	shortpos sp;
+	create_quaternionpos(&qpp, Objects+objnum, 0);
 #endif
 
 	multibuf[loc] = MULTI_ROBOT_POSITION;  								loc += 1;
@@ -410,13 +402,12 @@ multi_send_robot_position_sub(int objnum, int now)
 
 																		loc += 3;
 #ifndef WORDS_BIGENDIAN
-	create_shortpos((shortpos *)(multibuf+loc), Objects+objnum,0);		loc += sizeof(shortpos);
+	create_quaternionpos(&qpp, Objects+objnum, 0);		loc += sizeof(quaternionpos);
 #else
-	create_shortpos(&sp, Objects+objnum, 1);
-	memcpy(&(multibuf[loc]), (ubyte *)(sp.bytemat), 9);
-	loc += 9;
-	memcpy(&(multibuf[loc]), (ubyte *)&(sp.xo), 14);
-	loc += 14;
+	create_quaternionpos(&qpp, Objects+objnum, 1);
+	memcpy(&(multibuf[loc]), (ubyte *)(qpp.orient), 16);		loc += 16;
+	memcpy(&(multibuf[loc]), (ubyte *)(qpp.pos), 12);		loc += 12;
+	memcpy(&(multibuf[loc]), (ubyte *)(qpp.vel), 12);		loc += 12;
 #endif
 	multi_send_data(multibuf, loc, now?1:0);
 }
@@ -444,7 +435,7 @@ multi_send_robot_position(int objnum, int force)
 	if (Objects[objnum].ctype.ai_info.REMOTE_OWNER != Player_num)
 		return;
 
-Objects[objnum].mtype.phys_info.drag = Robot_info[Objects[objnum].id].drag; // Restore normal drag on transmitter
+//	Objects[objnum].phys_info.drag = Robot_info[Objects[objnum].id].drag; // Set drag to normal
 
 	robot_last_send_time[Objects[objnum].ctype.ai_info.REMOTE_SLOT_NUM] = GameTime64;
 
@@ -620,7 +611,6 @@ multi_do_claim_robot(const ubyte *buf)
 
 	remote_botnum = GET_INTEL_SHORT(buf + 2);
 	botnum = objnum_remote_to_local(remote_botnum, (sbyte)buf[4]);
-	Objects[botnum].mtype.phys_info.drag = Robot_info[Objects[botnum].id].drag >> 4; // Drop drag to low for remote syncs
 
 	if ((botnum > Highest_object_index) || (botnum < 0)) {
 		return;
@@ -675,18 +665,19 @@ multi_do_release_robot(const ubyte *buf)
 
 	Objects[botnum].ctype.ai_info.REMOTE_OWNER = -1;
 	Objects[botnum].ctype.ai_info.REMOTE_SLOT_NUM = 0;
-	
 }
-void multi_do_robot_position(const ubyte *buf){
-	fix turn_dot = 0;
-	int blend_shift = 2; // Normal baseline divisor pass (shift right by 2 = divide by 4)
 
-	// Start of multi_do_robot_position function
+void
+multi_do_robot_position(const ubyte *buf)
+{
+	// Process robot movement sent by another player
+
 	short botnum, remote_botnum;
 	char pnum;
 	int loc = 1;
 #ifdef WORDS_BIGENDIAN
-	shortpos sp;
+	quaternionpos qpp;
+	create_quaternionpos(&qpp, Objects+objnum, 0);
 #endif
 
 	pnum = buf[loc];										loc += 1;
@@ -720,169 +711,21 @@ void multi_do_robot_position(const ubyte *buf){
 		}
 	}
 
+	set_thrust_from_velocity(&Objects[botnum]); // Try to smooth out movement
+//	Objects[botnum].phys_info.drag = Robot_info[Objects[botnum].id].drag >> 4; // Set drag to low
+
 #ifndef WORDS_BIGENDIAN
-	{
-		vms_vector client_pos = Objects[botnum].pos;
-		vms_matrix client_orient = Objects[botnum].orient;
-		
-		if (Objects[botnum].ctype.ai_info.REMOTE_OWNER != Player_num)
-		{
-			Objects[botnum].mtype.phys_info.velocity.x = 0;
-			Objects[botnum].mtype.phys_info.velocity.y = 0;
-			Objects[botnum].mtype.phys_info.velocity.z = 0;
-			
-			// Neutralize local simulation drag so it cannot truncate network tracking velocities
-			Objects[botnum].mtype.phys_info.drag = 0;
-			
-			// Force observers to strip away automatic vertical leveling and bank rolls from non-owned robots
-			Objects[botnum].mtype.phys_info.flags &= ~(PF_LEVELLING | PF_TURNROLL);
-		}
-
-		shortpos temp_sp;
-		memcpy((ubyte *)(temp_sp.bytemat), (ubyte *)(buf + loc), 9);
-		memcpy((ubyte *)&(temp_sp.xo), (ubyte *)(buf + loc + 9), 14);
-		extract_shortpos(&Objects[botnum], &temp_sp, 0);
-		
-		if (Objects[botnum].ctype.ai_info.REMOTE_OWNER != Player_num)
-		{
-			vms_vector pos_error;
-			vm_vec_sub(&pos_error, &Objects[botnum].pos, &client_pos);
-			
-			if (vm_vec_mag_quick(&pos_error) > F1_0 * 15) {
-				update_object_seg(&Objects[botnum]);
-			} else {
-				vms_matrix target_orient = Objects[botnum].orient;
-				turn_dot = vm_vec_dot(&client_orient.fvec, &target_orient.fvec);
-				blend_shift = (turn_dot < F1_0 / 2) ? 1 : 2;
-				Objects[botnum].pos = client_pos;
-				
-				turn_dot = vm_vec_dot(&client_orient.fvec, &target_orient.fvec);
-				blend_shift = (turn_dot < F1_0 / 2) ? 1 : 2; // Step up blending coefficient if angle delta is massive
-
-				Objects[botnum].orient.fvec.x = client_orient.fvec.x + ((target_orient.fvec.x - client_orient.fvec.x) >> blend_shift);
-				Objects[botnum].orient.fvec.y = client_orient.fvec.y + ((target_orient.fvec.y - client_orient.fvec.y) >> blend_shift);
-				Objects[botnum].orient.fvec.z = client_orient.fvec.z + ((target_orient.fvec.z - client_orient.fvec.z) >> blend_shift);
-				
-				Objects[botnum].orient.uvec.x = client_orient.uvec.x + ((target_orient.uvec.x - client_orient.uvec.x) >> blend_shift);
-				Objects[botnum].orient.uvec.y = client_orient.uvec.y + ((target_orient.uvec.y - client_orient.uvec.y) >> blend_shift);
-				Objects[botnum].orient.uvec.z = client_orient.uvec.z + ((target_orient.uvec.z - client_orient.uvec.z) >> blend_shift);
-				
-				Objects[botnum].orient.rvec.x = client_orient.rvec.x + ((target_orient.rvec.x - client_orient.rvec.x) >> blend_shift);
-				Objects[botnum].orient.rvec.y = client_orient.rvec.y + ((target_orient.rvec.y - client_orient.rvec.y) >> blend_shift);
-				Objects[botnum].orient.rvec.z = client_orient.rvec.z + ((target_orient.rvec.z - client_orient.rvec.z) >> blend_shift);
-				
-				vm_vec_normalize_quick(&Objects[botnum].orient.fvec);
-				vm_vec_normalize_quick(&Objects[botnum].orient.uvec);
-				vm_vec_normalize_quick(&Objects[botnum].orient.rvec);
-
-				// Damp out rogue local prediction forces during hard tracking re-acquires
-				if (blend_shift == 1) {
-					Objects[botnum].mtype.phys_info.rotvel.x = 0;
-					Objects[botnum].mtype.phys_info.rotvel.y = 0;
-					Objects[botnum].mtype.phys_info.rotvel.z = 0;
-				}
-
-				// Kill local predicted rotation momentum if we hit a high-delta re-acquire pass
-				if (blend_shift == 1) {
-					Objects[botnum].mtype.phys_info.rotvel.x = 0;
-					Objects[botnum].mtype.phys_info.rotvel.y = 0;
-					Objects[botnum].mtype.phys_info.rotvel.z = 0;
-				}
-
-			// Dual-State Parity: Directly apply incoming spatial positions to prevent rubber-banding
-			// Let the high 90 PPS uncompressed stream anchor the robot coordinates natively
-			if (vm_vec_mag_quick(&pos_error) < F1_0 * 5) {
-				Objects[botnum].pos.x += (pos_error.x >> 1);
-				Objects[botnum].pos.y += (pos_error.y >> 1);
-				Objects[botnum].pos.z += (pos_error.z >> 1);
-			} else {
-				Objects[botnum].pos = Objects[botnum].last_pos;
-			}
-
-			// Re-align native D1 physics forces to zero out tracking drift between frame ticks
-			Objects[botnum].mtype.phys_info.velocity.x = 0;
-			Objects[botnum].mtype.phys_info.velocity.y = 0;
-			Objects[botnum].mtype.phys_info.velocity.z = 0;
-				update_object_seg(&Objects[botnum]);
-			}
-		}
-	}
+	extract_shortpos(&Objects[botnum], (shortpos *)(buf+loc), 0);
 #else
 	memcpy((ubyte *)(sp.bytemat), (ubyte *)(buf + loc), 9);		loc += 9;
 	memcpy((ubyte *)&(sp.xo), (ubyte *)(buf + loc), 14);
-	
-	vms_vector client_pos = Objects[botnum].pos;
-	vms_matrix client_orient = Objects[botnum].orient;
-	
-	if (Objects[botnum].ctype.ai_info.REMOTE_OWNER != Player_num)
-	{
-		Objects[botnum].mtype.phys_info.velocity.x = 0;
-		Objects[botnum].mtype.phys_info.velocity.y = 0;
-		Objects[botnum].mtype.phys_info.velocity.z = 0;
-		
-		// Force observers to strip away automatic vertical leveling and bank rolls from non-owned robots
-		Objects[botnum].mtype.phys_info.flags &= ~(PF_LEVELLING | PF_TURNROLL);
-	}
-
 	extract_shortpos(&Objects[botnum], &sp, 1);
-	
-	if (Objects[botnum].ctype.ai_info.REMOTE_OWNER != Player_num)
-	{
-		vms_vector pos_error;
-		vm_vec_sub(&pos_error, &Objects[botnum].pos, &client_pos);
-		
-		if (vm_vec_mag_quick(&pos_error) > F1_0 * 15) {
-			update_object_seg(&Objects[botnum]);
-		} else {
-			vms_matrix target_orient = Objects[botnum].orient;
-			Objects[botnum].pos = client_pos;
-			
-			turn_dot = vm_vec_dot(&client_orient.fvec, &target_orient.fvec);
-			blend_shift = (turn_dot < F1_0 / 2) ? 1 : 2;
-			
-			Objects[botnum].orient.fvec.x = client_orient.fvec.x + ((target_orient.fvec.x - client_orient.fvec.x) >> blend_shift);
-			Objects[botnum].orient.fvec.y = client_orient.fvec.y + ((target_orient.fvec.y - client_orient.fvec.y) >> blend_shift);
-			Objects[botnum].orient.fvec.z = client_orient.fvec.z + ((target_orient.fvec.z - client_orient.fvec.z) >> blend_shift);
-			
-			Objects[botnum].orient.uvec.x = client_orient.uvec.x + ((target_orient.uvec.x - client_orient.uvec.x) >> blend_shift);
-			Objects[botnum].orient.uvec.y = client_orient.uvec.y + ((target_orient.uvec.y - client_orient.uvec.y) >> blend_shift);
-			Objects[botnum].orient.uvec.z = client_orient.uvec.z + ((target_orient.uvec.z - client_orient.uvec.z) >> blend_shift);
-			
-			Objects[botnum].orient.rvec.x = client_orient.rvec.x + ((target_orient.rvec.x - client_orient.rvec.x) >> blend_shift);
-			Objects[botnum].orient.rvec.y = client_orient.rvec.y + ((target_orient.rvec.y - client_orient.rvec.y) >> blend_shift);
-			Objects[botnum].orient.rvec.z = client_orient.rvec.z + ((target_orient.rvec.z - client_orient.rvec.z) >> blend_shift);
-			
-			vm_vec_normalize_quick(&Objects[botnum].orient.fvec);
-			vm_vec_normalize_quick(&Objects[botnum].orient.uvec);
-			vm_vec_normalize_quick(&Objects[botnum].orient.rvec);
-
-			if (blend_shift == 1) {
-				Objects[botnum].mtype.phys_info.rotvel.x = 0;
-				Objects[botnum].mtype.phys_info.rotvel.y = 0;
-				Objects[botnum].mtype.phys_info.rotvel.z = 0;
-			}
-
-			// Dual-State Parity: Directly apply incoming spatial positions to prevent rubber-banding
-			// Let the high 90 PPS uncompressed stream anchor the robot coordinates natively
-			if (vm_vec_mag_quick(&pos_error) < F1_0 * 5) {
-				Objects[botnum].pos.x += (pos_error.x >> 1);
-				Objects[botnum].pos.y += (pos_error.y >> 1);
-				Objects[botnum].pos.z += (pos_error.z >> 1);
-			} else {
-				Objects[botnum].pos = Objects[botnum].last_pos;
-			}
-
-			// Re-align native D1 physics forces to zero out tracking drift between frame ticks
-			Objects[botnum].mtype.phys_info.velocity.x = 0;
-			Objects[botnum].mtype.phys_info.velocity.y = 0;
-			Objects[botnum].mtype.phys_info.velocity.z = 0;
-			update_object_seg(&Objects[botnum]);
-		}
-	}
 #endif
 }
 
-void multi_do_robot_fire(const ubyte *buf){
+void
+multi_do_robot_fire(const ubyte *buf)
+{
 	// Send robot fire event
 	int loc = 1;
 	int botnum;
@@ -907,9 +750,9 @@ void multi_do_robot_fire(const ubyte *buf){
 	
 	// Do the firing
 	
-	if (gun_num == -1 || gun_num == -2)
+	if (gun_num == -1)
 	{
-		// Drop proximity bombs (Fallback to standard PROXIMITY_ID for both gun cases in D1)
+		// Drop proximity bombs
 		vm_vec_add(&gun_point, &Objects[botnum].pos, &fire);
 		Laser_create_new_easy( &fire, &gun_point, botnum, PROXIMITY_ID, 1);
 	}
@@ -1244,8 +1087,7 @@ short respawn_robot(ubyte id, short segnum, vms_vector pos, vms_matrix orient, f
 	objp->mtype.phys_info.mass = robodata->mass;
 	objp->mtype.phys_info.drag = robodata->drag;
 
-	// Strip levelling and turnroll natively to protect multi-axis network angles
-	objp->mtype.phys_info.flags &= ~(PF_LEVELLING | PF_TURNROLL);
+	objp->mtype.phys_info.flags |= (PF_LEVELLING);
 
 	objp->shields = robodata->strength;
 	
