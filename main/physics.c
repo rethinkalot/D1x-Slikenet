@@ -897,11 +897,14 @@ void do_physics_sim(object *obj)
         && ((obj->type == OBJ_PLAYER) || (obj->type == OBJ_ROBOT) || (obj->type == OBJ_DEBRIS)) 
         && ((fate == HIT_WALL) || (fate == HIT_OBJECT) || (fate == HIT_BAD_P0))
         )
-    {	
+    {
+		// Network authority safety gate: Do not locally overwrite or freeze velocity for remote-owned robots
+		if (!((Game_mode & GM_MULTI) && obj->type == OBJ_ROBOT && obj->ctype.ai_info.REMOTE_OWNER != Player_num && obj->ctype.ai_info.REMOTE_OWNER != -1)) {	
         vms_vector moved_vec;
         vm_vec_sub(&moved_vec,&obj->pos,&start_pos);
         vm_vec_copy_scale(&obj->mtype.phys_info.velocity,&moved_vec,fixdiv(f1_0,FrameTime));
     }
+		}
 
     fix_illegal_wall_intersection(obj, &start_pos);
 
