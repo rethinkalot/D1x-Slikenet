@@ -791,7 +791,7 @@ void init_player_object()
 
     ConsoleObject->size = Polygon_models[Player_ship->model_num].rad;
 
-    ConsoleObject->control_type = CT_SLEW;			//default is player slewing
+    ConsoleObject->control_type = is_observer() ? CT_FLYING : CT_SLEW;  //default is player slewing
     ConsoleObject->movement_type = MT_PHYSICS;		//change this sometime
 
     ConsoleObject->lifeleft = IMMORTAL_TIME;
