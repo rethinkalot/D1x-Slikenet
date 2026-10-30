@@ -39,72 +39,72 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 void read_flying_controls( object * obj )
 {
-	Assert(FrameTime > 0); 		//Get MATT if hit this!
+    Assert(FrameTime > 0); 		//Get MATT if hit this!
 
-	int no_thrust = 0; 
+    int no_thrust = 0; 
 #ifdef NETWORK
-	if((Game_mode & GM_NETWORK) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW) && Player_is_dead && Player_exploded) {
-		no_thrust = 1; 
-	}
+    if((Game_mode & GM_NETWORK) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW) && Player_is_dead && Player_exploded) {
+        no_thrust = 1; 
+    }
 #endif
 
-	//	Couldn't the "50" in the next three lines be changed to "64" with no ill effect?
-	obj->mtype.phys_info.rotthrust.x = Controls.pitch_time;
-	obj->mtype.phys_info.rotthrust.y = Controls.heading_time;
-	obj->mtype.phys_info.rotthrust.z = Controls.bank_time;
+    //	Couldn't the "50" in the next three lines be changed to "64" with no ill effect?
+    obj->mtype.phys_info.rotthrust.x = Controls.pitch_time;
+    obj->mtype.phys_info.rotthrust.y = Controls.heading_time;
+    obj->mtype.phys_info.rotthrust.z = Controls.bank_time;
 
-	if(! no_thrust) {
+    if(! no_thrust) {
 
-		// Set object's thrust vector for forward/backward
-		vm_vec_copy_scale(&obj->mtype.phys_info.thrust,&obj->orient.fvec, Controls.forward_thrust_time );
-		
-		// slide left/right
-		vm_vec_scale_add2(&obj->mtype.phys_info.thrust,&obj->orient.rvec, Controls.sideways_thrust_time );
+        // Set object's thrust vector for forward/backward
+        vm_vec_copy_scale(&obj->mtype.phys_info.thrust,&obj->orient.fvec, Controls.forward_thrust_time );
+        
+        // slide left/right
+        vm_vec_scale_add2(&obj->mtype.phys_info.thrust,&obj->orient.rvec, Controls.sideways_thrust_time );
 
-		// slide up/down
-		vm_vec_scale_add2(&obj->mtype.phys_info.thrust,&obj->orient.uvec, Controls.vertical_thrust_time );
-	}
+        // slide up/down
+        vm_vec_scale_add2(&obj->mtype.phys_info.thrust,&obj->orient.uvec, Controls.vertical_thrust_time );
+    }
 
-	
-	if (!is_observer() && obj->mtype.phys_info.flags & PF_WIGGLE) {
-		fix swiggle;
-		fix_fastsincos(((fix)GameTime64), &swiggle, NULL);
-		if (FrameTime < F1_0) // Only scale wiggle if getting at least 1 FPS, to avoid causing the opposite problem.
-			swiggle = fixmul(swiggle*30, FrameTime); //make wiggle fps-independant (based on pre-scaled amount of wiggle at 30 FPS)
-		vm_vec_scale_add2(&obj->mtype.phys_info.velocity,&obj->orient.uvec,fixmul(swiggle,Player_ship->wiggle));
-	}
+    
+    if (!is_observer() && obj->mtype.phys_info.flags & PF_WIGGLE) {
+        fix swiggle;
+        fix_fastsincos(((fix)GameTime64), &swiggle, NULL);
+        if (FrameTime < F1_0) // Only scale wiggle if getting at least 1 FPS, to avoid causing the opposite problem.
+            swiggle = fixmul(swiggle*30, FrameTime); //make wiggle fps-independant (based on pre-scaled amount of wiggle at 30 FPS)
+        vm_vec_scale_add2(&obj->mtype.phys_info.velocity,&obj->orient.uvec,fixmul(swiggle,Player_ship->wiggle));
+    }
 
-	// As of now, obj->mtype.phys_info.thrust & obj->mtype.phys_info.rotthrust are 
-	// in units of time... In other words, if thrust==FrameTime, that
-	// means that the user was holding down the Max_thrust key for the
-	// whole frame.  So we just scale them up by the max, and divide by
-	// FrameTime to make them independant of framerate
+    // As of now, obj->mtype.phys_info.thrust & obj->mtype.phys_info.rotthrust are 
+    // in units of time... In other words, if thrust==FrameTime, that
+    // means that the user was holding down the Max_thrust key for the
+    // whole frame.  So we just scale them up by the max, and divide by
+    // FrameTime to make them independant of framerate
 
-	//	Prevent divide overflows on high frame rates.
-	//	In a signed divide, you get an overflow if num >= div<<15
-	{
-		fix	ft = FrameTime;
+    //	Prevent divide overflows on high frame rates.
+    //	In a signed divide, you get an overflow if num >= div<<15
+    {
+        fix	ft = FrameTime;
 
-		//	Note, you must check for ft < F1_0/2, else you can get an overflow  on the << 15.
-		if ((ft < F1_0/2) && (ft << 15 <= Player_ship->max_thrust)) {
-			ft = (Player_ship->max_thrust >> 15) + 1;
-		}
+        //	Note, you must check for ft < F1_0/2, else you can get an overflow  on the << 15.
+        if ((ft < F1_0/2) && (ft << 15 <= Player_ship->max_thrust)) {
+            ft = (Player_ship->max_thrust >> 15) + 1;
+        }
 
-		vm_vec_scale( &obj->mtype.phys_info.thrust, fixdiv(Player_ship->max_thrust,ft) );
+        vm_vec_scale( &obj->mtype.phys_info.thrust, fixdiv(Player_ship->max_thrust,ft) );
 
-		if ((ft < F1_0/2) && (ft << 15 <= Player_ship->max_rotthrust)) {
-			ft = (Player_ship->max_thrust >> 15) + 1;
-		}
+        if ((ft < F1_0/2) && (ft << 15 <= Player_ship->max_rotthrust)) {
+            ft = (Player_ship->max_thrust >> 15) + 1;
+        }
 
-		vm_vec_scale( &obj->mtype.phys_info.rotthrust, fixdiv(Player_ship->max_rotthrust,ft) );
-	}
+        vm_vec_scale( &obj->mtype.phys_info.rotthrust, fixdiv(Player_ship->max_rotthrust,ft) );
+    }
 
-	//moved here by WraithX
-	if (Player_is_dead) {
-		//vm_vec_zero(&obj->mtype.phys_info.rotthrust); //let dead players rotate, changed by WraithX
-		vm_vec_zero(&obj->mtype.phys_info.thrust);  //don't let dead players move, changed by WraithX
-		return;
-	}//end if
+    //moved here by WraithX
+    if (Player_is_dead) {
+        //vm_vec_zero(&obj->mtype.phys_info.rotthrust); //let dead players rotate, changed by WraithX
+        vm_vec_zero(&obj->mtype.phys_info.thrust);  //don't let dead players move, changed by WraithX
+        return;
+    }//end if
 
 
 }
