@@ -389,9 +389,10 @@ void draw_polygon_object(object *obj)
         light.r = light.g = light.b = F1_0*2;
 
     //	If option set for bright players in netgame, brighten them!
+    //	In demo playback, always brighten ships and missiles for visibility.
 #ifdef NETWORK
-    if ((Newdemo_state == ND_STATE_PLAYBACK ? Newdemo_game_mode : Game_mode) & GM_MULTI)
-        if (Netgame.BrightPlayers)
+    if (Newdemo_state == ND_STATE_PLAYBACK || ((Newdemo_state == ND_STATE_PLAYBACK ? Newdemo_game_mode : Game_mode) & GM_MULTI))
+        if (Newdemo_state == ND_STATE_PLAYBACK || Netgame.BrightPlayers)
             light.r = light.g = light.b = F1_0*2;
 #endif
 
@@ -1384,6 +1385,29 @@ void dead_player_end(void)
     Players[Player_num].flags &= ~PLAYER_FLAGS_INVULNERABLE;
     Player_eggs_dropped = 0;
 
+    //	A dead player is left behind as an OBJ_GHOST at the position where they
+    //	exploded (see the death sequence below), and that object is reused for
+    //	the respawn rather than recreated. This function is what turns the ghost
+    //	back into a live OBJ_PLAYER, and it runs BEFORE the caller moves the
+    //	object to its spawn point via StartLevel() -> InitPlayerPosition().
+    //
+    //	So for a frame or so in between, the player is a live OBJ_PLAYER still
+    //	sitting at the death position. If the press used to abort the death
+    //	sequence is still read as "fire" in that window, fire_player_laser()
+    //	derives LaserPos from obj->pos and the shot comes out of the corpse's
+    //	position, with the ship appearing elsewhere a moment later. Other
+    //	players see the stray laser; the respawning player is looking elsewhere.
+    //
+    //	SPAWN_STYLE_PREVIEW already avoids this by relocating the ghost early
+    //	("Avoid first shot coming out at death site" in the death sequence), but
+    //	that covers Preview only. Every other spawn style -- including "No
+    //	Invuln", the default -- reaches this.
+    //
+    //	Flush inputs so the press ending the death sequence cannot also register
+    //	as a shot. This clears Controls as well as the queues, so it covers
+    //	mouse, joystick and keyboard alike.
+    game_flush_inputs();
+
 }
 
 //	------------------------------------------------------------------------------------------------------------------
@@ -1627,7 +1651,7 @@ void start_player_death_sequence(object *player)
     }
     #endif
     
-    PaletteRedAdd = 40;
+    PaletteRedAdd = 64;
     Player_is_dead = 1;
 
     vm_vec_zero(&player->mtype.phys_info.rotthrust);  //this line commented by WraithX
@@ -1798,9 +1822,9 @@ void object_move_one( object * obj )
 
         #ifndef RELEASE
         case CT_SLEW:
-            if ( keyd_pressed[KEY_PAD5] ) slew_stop( obj );
+            if ( keyd_pressed[KEY_PAD5] ) slew_stop();
             if ( keyd_pressed[KEY_NUMLOCK] ) 		{
-                slew_reset_orient( obj );
+                slew_reset_orient();
             }
             slew_frame(0 );		// Does velocity addition for us.
             break;

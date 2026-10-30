@@ -148,7 +148,7 @@ kc_item kc_keyboard[NUM_KEY_CONTROLS] = {
     { 16, 15,117, 71, 26, 14, 18, 33, 17,"Slide down", BT_KEY, 255, &Controls.key_slide_down_state, STATE_BIT1, NULL },
     { 17, 15,117,100, 26, 15, 19, 16, 38,"Slide down", BT_KEY, 255, &Controls.key_slide_down_state, STATE_BIT2, NULL },
     { 18, 15,129, 71, 26, 16, 20, 39, 19,"Bank on", BT_KEY, 255, &Controls.bank_on_state, STATE_BIT1, NULL },
-    { 19, 15,129,100, 26, 17, 21, 18, 40,"Bank on", BT_KEY, 255, &Controls.bank_on_state, STATE_BIT2, NULL },
+    { 19, 15,129,100, 26, 17, 21, 18, 64,"Bank on", BT_KEY, 255, &Controls.bank_on_state, STATE_BIT2, NULL },
     { 20, 15,137, 71, 26, 18, 22, 41, 21,"Bank left", BT_KEY, 255, &Controls.key_bank_left_state, STATE_BIT1, NULL },
     { 21, 15,137,100, 26, 19, 23, 20, 42,"Bank left", BT_KEY, 255, &Controls.key_bank_left_state, STATE_BIT2, NULL },
     { 22, 15,145, 71, 26, 20, 46, 43, 23,"Bank right", BT_KEY, 255, &Controls.key_bank_right_state, STATE_BIT1, NULL },
@@ -167,11 +167,11 @@ kc_item kc_keyboard[NUM_KEY_CONTROLS] = {
     { 35,158, 73,112, 26, 29, 37, 34,  8,"Drop bomb", BT_KEY, 255, NULL, 0, &Controls.drop_bomb_count },
     { 36,158, 85, 83, 26, 34, 44,  9, 37,"Rear view", BT_KEY, 255, &Controls.rear_view_state, STATE_BIT1, &Controls.rear_view_count },
     { 37,158, 85,112, 26, 35, 45, 36, 10,"Rear view", BT_KEY, 255, &Controls.rear_view_state, STATE_BIT2, &Controls.rear_view_count },
-    { 38,158,125, 83, 26, 32, 40, 17, 39,"Cruise faster", BT_KEY, 255, &Controls.cruise_plus_state, STATE_BIT1, NULL },
+    { 38,158,125, 83, 26, 32, 64, 17, 39,"Cruise faster", BT_KEY, 255, &Controls.cruise_plus_state, STATE_BIT1, NULL },
     { 39,158,125,112, 26, 33, 41, 38, 18,"Cruise faster", BT_KEY, 255, &Controls.cruise_plus_state, STATE_BIT2, NULL },
     { 40,158,133, 83, 26, 38, 42, 19, 41,"Cruise slower", BT_KEY, 255, &Controls.cruise_minus_state, STATE_BIT1, NULL },
-    { 41,158,133,112, 26, 39, 43, 40, 20,"Cruise slower", BT_KEY, 255, &Controls.cruise_minus_state, STATE_BIT2, NULL },
-    { 42,158,141, 83, 26, 40, 25, 21, 43,"Cruise off", BT_KEY, 255, NULL, 0, &Controls.cruise_off_count },
+    { 41,158,133,112, 26, 39, 43, 64, 20,"Cruise slower", BT_KEY, 255, &Controls.cruise_minus_state, STATE_BIT2, NULL },
+    { 42,158,141, 83, 26, 64, 25, 21, 43,"Cruise off", BT_KEY, 255, NULL, 0, &Controls.cruise_off_count },
     { 43,158,141,112, 26, 41,  0, 42, 22,"Cruise off", BT_KEY, 255, NULL, 0, &Controls.cruise_off_count },
     { 44,158, 93, 83, 26, 36, 30, 11, 45,"Automap", BT_KEY, 255, &Controls.automap_state, STATE_BIT1, &Controls.automap_count },
     { 45,158, 93,112, 26, 37, 31, 44, 12,"Automap", BT_KEY, 255, &Controls.automap_state, STATE_BIT2, &Controls.automap_count },
@@ -192,7 +192,7 @@ kc_item kc_joystick[NUM_JOYSTICK_CONTROLS] = {
     {  8,174, 70, 74, 26,  7,  9, 43, 37,"Slide up", BT_JOY_BUTTON, 255, &Controls.btn_slide_up_state, STATE_BIT3, NULL },
     {  9,174, 78, 74, 26,  8, 10, 31, 38,"Slide down", BT_JOY_BUTTON, 255, &Controls.btn_slide_down_state, STATE_BIT3, NULL },
     { 10,174, 86, 74, 26,  9, 11, 32, 39,"Bank on", BT_JOY_BUTTON, 255, &Controls.bank_on_state, STATE_BIT3, NULL },
-    { 11,174, 94, 74, 26, 10, 12, 42, 40,"Bank left", BT_JOY_BUTTON, 255, &Controls.btn_bank_left_state, STATE_BIT3, NULL },
+    { 11,174, 94, 74, 26, 10, 12, 42, 64,"Bank left", BT_JOY_BUTTON, 255, &Controls.btn_bank_left_state, STATE_BIT3, NULL },
     { 12,174,102, 74, 26, 11, 44, 28, 41,"Bank right", BT_JOY_BUTTON, 255, &Controls.btn_bank_right_state, STATE_BIT3, NULL },
     { 13, 22,154, 51, 26, 47, 15, 47, 14,"Pitch U/D", BT_JOY_AXIS, 255, NULL, 0, NULL },
     { 14, 22,154, 99,  8, 27, 16, 13, 17,"Pitch U/D", BT_INVERT, 255, NULL, 0, NULL },
@@ -208,7 +208,7 @@ kc_item kc_joystick[NUM_JOYSTICK_CONTROLS] = {
     { 24,164,178,106,  8, 22, 34, 23,  0,"Throttle", BT_INVERT, 255, NULL, 0, NULL },
     { 25, 22, 94, 82, 26,  3, 27, 39, 42,"Rear view", BT_JOY_BUTTON, 255, &Controls.rear_view_state, STATE_BIT3, &Controls.rear_view_count },
     { 26, 22, 70, 82, 26,  4,  2, 36, 43,"Drop bomb", BT_JOY_BUTTON, 255, NULL, 0, &Controls.drop_bomb_count },
-    { 27, 22,102, 82, 26, 25, 14, 40, 28,"Automap", BT_JOY_BUTTON, 255, &Controls.automap_state, STATE_BIT3, &Controls.automap_count },
+    { 27, 22,102, 82, 26, 25, 14, 64, 28,"Automap", BT_JOY_BUTTON, 255, &Controls.automap_state, STATE_BIT3, &Controls.automap_count },
     { 28, 22,102,111, 26, 42, 17, 27, 12,"Automap", BT_JOY_BUTTON, 255, &Controls.automap_state, STATE_BIT4, &Controls.automap_count },
     { 29, 22, 46,111, 26, 16, 30,  0,  5,"Fire primary", BT_JOY_BUTTON, 255, &Controls.fire_primary_state, STATE_BIT4, &Controls.fire_primary_count },
     { 30, 22, 54,111, 26, 29, 33,  1,  6,"Fire secondary", BT_JOY_BUTTON, 255, &Controls.fire_secondary_state, STATE_BIT4, &Controls.fire_secondary_count },
@@ -220,9 +220,9 @@ kc_item kc_joystick[NUM_JOYSTICK_CONTROLS] = {
     { 36,174, 62,104, 26, 35, 37,  7, 26,"Slide right", BT_JOY_BUTTON, 255, &Controls.btn_slide_right_state, STATE_BIT4, NULL },
     { 37,174, 70,104, 26, 36, 38,  8,  2,"Slide up", BT_JOY_BUTTON, 255, &Controls.btn_slide_up_state, STATE_BIT4, NULL },
     { 38,174, 78,104, 26, 37, 39,  9,  3,"Slide down", BT_JOY_BUTTON, 255, &Controls.btn_slide_down_state, STATE_BIT4, NULL },
-    { 39,174, 86,104, 26, 38, 40, 10, 25,"Bank on", BT_JOY_BUTTON, 255, &Controls.bank_on_state, STATE_BIT4, NULL },
+    { 39,174, 86,104, 26, 38, 64, 10, 25,"Bank on", BT_JOY_BUTTON, 255, &Controls.bank_on_state, STATE_BIT4, NULL },
     { 40,174, 94,104, 26, 39, 41, 11, 27,"Bank left", BT_JOY_BUTTON, 255, &Controls.btn_bank_left_state, STATE_BIT4, NULL },
-    { 41,174,102,104, 26, 40, 46, 12, 44,"Bank right", BT_JOY_BUTTON, 255, &Controls.btn_bank_right_state, STATE_BIT4, NULL },
+    { 41,174,102,104, 26, 64, 46, 12, 44,"Bank right", BT_JOY_BUTTON, 255, &Controls.btn_bank_right_state, STATE_BIT4, NULL },
     { 42, 22, 94,111, 26, 32, 28, 25, 11,"Rear view", BT_JOY_BUTTON, 255, &Controls.rear_view_state, STATE_BIT4, &Controls.rear_view_count },
     { 43, 22, 70,111, 26, 33, 31, 26,  8,"Drop bomb", BT_JOY_BUTTON, 255, NULL, 0, &Controls.drop_bomb_count },
     { 44,174,110, 74, 26, 12, 45, 41, 46,"Cycle Primary", BT_JOY_BUTTON, 255, NULL, 0, &Controls.cycle_primary_count },
@@ -292,6 +292,27 @@ kc_item kc_d1x[NUM_D1X_CONTROLS] = {
     { 27, 15,141,142, 26, 24,  1, 26, 28,"MEGA MISSILE", BT_KEY, 255, NULL, 0, &Controls.select_weapon_count },
     { 28, 15,141,200, 26, 25,  2, 27, 29,"MEGA MISSILE", BT_JOY_BUTTON, 255, NULL, 0, &Controls.select_weapon_count },
     { 29, 15,141,258, 26, 26,  0, 28,  0,"MEGA MISSILE", BT_MOUSE_BUTTON, 255, NULL, 0, &Controls.select_weapon_count },
+};
+
+static kc_item kc_observer_controls[NUM_OBSERVER_CONTROLS * NUM_OBSERVER_BINDING_SLOTS] = {
+    {  0,  8, 68, 86, 26, -1, -1, -1, -1, "Previous player", BT_KEY, 255, NULL, 0, NULL },
+    {  1,  0, 68,131, 26, -1, -1, -1, -1, "", BT_KEY, 255, NULL, 0, NULL },
+    {  2,  0, 68,165, 26, -1, -1, -1, -1, "", BT_JOY_BUTTON, 255, NULL, 0, NULL },
+    {  3,  0, 68,201, 26, -1, -1, -1, -1, "", BT_JOY_BUTTON, 255, NULL, 0, NULL },
+    {  4,  0, 68,236, 26, -1, -1, -1, -1, "", BT_MOUSE_BUTTON, 255, NULL, 0, NULL },
+    {  5,  0, 68,276, 26, -1, -1, -1, -1, "", BT_MOUSE_BUTTON, 255, NULL, 0, NULL },
+    {  6,  8,108, 86, 26, -1, -1, -1, -1, "Next player", BT_KEY, 255, NULL, 0, NULL },
+    {  7,  0,108,131, 26, -1, -1, -1, -1, "", BT_KEY, 255, NULL, 0, NULL },
+    {  8,  0,108,165, 26, -1, -1, -1, -1, "", BT_JOY_BUTTON, 255, NULL, 0, NULL },
+    {  9,  0,108,201, 26, -1, -1, -1, -1, "", BT_JOY_BUTTON, 255, NULL, 0, NULL },
+    { 10,  0,108,236, 26, -1, -1, -1, -1, "", BT_MOUSE_BUTTON, 255, NULL, 0, NULL },
+    { 11,  0,108,276, 26, -1, -1, -1, -1, "", BT_MOUSE_BUTTON, 255, NULL, 0, NULL },
+    { 12,  8,148, 86, 26, -1, -1, -1, -1, "Follow/free mode", BT_KEY, 255, NULL, 0, NULL },
+    { 13,  0,148,131, 26, -1, -1, -1, -1, "", BT_KEY, 255, NULL, 0, NULL },
+    { 14,  0,148,165, 26, -1, -1, -1, -1, "", BT_JOY_BUTTON, 255, NULL, 0, NULL },
+    { 15,  0,148,201, 26, -1, -1, -1, -1, "", BT_JOY_BUTTON, 255, NULL, 0, NULL },
+    { 16,  0,148,236, 26, -1, -1, -1, -1, "", BT_MOUSE_BUTTON, 255, NULL, 0, NULL },
+    { 17,  0,148,276, 26, -1, -1, -1, -1, "", BT_MOUSE_BUTTON, 255, NULL, 0, NULL },
 };
 
 void kc_drawitem( kc_item *item, int is_current );
@@ -514,6 +535,35 @@ void kconfig_draw(kc_menu *menu)
 
         gr_string( FSPACX(272), FSPACY(38), "OR" );
     }
+    else if ( menu->items == kc_observer_controls )
+    {
+        gr_set_fontcolor( BM_XRGB(31,27,6), -1 );
+        gr_setcolor( BM_XRGB(31,27,6) );
+        gr_string( FSPACX(109), FSPACY(43), "KEYBOARD" );
+        gr_string( FSPACX(181), FSPACY(43), "JOYSTICK" );
+        gr_string( FSPACX(261), FSPACY(43), "MOUSE" );
+        for (i = 0; i < NUM_OBSERVER_CONTROLS; i++)
+        {
+            int y = 68 + i * 40;
+            int j;
+
+            for (j = 0; j < NUM_OBSERVER_BINDING_TYPES; j++)
+            {
+                kc_item *first = &menu->items[i * NUM_OBSERVER_BINDING_SLOTS + j * NUM_OBSERVER_BINDINGS_PER_ACTION];
+                kc_item *second = first + 1;
+                int first_x = first->x + first->w1;
+                int second_x = second->x + second->w1;
+                int x = (first_x + first->w2 + second_x) / 2 - 15;
+                int screen_or_y = FSPACY(y + 2) - 15;
+
+                gr_rect(FSPACX(x), screen_or_y, FSPACX(x + 8), screen_or_y);
+                gr_rect(FSPACX(x + 22), screen_or_y, FSPACX(x + 30), screen_or_y);
+                gr_rect(FSPACX(x), screen_or_y, FSPACX(x), screen_or_y + FSPACY(2));
+                gr_rect(FSPACX(x + 30), screen_or_y, FSPACX(x + 30), screen_or_y + FSPACY(2));
+                gr_string(FSPACX(x + 11), screen_or_y - FSPACY(2), "OR");
+            }
+        }
+    }
     else if ( menu->items == kc_mouse )
     {
         gr_set_fontcolor( BM_XRGB(31,27,6), -1 );
@@ -656,6 +706,9 @@ int kconfig_key_command(window *wind, d_event *event, kc_menu *menu)
             if ( menu->items==kc_d1x )
                 for(i=0;i<NUM_D1X_CONTROLS;i++)
                     menu->items[i].value=DefaultKeySettingsD1X[i];
+            if ( menu->items==kc_observer_controls )
+                for(i=0;i<NUM_OBSERVER_CONTROLS*NUM_OBSERVER_BINDING_SLOTS;i++)
+                    menu->items[i].value=255;
             return 1;
         case KEY_DELETE:
             menu->items[menu->citem].value=255;
@@ -867,6 +920,11 @@ int kconfig_handler(window *wind, d_event *event, kc_menu *menu)
             break;
             
         case EVENT_WINDOW_CLOSE:
+            if (menu->items == kc_observer_controls)
+                for (i = 0; i < NUM_OBSERVER_CONTROLS * NUM_OBSERVER_BINDING_SLOTS; i++)
+                    PlayerCfg.ObserverControlSettings[(i % NUM_OBSERVER_BINDING_SLOTS) / NUM_OBSERVER_BINDINGS_PER_ACTION]
+                        [(i / NUM_OBSERVER_BINDING_SLOTS) * NUM_OBSERVER_BINDINGS_PER_ACTION + (i % NUM_OBSERVER_BINDINGS_PER_ACTION)] = menu->items[i].value;
+
             d_free(menu);
             
             // Update save values...
@@ -1061,7 +1119,7 @@ void kc_change_joyaxis( kc_menu *menu, d_event *event, kc_item * item )
 
     if ( abs(value-menu->old_jaxis[axis])<32 )
         return;
-    con_printf(CON_DEBUG, "Axis Movement detected: Axis %i\n", axis);
+    con_printf(CON_VERBOSE, "Axis Movement detected: Axis %i\n", axis);
 
     for (i=0; i<menu->nitems; i++ )
     {
@@ -1124,10 +1182,49 @@ void kconfig(int n, char * title)
         case 1:kconfig_sub( kc_joystick,NUM_JOYSTICK_CONTROLS,title); break;
         case 2:kconfig_sub( kc_mouse,   NUM_MOUSE_CONTROLS,    title); break;
         case 3:kconfig_sub( kc_d1x, NUM_D1X_CONTROLS, title ); break;
+        case 4:
+            for (int i = 0; i < NUM_OBSERVER_CONTROLS * NUM_OBSERVER_BINDING_SLOTS; i++)
+                kc_observer_controls[i].value = PlayerCfg.ObserverControlSettings[(i % NUM_OBSERVER_BINDING_SLOTS) / NUM_OBSERVER_BINDINGS_PER_ACTION]
+                    [(i / NUM_OBSERVER_BINDING_SLOTS) * NUM_OBSERVER_BINDINGS_PER_ACTION + (i % NUM_OBSERVER_BINDINGS_PER_ACTION)];
+            kconfig_sub(kc_observer_controls, NUM_OBSERVER_CONTROLS * NUM_OBSERVER_BINDING_SLOTS, title);
+            break;
         default:
             Int3();
             return;
     }
+}
+
+int kconfig_observer_action(d_event *event)
+{
+    int action, binding, device;
+
+    if (event->type == EVENT_KEY_COMMAND)
+        device = 0;
+    else if (event->type == EVENT_JOYSTICK_BUTTON_DOWN && (PlayerCfg.ControlType & CONTROL_USING_JOYSTICK))
+        device = 1;
+    else if (event->type == EVENT_MOUSE_BUTTON_DOWN && (PlayerCfg.ControlType & CONTROL_USING_MOUSE))
+        device = 2;
+    else
+        return OBSERVER_CONTROL_NONE;
+
+    for (action = 0; action < NUM_OBSERVER_CONTROLS; action++)
+        for (binding = 0; binding < NUM_OBSERVER_BINDINGS_PER_ACTION; binding++)
+        {
+            ubyte value = PlayerCfg.ObserverControlSettings[device]
+                [action * NUM_OBSERVER_BINDINGS_PER_ACTION + binding];
+
+            if (value == 255)
+                continue;
+
+            if (device == 0 && value == event_key_get_raw(event))
+                return action + 1;
+            if (device == 1 && value == event_joystick_get_button(event))
+                return action + 1;
+            if (device == 2 && value == event_mouse_get_button(event))
+                return action + 1;
+        }
+
+    return OBSERVER_CONTROL_NONE;
 }
 
 int is_key_rotate_event(d_event *event) {
@@ -1223,6 +1320,8 @@ int is_key_rotate_event(d_event *event) {
 void kconfig_read_controls(d_event *event, int automap_flag)
 {
     // Don't read from the controls if we are locked into observing a specific player.
+    // Allow free-fly observers to pass inputs, only block if locked onto a player ship cockpit
+    /* Only lock input state if explicitly watching a real player ship cockpit */
     if (is_observer() && is_observing_player()) {
         return;
     }
