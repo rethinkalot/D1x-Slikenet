@@ -100,7 +100,7 @@ void read_flying_controls( object * obj )
     }
 
     //moved here by WraithX
-    if (Player_is_dead) {
+    if (Player_is_dead && !is_observer()) {
         //vm_vec_zero(&obj->mtype.phys_info.rotthrust); //let dead players rotate, changed by WraithX
         vm_vec_zero(&obj->mtype.phys_info.thrust);  //don't let dead players move, changed by WraithX
         return;

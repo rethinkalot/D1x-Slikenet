@@ -454,7 +454,8 @@ void do_physics_sim(object *obj)
     */
     do_physics_sim_rot(obj);
 
-    if (!(pi->velocity.x || pi->velocity.y || pi->velocity.z || pi->thrust.x || pi->thrust.y || pi->thrust.z))
+    /* Allow free-flying spectator ships to bypass zero-velocity drops and process input vectors */
+    if (!(pi->velocity.x || pi->velocity.y || pi->velocity.z || pi->thrust.x || pi->thrust.y || pi->thrust.z) && !is_observer())
         return;
 
     objnum = obj-Objects;
@@ -584,29 +585,33 @@ void do_physics_sim(object *obj)
     do {
         try_again = 0;
 
-        //Move the object
+        /* Move the object */
         vm_vec_copy_scale(&frame_vec, &obj->mtype.phys_info.velocity, sim_time);
 
-        if ( (frame_vec.x==0) && (frame_vec.y==0) && (frame_vec.z==0) )	
-            break;
+        if ( (frame_vec.x==0) && (frame_vec.y==0) && (frame_vec.z==0) ) {
+            if (is_observer()) {
+                vm_vec_copy_scale(&frame_vec, &obj->mtype.phys_info.thrust, sim_time * 4);
+            } else {
+                break;
+            }
+        }
 
         count++;
 
-        //	If retry count is getting large, then we are trying to do something stupid.
-        if (count > 8) break; // in original code this was 3 for all non-player objects. still leave us some limit in case fvi goes apeshit.
+        /* If retry count is getting large, then we are trying to do something stupid. */
+        if (count > 8) break;
 
         vm_vec_add(&new_pos,&obj->pos,&frame_vec);
 
-        // The rest of this function is collision stuff
-        // Observers just fly free
-        
-        if(is_observer() && 
+        /* The rest of this function is collision stuff */
+        /* Observers just fly free */
+        if (is_observer() && 
             ((obj->id == Player_num) ||
-            ((Game_mode & GM_MULTI_COOP) && (obj - Objects == 7))) ) {
+            ((Game_mode & GM_MULTI_COOP) && (obj - Objects == 7)))) {
             obj->pos = new_pos;
+            update_object_seg(obj); /* Fixes black-screen drops by updating room cell indices */
             return;
         }
-        
         ignore_obj_list[n_ignore_objs] = -1;
 
         fq.p0						= &obj->pos;
