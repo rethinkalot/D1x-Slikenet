@@ -757,7 +757,7 @@ multi_do_robot_position(const ubyte *buf)
 			} else {
 				vms_matrix target_orient = Objects[botnum].orient;
 				fix turn_dot = vm_vec_dot(&client_orient.fvec, &target_orient.fvec);
-				int blend_shift = (turn_dot < F1_0 / 2) ? 1 : 2;
+				int blend_shift = 2; // Locked to continuous fluid linear glide scale
 				Objects[botnum].pos = client_pos;
 				
 				Objects[botnum].orient.fvec.x = client_orient.fvec.x + ((target_orient.fvec.x - client_orient.fvec.x) >> blend_shift);
