@@ -402,12 +402,13 @@ multi_send_robot_position_sub(int objnum, int now)
 
                                                                         loc += 3;
 #ifndef WORDS_BIGENDIAN
-    create_quaternionpos(&qpp, Objects+objnum, 0);		loc += sizeof(quaternionpos);
+	create_shortpos((shortpos *)(multibuf+loc), Objects+objnum,0);		loc += sizeof(shortpos);
 #else
-    create_quaternionpos(&qpp, Objects+objnum, 1);
-    memcpy(&(multibuf[loc]), (ubyte *)(qpp.orient), 16);		loc += 16;
-    memcpy(&(multibuf[loc]), (ubyte *)(qpp.pos), 12);		loc += 12;
-    memcpy(&(multibuf[loc]), (ubyte *)(qpp.vel), 12);		loc += 12;
+	create_shortpos(&sp, Objects+objnum, 1);
+	memcpy(&(multibuf[loc]), (ubyte *)(sp.bytemat), 9);
+	loc += 9;
+	memcpy(&(multibuf[loc]), (ubyte *)&(sp.xo), 14);
+	loc += 14;
 #endif
     multi_send_data(multibuf, loc, now?1:0);
 }
@@ -686,6 +687,15 @@ multi_do_robot_position(const ubyte *buf)
     botnum = objnum_remote_to_local(remote_botnum, (sbyte)buf[loc+2]); loc += 3;
 
     if ((botnum < 0) || (botnum > Highest_object_index)) {
+		int sync_i;
+		for (sync_i = 0; sync_i <= Highest_object_index; sync_i++) {
+			if (Objects[sync_i].type == OBJ_ROBOT && Objects[sync_i].id == (remote_botnum & 0xFF)) {
+				map_objnum_local_to_remote(sync_i, remote_botnum, pnum);
+				botnum = sync_i;
+				break;
+			}
+		}
+		if ((botnum < 0) || (botnum > Highest_object_index))
         return;
     }
 
@@ -707,7 +717,12 @@ multi_do_robot_position(const ubyte *buf)
         }
         else
         {
-            return;
+            if (Objects[botnum].type == OBJ_ROBOT) {
+                // Adopt master broadcast authority to stop separate instance splitting
+                Objects[botnum].ctype.ai_info.REMOTE_OWNER = pnum;
+            } else {
+                return;
+            }
         }
     }
 
@@ -715,11 +730,63 @@ multi_do_robot_position(const ubyte *buf)
 //	Objects[botnum].phys_info.drag = Robot_info[Objects[botnum].id].drag >> 4; // Set drag to low
 
 #ifndef WORDS_BIGENDIAN
-    extract_shortpos(&Objects[botnum], (shortpos *)(buf+loc), 0);
-#else
-    memcpy((ubyte *)(sp.bytemat), (ubyte *)(buf + loc), 9);		loc += 9;
-    memcpy((ubyte *)&(sp.xo), (ubyte *)(buf + loc), 14);
-    extract_shortpos(&Objects[botnum], &sp, 1);
+	{
+		vms_vector client_pos = Objects[botnum].pos;
+		vms_matrix client_orient = Objects[botnum].orient;
+		
+		if (Objects[botnum].ctype.ai_info.REMOTE_OWNER != Player_num)
+		{
+			Objects[botnum].mtype.phys_info.velocity.x = 0;
+			Objects[botnum].mtype.phys_info.velocity.y = 0;
+			Objects[botnum].mtype.phys_info.velocity.z = 0;
+			Objects[botnum].mtype.phys_info.flags &= ~(PF_LEVELLING | PF_TURNROLL);
+		}
+
+		shortpos temp_sp;
+		memcpy((ubyte *)(temp_sp.bytemat), (ubyte *)(buf + loc), 9);
+		memcpy((ubyte *)&(temp_sp.xo), (ubyte *)(buf + loc + 9), 14);
+		extract_shortpos(&Objects[botnum], &temp_sp, 0);
+		
+		if (Objects[botnum].ctype.ai_info.REMOTE_OWNER != Player_num)
+		{
+			vms_vector pos_error;
+			vm_vec_sub(&pos_error, &Objects[botnum].pos, &client_pos);
+			
+			if (vm_vec_mag_quick(&pos_error) > F1_0 * 15) {
+				update_object_seg(&Objects[botnum]);
+			} else {
+				vms_matrix target_orient = Objects[botnum].orient;
+				fix turn_dot = vm_vec_dot(&client_orient.fvec, &target_orient.fvec);
+				int blend_shift = (turn_dot < F1_0 / 2) ? 1 : 2;
+				Objects[botnum].pos = client_pos;
+				
+				Objects[botnum].orient.fvec.x = client_orient.fvec.x + ((target_orient.fvec.x - client_orient.fvec.x) >> blend_shift);
+				Objects[botnum].orient.fvec.y = client_orient.fvec.y + ((target_orient.fvec.y - client_orient.fvec.y) >> blend_shift);
+				Objects[botnum].orient.fvec.z = client_orient.fvec.z + ((target_orient.fvec.z - client_orient.fvec.z) >> blend_shift);
+				
+				Objects[botnum].orient.uvec.x = client_orient.uvec.x + ((target_orient.uvec.x - client_orient.uvec.x) >> blend_shift);
+				Objects[botnum].orient.uvec.y = client_orient.uvec.y + ((target_orient.uvec.y - client_orient.uvec.y) >> blend_shift);
+				Objects[botnum].orient.uvec.z = client_orient.uvec.z + ((target_orient.uvec.z - client_orient.uvec.z) >> blend_shift);
+				
+				Objects[botnum].orient.rvec.x = client_orient.rvec.x + ((target_orient.rvec.x - client_orient.rvec.x) >> blend_shift);
+				Objects[botnum].orient.rvec.y = client_orient.rvec.y + ((target_orient.rvec.y - client_orient.rvec.y) >> blend_shift);
+				Objects[botnum].orient.rvec.z = client_orient.rvec.z + ((target_orient.rvec.z - client_orient.rvec.z) >> blend_shift);
+				
+				vm_vec_normalize_quick(&Objects[botnum].orient.fvec);
+				vm_vec_normalize_quick(&Objects[botnum].orient.uvec);
+				vm_vec_normalize_quick(&Objects[botnum].orient.rvec);
+
+				fix vertical_tilt = abs(Objects[botnum].orient.fvec.y);
+				int error_dampen = (vertical_tilt > F1_0 / 2) ? 2 : 4;
+
+				Objects[botnum].mtype.phys_info.velocity.x = (pos_error.x * error_dampen);
+				Objects[botnum].mtype.phys_info.velocity.y = (pos_error.y * error_dampen);
+				Objects[botnum].mtype.phys_info.velocity.z = (pos_error.z * error_dampen);
+				
+				update_object_seg(&Objects[botnum]);
+			}
+		}
+	}
 #endif
 }
 
@@ -1376,6 +1443,18 @@ void multi_robot_request_change(object *robot, int player_num)
  */
 void multi_blend_robot_positions(void)
 {
-    /* TODO: implement blending of quaternion robot positions */
-    return;
+    int i;
+    if (!(Game_mode & GM_MULTI_ROBOTS))
+        return;
+
+    for (i = 0; i <= Highest_object_index; i++) {
+        if (Objects[i].type == OBJ_ROBOT && Objects[i].control_type == CT_AI) {
+            // Force spatial hierarchy segment tracking checks to lock entity visibility
+            if (Objects[i].ctype.ai_info.REMOTE_OWNER != Player_num && Objects[i].ctype.ai_info.REMOTE_OWNER != -1) {
+                // If owned by a remote peer, ensure local segment aligns with master broadcast
+                // Force unconditional spatial segment tracking to stop entity separation
+                update_object_seg(&Objects[i]);
+            }
+        }
+    }
 }

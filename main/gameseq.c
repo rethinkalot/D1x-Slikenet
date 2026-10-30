@@ -119,7 +119,7 @@ char	Current_level_name[LEVEL_NAME_LEN];
 // Global variables describing the player
 int	N_players=1;	// Number of players ( >1 means a net game, eh?)
 int 	Player_num=0;	// The player number who is on the console.
-player			Players[MAX_PLAYERS];			// Misc player info
+player			Players[MAX_MULTI_PLAYERS];			// Misc player info
 obj_position	Player_init[MAX_PLAYERS];
 
 // Global variables telling what sort of game we have
@@ -137,123 +137,123 @@ void HUD_clear_messages(); // From hud.c
 
 void verify_console_object()
 {
-	Assert( Player_num > -1 );
-	Assert( Players[Player_num].objnum > -1 );
-	ConsoleObject = &Objects[Players[Player_num].objnum];
-	Assert( ConsoleObject->id==Player_num );
+    Assert( Player_num > -1 );
+    Assert( Players[Player_num].objnum > -1 );
+    ConsoleObject = &Objects[Players[Player_num].objnum];
+    Assert( ConsoleObject->id==Player_num );
 }
 
 int count_number_of_robots()
 {
-	int robot_count;
-	int i;
+    int robot_count;
+    int i;
 
-	robot_count = 0;
-	for (i=0;i<=Highest_object_index;i++) {
-		if (Objects[i].type == OBJ_ROBOT)
-			robot_count++;
-	}
+    robot_count = 0;
+    for (i=0;i<=Highest_object_index;i++) {
+        if (Objects[i].type == OBJ_ROBOT)
+            robot_count++;
+    }
 
-	return robot_count;
+    return robot_count;
 }
 
 
 int count_number_of_hostages()
 {
-	int count;
-	int i;
+    int count;
+    int i;
 
-	count = 0;
-	for (i=0;i<=Highest_object_index;i++) {
-		if (Objects[i].type == OBJ_HOSTAGE)
-			count++;
-	}
+    count = 0;
+    for (i=0;i<=Highest_object_index;i++) {
+        if (Objects[i].type == OBJ_HOSTAGE)
+            count++;
+    }
 
-	return count;
+    return count;
 }
 
 
 void
 gameseq_init_network_players()
 {
-	int i,k,j;
+    int i,k,j;
 
-	// Initialize network player start locations and object numbers
+    // Initialize network player start locations and object numbers
 
-	ConsoleObject = &Objects[0];
-	k = 0;
-	j = 0;
-	for (i=0;i<=Highest_object_index;i++) {
+    ConsoleObject = &Objects[0];
+    k = 0;
+    j = 0;
+    for (i=0;i<=Highest_object_index;i++) {
 
-		if (( Objects[i].type==OBJ_PLAYER )	|| (Objects[i].type == OBJ_GHOST) || (Objects[i].type == OBJ_COOP))
-		{
+        if (( Objects[i].type==OBJ_PLAYER )	|| (Objects[i].type == OBJ_GHOST) || (Objects[i].type == OBJ_COOP))
+        {
 #ifndef SHAREWARE
-			if ( (!(Game_mode & GM_MULTI_COOP) && ((Objects[i].type == OBJ_PLAYER)||(Objects[i].type==OBJ_GHOST))) ||
-	           ((Game_mode & GM_MULTI_COOP) && ((j == 0) || ( Objects[i].type==OBJ_COOP ) )) )
-			{
+            if ( (!(Game_mode & GM_MULTI_COOP) && ((Objects[i].type == OBJ_PLAYER)||(Objects[i].type==OBJ_GHOST))) ||
+               ((Game_mode & GM_MULTI_COOP) && ((j == 0) || ( Objects[i].type==OBJ_COOP ) )) )
+            {
 
-				Objects[i].type=OBJ_PLAYER;
+                Objects[i].type=OBJ_PLAYER;
 #endif
-				Player_init[k].pos = Objects[i].pos;
-				Player_init[k].orient = Objects[i].orient;
-				Player_init[k].segnum = Objects[i].segnum;
-				Players[k].objnum = i;
-				Objects[i].id = k;
-				k++;
+                Player_init[k].pos = Objects[i].pos;
+                Player_init[k].orient = Objects[i].orient;
+                Player_init[k].segnum = Objects[i].segnum;
+                Players[k].objnum = i;
+                Objects[i].id = k;
+                k++;
 #ifndef SHAREWARE
-			}
-			else
-				obj_delete(i);
-			j++;
+            }
+            else
+                obj_delete(i);
+            j++;
 #endif
-		}
-	}
+        }
+    }
 
-	NumNetPlayerPositions = k;
+    NumNetPlayerPositions = k;
 
-	if (Game_mode & GM_MULTI) {
-		// Ensure we have 8 starting locations, even if there aren't 8 in the file.  This makes observer mode work in all levels.
-		for (; k < MAX_PLAYERS; k++) {
-			Player_init[k].pos = Objects[k % NumNetPlayerPositions].pos;
-			Player_init[k].orient = Objects[k % NumNetPlayerPositions].orient;
-			Player_init[k].segnum = Objects[k % NumNetPlayerPositions].segnum;
+    if (Game_mode & GM_MULTI) {
+        // Ensure we have 8 starting locations, even if there aren't 8 in the file.  This makes observer mode work in all levels.
+        for (; k < MAX_PLAYERS; k++) {
+            Player_init[k].pos = Objects[k % NumNetPlayerPositions].pos;
+            Player_init[k].orient = Objects[k % NumNetPlayerPositions].orient;
+            Player_init[k].segnum = Objects[k % NumNetPlayerPositions].segnum;
 
-			i = obj_create(OBJ_PLAYER, k, Player_init[k].segnum, &Player_init[k].pos,
-				&Player_init[k].orient, Polygon_models[Player_ship->model_num].rad,
-				CT_NONE, MT_PHYSICS, RT_POLYOBJ);
+            i = obj_create(OBJ_PLAYER, k, Player_init[k].segnum, &Player_init[k].pos,
+                &Player_init[k].orient, Polygon_models[Player_ship->model_num].rad,
+                CT_NONE, MT_PHYSICS, RT_POLYOBJ);
 
-			Players[k].objnum = i;
-		}
+            Players[k].objnum = i;
+        }
 
-		NumNetPlayerPositions = MAX_PLAYERS;
-	}
+        NumNetPlayerPositions = MAX_PLAYERS;
+    }
 }
 
 void gameseq_remove_unused_players()
 {
-	int i;
+    int i;
 
-	// 'Remove' the unused players
+    // 'Remove' the unused players
 
 #ifdef NETWORK
-	if (Game_mode & GM_MULTI)
-	{
-		for (i=0; i < NumNetPlayerPositions; i++)
-		{
-			if ((i == 0 && Netgame.host_is_obs) || (!Players[i].connected) || (i >= N_players))
-			{
-				multi_make_player_ghost(i);
-			}
-		}
-	}
-	else
+    if (Game_mode & GM_MULTI)
+    {
+        for (i=0; i < NumNetPlayerPositions; i++)
+        {
+            if ((i == 0 && Netgame.host_is_obs) || (!Players[i].connected) || (i >= N_players))
+            {
+                multi_make_player_ghost(i);
+            }
+        }
+    }
+    else
 #endif
-	{		// Note link to above if!!!
-		for (i=1; i < NumNetPlayerPositions; i++)
-		{
-			obj_delete(Players[i].objnum);
-		}
-	}
+    {		// Note link to above if!!!
+        for (i=1; i < NumNetPlayerPositions; i++)
+        {
+            obj_delete(Players[i].objnum);
+        }
+    }
 }
 
 fix StartingShields=INITIAL_SHIELDS;
@@ -261,42 +261,42 @@ fix StartingShields=INITIAL_SHIELDS;
 // Setup player for new game
 void init_player_stats_game(ubyte pnum)
 {
-	Players[pnum].score = 0;
-	Players[pnum].last_score = 0;
-	Players[pnum].lives = INITIAL_LIVES;
-	Players[pnum].level = 1;
-	Players[pnum].time_level = 0;
-	Players[pnum].time_total = 0;
-	Players[pnum].hours_level = 0;
-	Players[pnum].hours_total = 0;
-	Players[pnum].killer_objnum = -1;
-	Players[pnum].net_killed_total = 0;
-	Players[pnum].net_kills_total = 0;
-	Players[pnum].num_kills_level = 0;
-	Players[pnum].num_kills_total = 0;
-	Players[pnum].num_robots_level = 0;
-	Players[pnum].num_robots_total = 0;
-	Players[pnum].KillGoalCount = 0;
-	Players[pnum].hostages_rescued_total = 0;
-	Players[pnum].hostages_level = 0;
-	Players[pnum].hostages_total = 0;
-	Players[pnum].laser_level = 0;
-	Players[pnum].flags = 0;
-	Players[pnum].shields_delta = 0;
-	Players[pnum].shields_time = 0;
+    Players[pnum].score = 0;
+    Players[pnum].last_score = 0;
+    Players[pnum].lives = INITIAL_LIVES;
+    Players[pnum].level = 1;
+    Players[pnum].time_level = 0;
+    Players[pnum].time_total = 0;
+    Players[pnum].hours_level = 0;
+    Players[pnum].hours_total = 0;
+    Players[pnum].killer_objnum = -1;
+    Players[pnum].net_killed_total = 0;
+    Players[pnum].net_kills_total = 0;
+    Players[pnum].num_kills_level = 0;
+    Players[pnum].num_kills_total = 0;
+    Players[pnum].num_robots_level = 0;
+    Players[pnum].num_robots_total = 0;
+    Players[pnum].KillGoalCount = 0;
+    Players[pnum].hostages_rescued_total = 0;
+    Players[pnum].hostages_level = 0;
+    Players[pnum].hostages_total = 0;
+    Players[pnum].laser_level = 0;
+    Players[pnum].flags = 0;
+    Players[pnum].shields_delta = 0;
+    Players[pnum].shields_time = 0;
 
-	init_player_stats_new_ship(pnum);
+    init_player_stats_new_ship(pnum);
 
-	if (pnum == Player_num && Game_mode & GM_MULTI)
-		multi_send_ship_status();
+    if (pnum == Player_num && Game_mode & GM_MULTI)
+        multi_send_ship_status();
 }
 
 void init_ammo_and_energy(void)
 {
-	if (Players[Player_num].energy < INITIAL_ENERGY)
-		Players[Player_num].energy = INITIAL_ENERGY;
-	if (Players[Player_num].shields < StartingShields)
-		Players[Player_num].shields = StartingShields;
+    if (Players[Player_num].energy < INITIAL_ENERGY)
+        Players[Player_num].energy = INITIAL_ENERGY;
+    if (Players[Player_num].shields < StartingShields)
+        Players[Player_num].shields = StartingShields;
 
 //	for (i=0; i<MAX_PRIMARY_WEAPONS; i++)
 //		if (Players[Player_num].primary_ammo[i] < Default_primary_ammo_level[i])
@@ -305,8 +305,8 @@ void init_ammo_and_energy(void)
 //	for (i=0; i<MAX_SECONDARY_WEAPONS; i++)
 //		if (Players[Player_num].secondary_ammo[i] < Default_secondary_ammo_level[i])
 //			Players[Player_num].secondary_ammo[i] = Default_secondary_ammo_level[i];
-	if (Players[Player_num].secondary_ammo[0] < 2 + NDL - Difficulty_level)
-		Players[Player_num].secondary_ammo[0] = 2 + NDL - Difficulty_level;
+    if (Players[Player_num].secondary_ammo[0] < 2 + NDL - Difficulty_level)
+        Players[Player_num].secondary_ammo[0] = 2 + NDL - Difficulty_level;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -347,125 +347,125 @@ static fix64 speedrun_last_perf = 0;
 // RTA advances for the active run. IGT advances only during active gameplay.
 static void speedrun_advance_clocks(int advance_rta, int advance_igt)
 {
-	// One clock reading, shared by both timers, so their rates cannot drift
-	// apart from rounding or from being sampled at slightly different moments.
-	fix64 now = timer_query_perf();
+    // One clock reading, shared by both timers, so their rates cannot drift
+    // apart from rounding or from being sampled at slightly different moments.
+    fix64 now = timer_query_perf();
 
-	if (speedrun_last_perf)
-	{
-		fix64 delta = now - speedrun_last_perf;	// fix (1/65536 s)
+    if (speedrun_last_perf)
+    {
+        fix64 delta = now - speedrun_last_perf;	// fix (1/65536 s)
 
-		// Guard against a bogus/negative delta (clock reset, debugger break).
-		if (delta > 0)
-		{
-			fix64 delta_ms = (delta * 1000) / F1_0;
+        // Guard against a bogus/negative delta (clock reset, debugger break).
+        if (delta > 0)
+        {
+            fix64 delta_ms = (delta * 1000) / F1_0;
 
-			if (advance_rta && Speedrun_rta_running)
-				Speedrun_rta += delta_ms;
+            if (advance_rta && Speedrun_rta_running)
+                Speedrun_rta += delta_ms;
 
-			if (advance_igt && Speedrun_igt_running)
-				Speedrun_igt += delta_ms;
-		}
-	}
+            if (advance_igt && Speedrun_igt_running)
+                Speedrun_igt += delta_ms;
+        }
+    }
 
-	// The baseline tracks wall time unconditionally, NOT the running flags.
-	// If it were reset whenever IGT was stopped, the time spent paused would be
-	// silently dropped from the next delta -- the very gap IGT exists to count.
-	speedrun_last_perf = now;
+    // The baseline tracks wall time unconditionally, NOT the running flags.
+    // If it were reset whenever IGT was stopped, the time spent paused would be
+    // silently dropped from the next delta -- the very gap IGT exists to count.
+    speedrun_last_perf = now;
 }
 
 // Advance RTA while drawing between-level transition screens. IGT remains paused.
 void speedrun_transition_tick(void)
 {
-	if (Speedrun_transitioning)
-		speedrun_set_gameplay(0);
-	// This is also called by the pause overlay and boxed transition messages.
-	// RTA keeps advancing after spawn even when the game window is covered.
-	speedrun_advance_clocks(Speedrun_rta_running, 0);
+    if (Speedrun_transitioning)
+        speedrun_set_gameplay(0);
+    // This is also called by the pause overlay and boxed transition messages.
+    // RTA keeps advancing after spawn even when the game window is covered.
+    speedrun_advance_clocks(Speedrun_rta_running, 0);
 }
 
 void speedrun_tick(void)
 {
-	int gameplay;
-	int advance_rta;
-	int advance_igt;
+    int gameplay;
+    int advance_rta;
+    int advance_igt;
 
-	// The window must be the visible front window (not hidden behind a menu),
-	// we must not be in an endlevel/cutscene/prepare-for-descent sequence, and
-	// the simulation must not be paused.
-	gameplay = Game_wind != NULL && window_is_visible(Game_wind)
-		&& !Endlevel_sequence && !game_time_is_paused();
-	advance_igt = gameplay;
-	speedrun_set_gameplay(gameplay);
-	advance_rta = Speedrun_rta_running;
+    // The window must be the visible front window (not hidden behind a menu),
+    // we must not be in an endlevel/cutscene/prepare-for-descent sequence, and
+    // the simulation must not be paused.
+    gameplay = Game_wind != NULL && window_is_visible(Game_wind)
+        && !Endlevel_sequence && !game_time_is_paused();
+    advance_igt = gameplay;
+    speedrun_set_gameplay(gameplay);
+    advance_rta = Speedrun_rta_running;
 
-	speedrun_advance_clocks(advance_rta, advance_igt);
-	if (gameplay)
-	{
-		Speedrun_has_started = 1;
-		Speedrun_transitioning = 0;
-	}
+    speedrun_advance_clocks(advance_rta, advance_igt);
+    if (gameplay)
+    {
+        Speedrun_has_started = 1;
+        Speedrun_transitioning = 0;
+    }
 }
 
 // Full restart: brand new game from the menus.
 void speedrun_new_game(void)
 {
-	Speedrun_rta = 0;
-	Speedrun_igt = 0;
-	Speedrun_rta_running = 1;
-	Speedrun_igt_running = 0;
-	Speedrun_gameplay = 0;
-	Speedrun_transitioning = 0;
-	Speedrun_has_started = 0;
-	Speedrun_pause_menu = 0;
-	Speedrun_continued = 0;
-	speedrun_last_perf = 0;		// restart the wall-clock baseline from this instant
+    Speedrun_rta = 0;
+    Speedrun_igt = 0;
+    Speedrun_rta_running = 1;
+    Speedrun_igt_running = 0;
+    Speedrun_gameplay = 0;
+    Speedrun_transitioning = 0;
+    Speedrun_has_started = 0;
+    Speedrun_pause_menu = 0;
+    Speedrun_continued = 0;
+    speedrun_last_perf = 0;		// restart the wall-clock baseline from this instant
 }
 
 // Level entry never resets either cumulative clock. RTA includes marked
 // transitions; IGT resumes when the next level becomes playable.
 void speedrun_level_start(void)
 {
-	// Set the transition and gameplay gates without resetting either value.
-	Speedrun_rta_running = Speedrun_transitioning;
-	Speedrun_igt_running = 0;
-	Speedrun_gameplay = 0;
+    // Set the transition and gameplay gates without resetting either value.
+    Speedrun_rta_running = Speedrun_transitioning;
+    Speedrun_igt_running = 0;
+    Speedrun_gameplay = 0;
 }
 
 // A new level is being entered after the run has already started. Count the
 // full transition, including its briefing/movie and synchronous load period.
 void speedrun_transition_start(void)
 {
-	if (!Speedrun_has_started)
-		return;
+    if (!Speedrun_has_started)
+        return;
 
-	Speedrun_transitioning = 1;
-	Speedrun_gameplay = 0;
-	Speedrun_igt_running = 0;
-	Speedrun_rta_running = 1;
+    Speedrun_transitioning = 1;
+    Speedrun_gameplay = 0;
+    Speedrun_igt_running = 0;
+    Speedrun_rta_running = 1;
 }
 
 void speedrun_transition_stop(void)
 {
-	// Include any transition time since the last frame/sample before stopping.
-	if (Speedrun_transitioning)
-		speedrun_advance_clocks(1, 0);
-	Speedrun_rta_running = 0;
-	Speedrun_transitioning = 0;
-	Speedrun_gameplay = 0;
-	Speedrun_igt_running = 0;
-	Speedrun_has_started = 0;
-	Speedrun_pause_menu = 0;
+    // Include any transition time since the last frame/sample before stopping.
+    if (Speedrun_transitioning)
+        speedrun_advance_clocks(1, 0);
+    Speedrun_rta_running = 0;
+    Speedrun_transitioning = 0;
+    Speedrun_gameplay = 0;
+    Speedrun_igt_running = 0;
+    Speedrun_has_started = 0;
+    Speedrun_pause_menu = 0;
 }
 
 void speedrun_pause_menu_set(int visible)
 {
-	Speedrun_pause_menu = visible;
+    Speedrun_pause_menu = visible;
 }
 
 int speedrun_pause_menu_is_visible(void)
 {
-	return Speedrun_pause_menu;
+    return Speedrun_pause_menu;
 }
 
 // Update independent RTA and IGT clock gates.
@@ -473,25 +473,25 @@ int speedrun_pause_menu_is_visible(void)
 // IGT follows active gameplay; RTA follows gameplay plus a marked transition.
 void speedrun_set_gameplay(int active)
 {
-	Speedrun_gameplay = active;
-	Speedrun_igt_running = active;
-	if (active)
-	{
-		Speedrun_has_started = 1;
-		Speedrun_transitioning = 0;
-		Speedrun_igt_running = 1;
-	}
-	Speedrun_rta_running = Speedrun_has_started || active || Speedrun_transitioning;
+    Speedrun_gameplay = active;
+    Speedrun_igt_running = active;
+    if (active)
+    {
+        Speedrun_has_started = 1;
+        Speedrun_transitioning = 0;
+        Speedrun_igt_running = 1;
+    }
+    Speedrun_rta_running = Speedrun_has_started || active || Speedrun_transitioning;
 }
 
 // A level exit starts a between-level transition. RTA then counts through the
 // briefing, movie and loading screens until gameplay resumes.
 void speedrun_level_finished(void)
 {
-	Speedrun_gameplay = 0;
-	Speedrun_transitioning = Speedrun_has_started;
-	Speedrun_igt_running = 0;
-	Speedrun_rta_running = Speedrun_transitioning;
+    Speedrun_gameplay = 0;
+    Speedrun_transitioning = Speedrun_has_started;
+    Speedrun_igt_running = 0;
+    Speedrun_rta_running = Speedrun_transitioning;
 }
 
 // Player quit back to the main menu -- the session is over, so BOTH clocks are
@@ -500,35 +500,35 @@ void speedrun_level_finished(void)
 // A saved game restores both clocks and marks the run as interrupted.
 void speedrun_quit_to_menu(void)
 {
-	Speedrun_rta_running = 0;
-	Speedrun_igt_running = 0;
-	Speedrun_rta = 0;
-	Speedrun_igt = 0;
-	Speedrun_continued = 0;
-	speedrun_last_perf = 0;
-	Speedrun_gameplay = 0;
-	Speedrun_transitioning = 0;
-	Speedrun_has_started = 0;
-	Speedrun_pause_menu = 0;
+    Speedrun_rta_running = 0;
+    Speedrun_igt_running = 0;
+    Speedrun_rta = 0;
+    Speedrun_igt = 0;
+    Speedrun_continued = 0;
+    speedrun_last_perf = 0;
+    Speedrun_gameplay = 0;
+    Speedrun_transitioning = 0;
+    Speedrun_has_started = 0;
+    Speedrun_pause_menu = 0;
 }
 
 // Saved values are restored after initialization, and the continued marker
 // identifies the run as interrupted.
 void speedrun_game_loaded(void)
 {
-	// Clear both up front. If the save carries stored values the state loader
-	// restores them immediately afterwards and overwrites these; if the save
-	// predates persistence there is nothing to restore, so both correctly start
-	// from zero rather than leaking in whatever was on screen before the load.
-	Speedrun_rta = 0;
-	Speedrun_igt = 0;
-	Speedrun_rta_running = 1;
-	Speedrun_igt_running = 0;
-	Speedrun_gameplay = 0;
-	Speedrun_transitioning = 0;
-	Speedrun_has_started = 1;
-	Speedrun_continued = 1;
-	speedrun_last_perf = 0;		// restart the wall-clock baseline from this instant
+    // Clear both up front. If the save carries stored values the state loader
+    // restores them immediately afterwards and overwrites these; if the save
+    // predates persistence there is nothing to restore, so both correctly start
+    // from zero rather than leaking in whatever was on screen before the load.
+    Speedrun_rta = 0;
+    Speedrun_igt = 0;
+    Speedrun_rta_running = 1;
+    Speedrun_igt_running = 0;
+    Speedrun_gameplay = 0;
+    Speedrun_transitioning = 0;
+    Speedrun_has_started = 1;
+    Speedrun_continued = 1;
+    speedrun_last_perf = 0;		// restart the wall-clock baseline from this instant
 }
 
 // Restore the IGT value carried in a save file.
@@ -537,10 +537,10 @@ void speedrun_game_loaded(void)
 // would run the display backwards.
 void speedrun_igt_restored(fix64 ms)
 {
-	if (ms < 0)
-		return;
+    if (ms < 0)
+        return;
 
-	Speedrun_igt = ms;
+    Speedrun_igt = ms;
 }
 
 // Restore the RTA value carried in a save file.
@@ -550,127 +550,127 @@ void speedrun_igt_restored(fix64 ms)
 // value to current IGT because the timer labels were swapped after those saves.
 void speedrun_rta_restored(fix64 ms)
 {
-	if (ms < 0)
-		return;
+    if (ms < 0)
+        return;
 
-	Speedrun_rta = ms;
+    Speedrun_rta = ms;
 }
 
 // Setup player for new level (After completion of previous level)
 void init_player_stats_level(int secret_flag)
 {
-	// New spawn: restart this level's RTA.
-	speedrun_level_start();
-	(void)secret_flag;
-	// int	i;
+    // New spawn: restart this level's RTA.
+    speedrun_level_start();
+    (void)secret_flag;
+    // int	i;
 
-	Players[Player_num].last_score = Players[Player_num].score;
+    Players[Player_num].last_score = Players[Player_num].score;
 
-	Players[Player_num].level = Current_level_num;
+    Players[Player_num].level = Current_level_num;
 
 #ifdef NETWORK
-	if (!Network_rejoined)
+    if (!Network_rejoined)
 #endif
-		Players[Player_num].time_level = 0;	//Note link to above if !!!!!!
+        Players[Player_num].time_level = 0;	//Note link to above if !!!!!!
 
-	init_ammo_and_energy();
+    init_ammo_and_energy();
 
-	Players[Player_num].killer_objnum = -1;
+    Players[Player_num].killer_objnum = -1;
 
-	Players[Player_num].num_kills_level = 0;
-	Players[Player_num].num_robots_level = count_number_of_robots();
-	Players[Player_num].num_robots_total += Players[Player_num].num_robots_level;
+    Players[Player_num].num_kills_level = 0;
+    Players[Player_num].num_robots_level = count_number_of_robots();
+    Players[Player_num].num_robots_total += Players[Player_num].num_robots_level;
 
-	Players[Player_num].hostages_level = count_number_of_hostages();
-	Players[Player_num].hostages_total += Players[Player_num].hostages_level;
-	Players[Player_num].hostages_on_board = 0;
+    Players[Player_num].hostages_level = count_number_of_hostages();
+    Players[Player_num].hostages_total += Players[Player_num].hostages_level;
+    Players[Player_num].hostages_on_board = 0;
 
-		Players[Player_num].flags &= (~KEY_BLUE);
-		Players[Player_num].flags &= (~KEY_RED);
-		Players[Player_num].flags &= (~KEY_GOLD);
+        Players[Player_num].flags &= (~KEY_BLUE);
+        Players[Player_num].flags &= (~KEY_RED);
+        Players[Player_num].flags &= (~KEY_GOLD);
 
-	Players[Player_num].flags &= (~PLAYER_FLAGS_INVULNERABLE);
-	Players[Player_num].flags &= (~PLAYER_FLAGS_CLOAKED);
+    Players[Player_num].flags &= (~PLAYER_FLAGS_INVULNERABLE);
+    Players[Player_num].flags &= (~PLAYER_FLAGS_CLOAKED);
 
-		Players[Player_num].cloak_time = 0;
-		Players[Player_num].invulnerable_time = 0;
+        Players[Player_num].cloak_time = 0;
+        Players[Player_num].invulnerable_time = 0;
 
-		if ((Game_mode & GM_MULTI) && !(Game_mode & GM_MULTI_COOP))
-			Players[Player_num].flags |= (KEY_BLUE | KEY_RED | KEY_GOLD);
+        if ((Game_mode & GM_MULTI) && !(Game_mode & GM_MULTI_COOP))
+            Players[Player_num].flags |= (KEY_BLUE | KEY_RED | KEY_GOLD);
 
-	Player_is_dead = 0; // Added by RH
-	Dead_player_camera = NULL;
-	Players[Player_num].homing_object_dist = -F1_0; // Added by RH
+    Player_is_dead = 0; // Added by RH
+    Dead_player_camera = NULL;
+    Players[Player_num].homing_object_dist = -F1_0; // Added by RH
 
-	// properly init these cursed globals
-	Next_flare_fire_time = Last_laser_fired_time = Next_laser_fire_time = Next_missile_fire_time = GameTime64;
+    // properly init these cursed globals
+    Next_flare_fire_time = Last_laser_fired_time = Next_laser_fire_time = Next_missile_fire_time = GameTime64;
 
-	init_gauges();
+    init_gauges();
 
-	if (Game_mode & GM_MULTI)
-		multi_send_ship_status();
+    if (Game_mode & GM_MULTI)
+        multi_send_ship_status();
 }
 
 // Setup player for a brand-new ship
 void init_player_stats_new_ship(ubyte pnum)
 {
-	int i;
+    int i;
 
-	if (pnum == Player_num)
-	{
-		if (Newdemo_state == ND_STATE_RECORDING)
-		{
-			newdemo_record_laser_level(Players[Player_num].laser_level, 0);
-			newdemo_record_player_weapon(0, 0);
-			newdemo_record_player_weapon(1, 0);
-		}
-		Global_laser_firing_count=0;
-		Players[Player_num].primary_weapon = 0;
-		Players[Player_num].secondary_weapon = 0;
-		dead_player_end(); //player no longer dead
-		Player_is_dead = 0;
-		Player_exploded = 0;
-		Player_eggs_dropped = 0;
+    if (pnum == Player_num)
+    {
+        if (Newdemo_state == ND_STATE_RECORDING)
+        {
+            newdemo_record_laser_level(Players[Player_num].laser_level, 0);
+            newdemo_record_player_weapon(0, 0);
+            newdemo_record_player_weapon(1, 0);
+        }
+        Global_laser_firing_count=0;
+        Players[Player_num].primary_weapon = 0;
+        Players[Player_num].secondary_weapon = 0;
+        dead_player_end(); //player no longer dead
+        Player_is_dead = 0;
+        Player_exploded = 0;
+        Player_eggs_dropped = 0;
 
-		int delete_camera = 1; 
+        int delete_camera = 1; 
 #ifdef NETWORK	
-		if ((Game_mode & GM_MULTI) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW)) {	
-			delete_camera = 0; 
-		}	
+        if ((Game_mode & GM_MULTI) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW)) {	
+            delete_camera = 0; 
+        }	
 #endif
-		if(delete_camera)
-			Dead_player_camera = 0;
+        if(delete_camera)
+            Dead_player_camera = 0;
 
-		PrimaryWeaponPickedUp = 0;
-		SecondaryWeaponPickedUp = 0;
-	}
+        PrimaryWeaponPickedUp = 0;
+        SecondaryWeaponPickedUp = 0;
+    }
 
-	Players[pnum].energy = INITIAL_ENERGY;
-	Players[pnum].shields = StartingShields;
+    Players[pnum].energy = INITIAL_ENERGY;
+    Players[pnum].shields = StartingShields;
     Players[pnum].shields_certain = 1;
-	Players[pnum].laser_level = 0;
-	Players[pnum].killer_objnum = -1;
-	Players[pnum].hostages_on_board = 0;
-	for (i=0; i<MAX_PRIMARY_WEAPONS; i++)
-		Players[pnum].primary_ammo[i] = 0;
-	for (i=1; i<MAX_SECONDARY_WEAPONS; i++)
-		Players[pnum].secondary_ammo[i] = 0;
-	Players[pnum].secondary_ammo[0] = 2 + NDL - Difficulty_level;
-	Players[pnum].primary_weapon_flags = HAS_LASER_FLAG;
-	Players[pnum].secondary_weapon_flags = HAS_CONCUSSION_FLAG;
-	Players[pnum].flags &= ~(PLAYER_FLAGS_QUAD_LASERS | PLAYER_FLAGS_CLOAKED | PLAYER_FLAGS_INVULNERABLE);
-	Players[pnum].cloak_time = 0;
-	Players[pnum].invulnerable_time = 0;
-	Players[pnum].homing_object_dist = -F1_0;
+    Players[pnum].laser_level = 0;
+    Players[pnum].killer_objnum = -1;
+    Players[pnum].hostages_on_board = 0;
+    for (i=0; i<MAX_PRIMARY_WEAPONS; i++)
+        Players[pnum].primary_ammo[i] = 0;
+    for (i=1; i<MAX_SECONDARY_WEAPONS; i++)
+        Players[pnum].secondary_ammo[i] = 0;
+    Players[pnum].secondary_ammo[0] = 2 + NDL - Difficulty_level;
+    Players[pnum].primary_weapon_flags = HAS_LASER_FLAG;
+    Players[pnum].secondary_weapon_flags = HAS_CONCUSSION_FLAG;
+    Players[pnum].flags &= ~(PLAYER_FLAGS_QUAD_LASERS | PLAYER_FLAGS_CLOAKED | PLAYER_FLAGS_INVULNERABLE);
+    Players[pnum].cloak_time = 0;
+    Players[pnum].invulnerable_time = 0;
+    Players[pnum].homing_object_dist = -F1_0;
 
-	RespawningConcussions[pnum] = 0; 
-	VulcanAmmoBoxesOnBoard[pnum] = 0;
-	VulcanBoxAmmo[pnum] = 0;
+    RespawningConcussions[pnum] = 0; 
+    VulcanAmmoBoxesOnBoard[pnum] = 0;
+    VulcanBoxAmmo[pnum] = 0;
 
-	digi_kill_sound_linked_to_object(Players[pnum].objnum);
-	
-	if (pnum == Player_num && Game_mode & GM_MULTI)
-		multi_send_ship_status();
+    digi_kill_sound_linked_to_object(Players[pnum].objnum);
+    
+    if (pnum == Player_num && Game_mode & GM_MULTI)
+        multi_send_ship_status();
 }
 
 #ifdef EDITOR
@@ -680,26 +680,26 @@ extern int game_handler(window *wind, d_event *event, void *data);
 //reset stuff so game is semi-normal when playing from editor
 void editor_reset_stuff_on_level()
 {
-	gameseq_init_network_players();
-	init_player_stats_level(0);
-	Viewer = ConsoleObject;
-	ConsoleObject = Viewer = &Objects[Players[Player_num].objnum];
-	ConsoleObject->id=Player_num;
-	ConsoleObject->control_type = CT_FLYING;
-	ConsoleObject->movement_type = MT_PHYSICS;
-	Game_suspended = 0;
-	verify_console_object();
-	Control_center_destroyed = 0;
-	if (Newdemo_state != ND_STATE_PLAYBACK)
-		gameseq_remove_unused_players();
-	init_cockpit();
-	init_robots_for_level();
-	init_ai_objects();
-	init_morphs();
-	init_all_matcens();
-	init_player_stats_new_ship(Player_num);
-	if (!Game_wind)
-		Game_wind = window_create(&grd_curscreen->sc_canvas, 0, 0, SWIDTH, SHEIGHT, game_handler, NULL);
+    gameseq_init_network_players();
+    init_player_stats_level(0);
+    Viewer = ConsoleObject;
+    ConsoleObject = Viewer = &Objects[Players[Player_num].objnum];
+    ConsoleObject->id=Player_num;
+    ConsoleObject->control_type = CT_FLYING;
+    ConsoleObject->movement_type = MT_PHYSICS;
+    Game_suspended = 0;
+    verify_console_object();
+    Control_center_destroyed = 0;
+    if (Newdemo_state != ND_STATE_PLAYBACK)
+        gameseq_remove_unused_players();
+    init_cockpit();
+    init_robots_for_level();
+    init_ai_objects();
+    init_morphs();
+    init_all_matcens();
+    init_player_stats_new_ship(Player_num);
+    if (!Game_wind)
+        Game_wind = window_create(&grd_curscreen->sc_canvas, 0, 0, SWIDTH, SHEIGHT, game_handler, NULL);
 }
 #endif
 
@@ -710,55 +710,55 @@ void reset_player_object();
 
 void DoGameOver()
 {
-	speedrun_transition_stop();
+    speedrun_transition_stop();
 
 #ifndef SHAREWARE
-	if (PLAYING_BUILTIN_MISSION)
+    if (PLAYING_BUILTIN_MISSION)
 #endif
-		scores_maybe_add_player(0);
+        scores_maybe_add_player(0);
 
-	if (Game_wind)
-		window_close(Game_wind);		// Exit out of game loop
+    if (Game_wind)
+        window_close(Game_wind);		// Exit out of game loop
 }
 
 //update various information about the player
 void update_player_stats()
 {
-	Players[Player_num].time_level += FrameTime;	//the never-ending march of time...
-	if ( Players[Player_num].time_level > i2f(3600) )	{
-		Players[Player_num].time_level -= i2f(3600);
-		Players[Player_num].hours_level++;
-	}
+    Players[Player_num].time_level += FrameTime;	//the never-ending march of time...
+    if ( Players[Player_num].time_level > i2f(3600) )	{
+        Players[Player_num].time_level -= i2f(3600);
+        Players[Player_num].hours_level++;
+    }
 
-	Players[Player_num].time_total += FrameTime;	//the never-ending march of time...
-	if ( Players[Player_num].time_total > i2f(3600) )	{
-		Players[Player_num].time_total -= i2f(3600);
-		Players[Player_num].hours_total++;
-	}
+    Players[Player_num].time_total += FrameTime;	//the never-ending march of time...
+    if ( Players[Player_num].time_total > i2f(3600) )	{
+        Players[Player_num].time_total -= i2f(3600);
+        Players[Player_num].hours_total++;
+    }
 }
 
 //go through this level and start any eclip sounds
 void set_sound_sources()
 {
-	int segnum,sidenum;
-	segment *seg;
+    int segnum,sidenum;
+    segment *seg;
 
-	digi_init_sounds();		//clear old sounds
+    digi_init_sounds();		//clear old sounds
 
-	for (seg=&Segments[0],segnum=0;segnum<=Highest_segment_index;seg++,segnum++)
-		for (sidenum=0;sidenum<MAX_SIDES_PER_SEGMENT;sidenum++) {
-			int tm,ec,sn;
+    for (seg=&Segments[0],segnum=0;segnum<=Highest_segment_index;seg++,segnum++)
+        for (sidenum=0;sidenum<MAX_SIDES_PER_SEGMENT;sidenum++) {
+            int tm,ec,sn;
 
-			if ((tm=seg->sides[sidenum].tmap_num2) != 0)
-				if ((ec=TmapInfo[tm&0x3fff].eclip_num)!=-1)
-					if ((sn=Effects[ec].sound_num)!=-1) {
-						vms_vector pnt;
+            if ((tm=seg->sides[sidenum].tmap_num2) != 0)
+                if ((ec=TmapInfo[tm&0x3fff].eclip_num)!=-1)
+                    if ((sn=Effects[ec].sound_num)!=-1) {
+                        vms_vector pnt;
 
-						compute_center_point_on_side(&pnt,seg,sidenum);
-						digi_link_sound_to_pos(sn,segnum,sidenum,&pnt,1, F1_0/2);
+                        compute_center_point_on_side(&pnt,seg,sidenum);
+                        digi_link_sound_to_pos(sn,segnum,sidenum,&pnt,1, F1_0/2);
 
-					}
-		}
+                    }
+        }
 
 }
 
@@ -769,30 +769,30 @@ fix flash_dist=fl2f(.9);
 //create flash for player appearance
 void create_player_appearance_effect(object *player_obj)
 {
-	vms_vector pos;
-	object *effect_obj;
+    vms_vector pos;
+    object *effect_obj;
 
 #ifndef NDEBUG
-	{
-		int objnum = player_obj-Objects;
-		if ( (objnum < 0) || (objnum > Highest_object_index) )
-			Int3(); // See Rob, trying to track down weird network bug
-	}
+    {
+        int objnum = player_obj-Objects;
+        if ( (objnum < 0) || (objnum > Highest_object_index) )
+            Int3(); // See Rob, trying to track down weird network bug
+    }
 #endif
 
-	if (player_obj == Viewer)
-		vm_vec_scale_add(&pos, &player_obj->pos, &player_obj->orient.fvec, fixmul(player_obj->size,flash_dist));
-	else
-		pos = player_obj->pos;
+    if (player_obj == Viewer)
+        vm_vec_scale_add(&pos, &player_obj->pos, &player_obj->orient.fvec, fixmul(player_obj->size,flash_dist));
+    else
+        pos = player_obj->pos;
 
-	effect_obj = object_create_explosion(player_obj->segnum, &pos, player_obj->size, VCLIP_PLAYER_APPEARANCE );
+    effect_obj = object_create_explosion(player_obj->segnum, &pos, player_obj->size, VCLIP_PLAYER_APPEARANCE );
 
-	if (effect_obj) {
-		effect_obj->orient = player_obj->orient;
+    if (effect_obj) {
+        effect_obj->orient = player_obj->orient;
 
-		if ( Vclip[VCLIP_PLAYER_APPEARANCE].sound_num > -1 )
-			digi_link_sound_to_object( Vclip[VCLIP_PLAYER_APPEARANCE].sound_num, effect_obj-Objects, 0, F1_0);
-	}
+        if ( Vclip[VCLIP_PLAYER_APPEARANCE].sound_num > -1 )
+            digi_link_sound_to_object( Vclip[VCLIP_PLAYER_APPEARANCE].sound_num, effect_obj-Objects, 0, F1_0);
+    }
 }
 
 //
@@ -808,13 +808,13 @@ char *get_level_file(int level_num)
         {
                 static char t[13];
                 sprintf(t, "level%02d.sdl", level_num);
-		return t;
+        return t;
         }
 #else
         if (level_num<0)                //secret level
-		return Secret_level_names[-level_num-1];
+        return Secret_level_names[-level_num-1];
         else                                    //normal level
-		return Level_names[level_num-1];
+        return Level_names[level_num-1];
 #endif
 }
 
@@ -822,164 +822,164 @@ char *get_level_file(int level_num)
 void do_checksum_calc(ubyte *b, int len, unsigned int *s1, unsigned int *s2)
 {
 
-	while(len--) {
-		*s1 += *b++;
-		if (*s1 >= 255) *s1 -= 255;
-		*s2 += *s1;
-	}
+    while(len--) {
+        *s1 += *b++;
+        if (*s1 >= 255) *s1 -= 255;
+        *s2 += *s1;
+    }
 }
 
 ushort netmisc_calc_checksum()
 {
-	int i, j, k;
-	unsigned int sum1,sum2;
-	short s;
-	int t;
+    int i, j, k;
+    unsigned int sum1,sum2;
+    short s;
+    int t;
 
-	sum1 = sum2 = 0;
-	for (i = 0; i < Highest_segment_index + 1; i++) {
-		for (j = 0; j < MAX_SIDES_PER_SEGMENT; j++) {
-			do_checksum_calc((unsigned char *)&(Segments[i].sides[j].type), 1, &sum1, &sum2);
-			do_checksum_calc(&(Segments[i].sides[j].pad), 1, &sum1, &sum2);
-			s = INTEL_SHORT(Segments[i].sides[j].wall_num);
-			do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
-			s = INTEL_SHORT(Segments[i].sides[j].tmap_num);
-			do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
-			s = INTEL_SHORT(Segments[i].sides[j].tmap_num2);
-			do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
-			for (k = 0; k < 4; k++) {
-				t = INTEL_INT(((int)Segments[i].sides[j].uvls[k].u));
-				do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
-				t = INTEL_INT(((int)Segments[i].sides[j].uvls[k].v));
-				do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
-				t = INTEL_INT(((int)Segments[i].sides[j].uvls[k].l));
-				do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
-			}
-			for (k = 0; k < 2; k++) {
-				t = INTEL_INT(((int)Segments[i].sides[j].normals[k].x));
-				do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
-				t = INTEL_INT(((int)Segments[i].sides[j].normals[k].y));
-				do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
-				t = INTEL_INT(((int)Segments[i].sides[j].normals[k].z));
-				do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
-			}
-		}
-		for (j = 0; j < MAX_SIDES_PER_SEGMENT; j++) {
-			s = INTEL_SHORT(Segments[i].children[j]);
-			do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
-		}
-		for (j = 0; j < MAX_VERTICES_PER_SEGMENT; j++) {
-			s = INTEL_SHORT(Segments[i].verts[j]);
-			do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
-		}
-		s = INTEL_SHORT(Segments[i].objects);
-		do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
-		do_checksum_calc((unsigned char *)&(Segments[i].special), 1, &sum1, &sum2);
-		do_checksum_calc((unsigned char *)&(Segments[i].matcen_num), 1, &sum1, &sum2);
-		s = INTEL_SHORT(Segments[i].value);
-		do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
-		t = INTEL_INT(((int)Segments[i].static_light));
-		do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
-		s = INTEL_SHORT(0); // no matter if we need alignment on our platform, if we have editor we MUST consider this integer to get the same checksum as non-editor games calculate
-		do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
-	}
-	sum2 %= 255;
-	return ((sum1<<8)+ sum2);
+    sum1 = sum2 = 0;
+    for (i = 0; i < Highest_segment_index + 1; i++) {
+        for (j = 0; j < MAX_SIDES_PER_SEGMENT; j++) {
+            do_checksum_calc((unsigned char *)&(Segments[i].sides[j].type), 1, &sum1, &sum2);
+            do_checksum_calc(&(Segments[i].sides[j].pad), 1, &sum1, &sum2);
+            s = INTEL_SHORT(Segments[i].sides[j].wall_num);
+            do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
+            s = INTEL_SHORT(Segments[i].sides[j].tmap_num);
+            do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
+            s = INTEL_SHORT(Segments[i].sides[j].tmap_num2);
+            do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
+            for (k = 0; k < 4; k++) {
+                t = INTEL_INT(((int)Segments[i].sides[j].uvls[k].u));
+                do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
+                t = INTEL_INT(((int)Segments[i].sides[j].uvls[k].v));
+                do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
+                t = INTEL_INT(((int)Segments[i].sides[j].uvls[k].l));
+                do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
+            }
+            for (k = 0; k < 2; k++) {
+                t = INTEL_INT(((int)Segments[i].sides[j].normals[k].x));
+                do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
+                t = INTEL_INT(((int)Segments[i].sides[j].normals[k].y));
+                do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
+                t = INTEL_INT(((int)Segments[i].sides[j].normals[k].z));
+                do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
+            }
+        }
+        for (j = 0; j < MAX_SIDES_PER_SEGMENT; j++) {
+            s = INTEL_SHORT(Segments[i].children[j]);
+            do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
+        }
+        for (j = 0; j < MAX_VERTICES_PER_SEGMENT; j++) {
+            s = INTEL_SHORT(Segments[i].verts[j]);
+            do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
+        }
+        s = INTEL_SHORT(Segments[i].objects);
+        do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
+        do_checksum_calc((unsigned char *)&(Segments[i].special), 1, &sum1, &sum2);
+        do_checksum_calc((unsigned char *)&(Segments[i].matcen_num), 1, &sum1, &sum2);
+        s = INTEL_SHORT(Segments[i].value);
+        do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
+        t = INTEL_INT(((int)Segments[i].static_light));
+        do_checksum_calc((ubyte *)&t, 4, &sum1, &sum2);
+        s = INTEL_SHORT(0); // no matter if we need alignment on our platform, if we have editor we MUST consider this integer to get the same checksum as non-editor games calculate
+        do_checksum_calc((ubyte *)&s, 2, &sum1, &sum2);
+    }
+    sum2 %= 255;
+    return ((sum1<<8)+ sum2);
 }
 
 //load a level off disk. level numbers start at 1.  Secret levels are -1,-2,-3
 void LoadLevel(int level_num,int page_in_textures)
 {
-	char *level_name;
-	player save_player;
+    char *level_name;
+    player save_player;
 
-	save_player = Players[Player_num];
+    save_player = Players[Player_num];
 
-	Assert(level_num <= Last_level  && level_num >= Last_secret_level  && level_num != 0);
+    Assert(level_num <= Last_level  && level_num >= Last_secret_level  && level_num != 0);
 
-	level_name = get_level_file(level_num);
+    level_name = get_level_file(level_num);
 
-	if (!load_level(level_name))
-		Current_level_num=level_num;
+    if (!load_level(level_name))
+        Current_level_num=level_num;
 
-	gr_use_palette_table( "palette.256" );
+    gr_use_palette_table( "palette.256" );
 
-	show_boxed_message(TXT_LOADING, 0);
+    show_boxed_message(TXT_LOADING, 0);
 #ifdef RELEASE
-	timer_delay(F1_0);
+    timer_delay(F1_0);
 #endif
 
 #ifdef NETWORK
-	my_segments_checksum = netmisc_calc_checksum();
+    my_segments_checksum = netmisc_calc_checksum();
 #endif
 
-	load_endlevel_data(level_num);
-	
-	load_custom_data(level_name);
+    load_endlevel_data(level_num);
+    
+    load_custom_data(level_name);
 
 #ifdef NETWORK
-	reset_network_objects();
+    reset_network_objects();
 #endif
 
-	Players[Player_num] = save_player;
+    Players[Player_num] = save_player;
 
-	set_sound_sources();
+    set_sound_sources();
 
-	songs_play_level_song( Current_level_num, 0 );
+    songs_play_level_song( Current_level_num, 0 );
 
-	gr_palette_load(gr_palette);		//actually load the palette
+    gr_palette_load(gr_palette);		//actually load the palette
 
-	if ( page_in_textures ) {
-		piggy_load_level_data();
+    if ( page_in_textures ) {
+        piggy_load_level_data();
 #ifdef OGL
-		ogl_cache_level_textures();
+        ogl_cache_level_textures();
 #endif
-	}
+    }
 }
 
 //sets up Player_num & ConsoleObject
 void InitPlayerObject()
 {
-	Assert(Player_num>=0 && Player_num<MAX_PLAYERS);
+    Assert(Player_num>=0 && Player_num<MAX_PLAYERS);
 
-	if (Player_num != 0 )	{
-		Players[0] = Players[Player_num];
-		Player_num = 0;
-	}
+    if (Player_num != 0 )	{
+        Players[0] = Players[Player_num];
+        Player_num = 0;
+    }
 
-	Players[Player_num].objnum = 0;
+    Players[Player_num].objnum = 0;
 
-	ConsoleObject = &Objects[Players[Player_num].objnum];
+    ConsoleObject = &Objects[Players[Player_num].objnum];
 
-	ConsoleObject->type				= OBJ_PLAYER;
-	ConsoleObject->id					= Player_num;
-	ConsoleObject->control_type	= CT_FLYING;
-	ConsoleObject->movement_type	= MT_PHYSICS;
+    ConsoleObject->type				= OBJ_PLAYER;
+    ConsoleObject->id					= Player_num;
+    ConsoleObject->control_type	= CT_FLYING;
+    ConsoleObject->movement_type	= MT_PHYSICS;
 }
 
 //starts a new game on the given level
 void StartNewGame(int start_level)
 {
-	state_quick_item = -1;	// for first blind save, pick slot to save in
+    state_quick_item = -1;	// for first blind save, pick slot to save in
 
-	Game_mode = GM_NORMAL;
+    Game_mode = GM_NORMAL;
 
-	Next_level_num = 0;
+    Next_level_num = 0;
 
-	InitPlayerObject();				//make sure player's object set up
+    InitPlayerObject();				//make sure player's object set up
 
-	init_player_stats_game(Player_num);		//clear all stats
+    init_player_stats_game(Player_num);		//clear all stats
 
-	N_players = 1;
+    N_players = 1;
 
-	StartNewLevel(start_level);
+    StartNewLevel(start_level);
 
-	Players[Player_num].starting_level = start_level;		// Mark where they started
+    Players[Player_num].starting_level = start_level;		// Mark where they started
 
-	game_disable_cheats();
+    game_disable_cheats();
 
-	// Brand new game: both clocks start clean and are shown green.
-	speedrun_new_game();
+    // Brand new game: both clocks start clean and are shown green.
+    speedrun_new_game();
 }
 
 //	-----------------------------------------------------------------------------
@@ -987,215 +987,215 @@ void StartNewGame(int start_level)
 //	Call with dead_flag = 1 if player died, but deserves some portion of bonus (only skill points), anyway.
 void DoEndLevelScoreGlitz(int network)
 {
-	int level_points, skill_points, energy_points, shield_points, hostage_points;
-	int	all_hostage_points;
-	int	endgame_points;
-	char	all_hostage_text[64];
-	char	endgame_text[64];
-	#define N_GLITZITEMS 9
-	char				m_str[N_GLITZITEMS][30];
-	newmenu_item	m[9];
-	int				i,c;
-	char				title[128];
-	int				is_last_level;
+    int level_points, skill_points, energy_points, shield_points, hostage_points;
+    int	all_hostage_points;
+    int	endgame_points;
+    char	all_hostage_text[64];
+    char	endgame_text[64];
+    #define N_GLITZITEMS 9
+    char				m_str[N_GLITZITEMS][30];
+    newmenu_item	m[9];
+    int				i,c;
+    char				title[128];
+    int				is_last_level;
 
-	gr_palette_load( gr_palette );
+    gr_palette_load( gr_palette );
 
-	level_points = Players[Player_num].score-Players[Player_num].last_score;
+    level_points = Players[Player_num].score-Players[Player_num].last_score;
 
-	if (!cheats.enabled) {
-		if (Difficulty_level > 1) {
-			skill_points = level_points*(Difficulty_level-1)/2;
-			skill_points -= skill_points % 100;
-		} else
-			skill_points = 0;
+    if (!cheats.enabled) {
+        if (Difficulty_level > 1) {
+            skill_points = level_points*(Difficulty_level-1)/2;
+            skill_points -= skill_points % 100;
+        } else
+            skill_points = 0;
 
-		shield_points = f2i(Players[Player_num].shields) * 10 * (Difficulty_level+1);
-		energy_points = f2i(Players[Player_num].energy) * 5 * (Difficulty_level+1);
-		hostage_points = Players[Player_num].hostages_on_board * 500 * (Difficulty_level+1);
-	} else {
-		skill_points = 0;
-		shield_points = 0;
-		energy_points = 0;
-		hostage_points = 0;
-	}
+        shield_points = f2i(Players[Player_num].shields) * 10 * (Difficulty_level+1);
+        energy_points = f2i(Players[Player_num].energy) * 5 * (Difficulty_level+1);
+        hostage_points = Players[Player_num].hostages_on_board * 500 * (Difficulty_level+1);
+    } else {
+        skill_points = 0;
+        shield_points = 0;
+        energy_points = 0;
+        hostage_points = 0;
+    }
 
-	all_hostage_text[0] = 0;
-	endgame_text[0] = 0;
+    all_hostage_text[0] = 0;
+    endgame_text[0] = 0;
 
-	if (!cheats.enabled && (Players[Player_num].hostages_on_board == Players[Player_num].hostages_level)) {
-		all_hostage_points = Players[Player_num].hostages_on_board * 1000 * (Difficulty_level+1);
-		sprintf(all_hostage_text, "%s%i\n", TXT_FULL_RESCUE_BONUS, all_hostage_points);
-	} else
-		all_hostage_points = 0;
+    if (!cheats.enabled && (Players[Player_num].hostages_on_board == Players[Player_num].hostages_level)) {
+        all_hostage_points = Players[Player_num].hostages_on_board * 1000 * (Difficulty_level+1);
+        sprintf(all_hostage_text, "%s%i\n", TXT_FULL_RESCUE_BONUS, all_hostage_points);
+    } else
+        all_hostage_points = 0;
 
-	if (!cheats.enabled && !(Game_mode & GM_MULTI) && (Players[Player_num].lives) && (Current_level_num == Last_level)) {		//player has finished the game!
-		endgame_points = Players[Player_num].lives * 10000;
-		sprintf(endgame_text, "%s%i\n", TXT_SHIP_BONUS, endgame_points);
-		is_last_level=1;
-	} else
-		endgame_points = is_last_level = 0;
+    if (!cheats.enabled && !(Game_mode & GM_MULTI) && (Players[Player_num].lives) && (Current_level_num == Last_level)) {		//player has finished the game!
+        endgame_points = Players[Player_num].lives * 10000;
+        sprintf(endgame_text, "%s%i\n", TXT_SHIP_BONUS, endgame_points);
+        is_last_level=1;
+    } else
+        endgame_points = is_last_level = 0;
 
-	add_bonus_points_to_score(skill_points + energy_points + shield_points + hostage_points + all_hostage_points + endgame_points);
+    add_bonus_points_to_score(skill_points + energy_points + shield_points + hostage_points + all_hostage_points + endgame_points);
 
-	c = 0;
-	sprintf(m_str[c++], "%s%i", TXT_SHIELD_BONUS, shield_points);		// Return at start to lower menu...
-	sprintf(m_str[c++], "%s%i", TXT_ENERGY_BONUS, energy_points);
-	sprintf(m_str[c++], "%s%i", TXT_HOSTAGE_BONUS, hostage_points);
-	sprintf(m_str[c++], "%s%i", TXT_SKILL_BONUS, skill_points);
+    c = 0;
+    sprintf(m_str[c++], "%s%i", TXT_SHIELD_BONUS, shield_points);		// Return at start to lower menu...
+    sprintf(m_str[c++], "%s%i", TXT_ENERGY_BONUS, energy_points);
+    sprintf(m_str[c++], "%s%i", TXT_HOSTAGE_BONUS, hostage_points);
+    sprintf(m_str[c++], "%s%i", TXT_SKILL_BONUS, skill_points);
 
-	sprintf(m_str[c++], "%s", all_hostage_text);
-	if (!(Game_mode & GM_MULTI) && (Players[Player_num].lives) && (Current_level_num == Last_level))
-		sprintf(m_str[c++], "%s", endgame_text);
+    sprintf(m_str[c++], "%s", all_hostage_text);
+    if (!(Game_mode & GM_MULTI) && (Players[Player_num].lives) && (Current_level_num == Last_level))
+        sprintf(m_str[c++], "%s", endgame_text);
 
-	sprintf(m_str[c++], "%s%i\n", TXT_TOTAL_BONUS, shield_points+energy_points+hostage_points+skill_points+all_hostage_points+endgame_points);
-	sprintf(m_str[c++], "%s%i", TXT_TOTAL_SCORE, Players[Player_num].score);
+    sprintf(m_str[c++], "%s%i\n", TXT_TOTAL_BONUS, shield_points+energy_points+hostage_points+skill_points+all_hostage_points+endgame_points);
+    sprintf(m_str[c++], "%s%i", TXT_TOTAL_SCORE, Players[Player_num].score);
 
-	for (i=0; i<c; i++) {
-		m[i].type = NM_TYPE_TEXT;
-		m[i].text = m_str[i];
-	}
+    for (i=0; i<c; i++) {
+        m[i].type = NM_TYPE_TEXT;
+        m[i].text = m_str[i];
+    }
 
-	// m[c].type = NM_TYPE_MENU;	m[c++].text = "Ok";
+    // m[c].type = NM_TYPE_MENU;	m[c++].text = "Ok";
 
-	if (Current_level_num < 0)
-		sprintf(title,"%s%s %d %s\n %s %s",is_last_level?"\n\n\n":"\n",TXT_SECRET_LEVEL, -Current_level_num, TXT_COMPLETE, Current_level_name, TXT_DESTROYED);
-	else
-		sprintf(title,"%s%s %d %s\n%s %s",is_last_level?"\n\n\n":"\n",TXT_LEVEL, Current_level_num, TXT_COMPLETE, Current_level_name, TXT_DESTROYED);
+    if (Current_level_num < 0)
+        sprintf(title,"%s%s %d %s\n %s %s",is_last_level?"\n\n\n":"\n",TXT_SECRET_LEVEL, -Current_level_num, TXT_COMPLETE, Current_level_name, TXT_DESTROYED);
+    else
+        sprintf(title,"%s%s %d %s\n%s %s",is_last_level?"\n\n\n":"\n",TXT_LEVEL, Current_level_num, TXT_COMPLETE, Current_level_name, TXT_DESTROYED);
 
-	Assert(c <= N_GLITZITEMS);
+    Assert(c <= N_GLITZITEMS);
 
 #ifdef NETWORK
-	if ( network && (Game_mode & GM_NETWORK) )
-		newmenu_do2(NULL, title, c, m, multi_endlevel_poll1, NULL, 0, Menu_pcx_name);
-	else
+    if ( network && (Game_mode & GM_NETWORK) )
+        newmenu_do2(NULL, title, c, m, multi_endlevel_poll1, NULL, 0, Menu_pcx_name);
+    else
 #endif	// Note link!
-		newmenu_do2(NULL, title, c, m, NULL, NULL, 0, Menu_pcx_name);
+        newmenu_do2(NULL, title, c, m, NULL, NULL, 0, Menu_pcx_name);
 }
 
 int draw_rock(newmenu *menu, d_event *event, grs_bitmap *background)
 {
-	menu = menu;
+    menu = menu;
 
-	switch (event->type)
-	{
-		case EVENT_WINDOW_DRAW:
-			gr_set_current_canvas(NULL);
-			show_fullscr(background);
-			break;
-			
-		default:
-			break;
-	}
-	
-	return 0;
+    switch (event->type)
+    {
+        case EVENT_WINDOW_DRAW:
+            gr_set_current_canvas(NULL);
+            show_fullscr(background);
+            break;
+            
+        default:
+            break;
+    }
+    
+    return 0;
 }
 
 void do_screen_message(char *fmt, ...)
 {
-	va_list arglist;
-	grs_bitmap background;
-	char msg[1024];
-	
-	if (Game_mode & GM_MULTI)
-		return;
-	
-	gr_init_bitmap_data(&background);
-	if (pcx_read_bitmap(Menu_pcx_name, &background, BM_LINEAR, gr_palette) != PCX_ERROR_NONE)
-		return;
+    va_list arglist;
+    grs_bitmap background;
+    char msg[1024];
+    
+    if (Game_mode & GM_MULTI)
+        return;
+    
+    gr_init_bitmap_data(&background);
+    if (pcx_read_bitmap(Menu_pcx_name, &background, BM_LINEAR, gr_palette) != PCX_ERROR_NONE)
+        return;
 
-	gr_palette_load(gr_palette);
+    gr_palette_load(gr_palette);
 
-	va_start(arglist, fmt);
-	vsprintf(msg, fmt, arglist);
-	va_end(arglist);
-	
-	nm_messagebox1(NULL, (int (*)(newmenu *, d_event *, void *))draw_rock, &background, 1, TXT_OK, msg);
-	gr_free_bitmap_data(&background);
+    va_start(arglist, fmt);
+    vsprintf(msg, fmt, arglist);
+    va_end(arglist);
+    
+    nm_messagebox1(NULL, (int (*)(newmenu *, d_event *, void *))draw_rock, &background, 1, TXT_OK, msg);
+    gr_free_bitmap_data(&background);
 }
 
 //called when the player has finished a level
 void PlayerFinishedLevel(int secret_flag)
 {
-	int	rval;
-	int 	was_multi = 0;
+    int	rval;
+    int 	was_multi = 0;
 
-	// Count RTA through the full transition, until the next level starts.
-	speedrun_level_finished();
+    // Count RTA through the full transition, until the next level starts.
+    speedrun_level_finished();
 
-	if (Game_wind)
-		window_set_visible(Game_wind, 0);
+    if (Game_wind)
+        window_set_visible(Game_wind, 0);
 
-	//credit the player for hostages
-	Players[Player_num].hostages_rescued_total += Players[Player_num].hostages_on_board;
+    //credit the player for hostages
+    Players[Player_num].hostages_rescued_total += Players[Player_num].hostages_on_board;
 
 #ifndef SHAREWARE
-	if (!(Game_mode & GM_MULTI) && (secret_flag)) {
-		newmenu_item	m[1];
+    if (!(Game_mode & GM_MULTI) && (secret_flag)) {
+        newmenu_item	m[1];
 
-		m[0].type = NM_TYPE_TEXT;
-		m[0].text = " ";			//TXT_SECRET_EXIT;
+        m[0].type = NM_TYPE_TEXT;
+        m[0].text = " ";			//TXT_SECRET_EXIT;
 
-		newmenu_do2(NULL, TXT_SECRET_EXIT, 1, m, NULL, NULL, 0, Menu_pcx_name);
-	}
+        newmenu_do2(NULL, TXT_SECRET_EXIT, 1, m, NULL, NULL, 0, Menu_pcx_name);
+    }
 #endif
 
 // -- mk mk mk -- used to be here -- mk mk mk --
 
 #ifdef NETWORK
-	if (Game_mode & GM_NETWORK)
-	{
-		if (secret_flag)
-			Players[Player_num].connected = CONNECT_FOUND_SECRET; // Finished and went to secret level
-		else
-			Players[Player_num].connected = CONNECT_WAITING; // Finished but did not die
-	}
+    if (Game_mode & GM_NETWORK)
+    {
+        if (secret_flag)
+            Players[Player_num].connected = CONNECT_FOUND_SECRET; // Finished and went to secret level
+        else
+            Players[Player_num].connected = CONNECT_WAITING; // Finished but did not die
+    }
 
 #endif
-	last_drawn_cockpit = -1;
+    last_drawn_cockpit = -1;
 
-	if (Current_level_num == Last_level) {
+    if (Current_level_num == Last_level) {
 #ifdef NETWORK
-		if ((Game_mode & GM_MULTI) && !(Game_mode & GM_MULTI_COOP))
-		{
-			was_multi = 1;
-			multi_endlevel_score();
-			rval = AdvanceLevel(secret_flag);				//now go on to the next one (if one)
-		}
-		else
+        if ((Game_mode & GM_MULTI) && !(Game_mode & GM_MULTI_COOP))
+        {
+            was_multi = 1;
+            multi_endlevel_score();
+            rval = AdvanceLevel(secret_flag);				//now go on to the next one (if one)
+        }
+        else
 #endif
-		{	// Note link to above else!
-			rval = AdvanceLevel(secret_flag);				//now go on to the next one (if one)
-			DoEndLevelScoreGlitz(0);		//give bonuses
-		}
-	} else {
+        {	// Note link to above else!
+            rval = AdvanceLevel(secret_flag);				//now go on to the next one (if one)
+            DoEndLevelScoreGlitz(0);		//give bonuses
+        }
+    } else {
 #ifdef NETWORK
-		if (Game_mode & GM_MULTI)
-			multi_endlevel_score();
-		else
+        if (Game_mode & GM_MULTI)
+            multi_endlevel_score();
+        else
 #endif	// Note link!!
-			DoEndLevelScoreGlitz(0);		//give bonuses
-		rval = AdvanceLevel(secret_flag);				//now go on to the next one (if one)
-	}
+            DoEndLevelScoreGlitz(0);		//give bonuses
+        rval = AdvanceLevel(secret_flag);				//now go on to the next one (if one)
+    }
 
-	if (!was_multi && rval) {
-		speedrun_transition_stop();
+    if (!was_multi && rval) {
+        speedrun_transition_stop();
 #ifndef SHAREWARE
-		if (PLAYING_BUILTIN_MISSION)
+        if (PLAYING_BUILTIN_MISSION)
 #endif
-			scores_maybe_add_player(0);
-		if (Game_wind)
-			window_close(Game_wind);		// Exit out of game loop
-	}
-	else if (rval) {
-		speedrun_transition_stop();
-		if (Game_wind)
-		window_close(Game_wind);
-	}
+            scores_maybe_add_player(0);
+        if (Game_wind)
+            window_close(Game_wind);		// Exit out of game loop
+    }
+    else if (rval) {
+        speedrun_transition_stop();
+        if (Game_wind)
+        window_close(Game_wind);
+    }
 
-	if (Game_wind)
-		window_set_visible(Game_wind, 1);
-	reset_time();
+    if (Game_wind)
+        window_set_visible(Game_wind, 1);
+    reset_time();
 }
 
 
@@ -1207,323 +1207,323 @@ void PlayerFinishedLevel(int secret_flag)
 //	Return true if game over.
 int AdvanceLevel(int secret_flag)
 {
-	Control_center_destroyed = 0;
+    Control_center_destroyed = 0;
 
-	#ifdef EDITOR
-	if (Current_level_num == 0)
-	{
-		return 1;		//not a real level
-	}
-	#endif
+    #ifdef EDITOR
+    if (Current_level_num == 0)
+    {
+        return 1;		//not a real level
+    }
+    #endif
 
-	key_flush();
+    key_flush();
 
 #ifdef NETWORK
-	if (Game_mode & GM_MULTI)
-	{
-		int result;
-		result = multi_endlevel(&secret_flag); // Wait for other players to reach this point
-		if (result) // failed to sync
-		{
-			return (Current_level_num == Last_level);
-		}
-	}
+    if (Game_mode & GM_MULTI)
+    {
+        int result;
+        result = multi_endlevel(&secret_flag); // Wait for other players to reach this point
+        if (result) // failed to sync
+        {
+            return (Current_level_num == Last_level);
+        }
+    }
 #endif
 
-	key_flush();
+    key_flush();
 
-	if (Current_level_num == Last_level) {		//player has finished the game!
+    if (Current_level_num == Last_level) {		//player has finished the game!
 
-		if ((Newdemo_state == ND_STATE_RECORDING) || (Newdemo_state == ND_STATE_PAUSED))
-			newdemo_stop_recording(0);
+        if ((Newdemo_state == ND_STATE_RECORDING) || (Newdemo_state == ND_STATE_PAUSED))
+            newdemo_stop_recording(0);
 
-		do_end_briefing_screens(Ending_text_filename);
+        do_end_briefing_screens(Ending_text_filename);
 
-		return 1;
+        return 1;
 
-	} else {
+    } else {
 
-		Next_level_num = Current_level_num+1;		//assume go to next normal level
+        Next_level_num = Current_level_num+1;		//assume go to next normal level
 
-		if (secret_flag) {			//go to secret level instead
-			int i;
+        if (secret_flag) {			//go to secret level instead
+            int i;
 
-			for (i=0;i<-Last_secret_level;i++)
-				if (Secret_level_table[i]==Current_level_num) {
-					Next_level_num = -(i+1);
-					break;
-				}
-			Assert(i<-Last_secret_level);		//couldn't find which secret level
-		}
+            for (i=0;i<-Last_secret_level;i++)
+                if (Secret_level_table[i]==Current_level_num) {
+                    Next_level_num = -(i+1);
+                    break;
+                }
+            Assert(i<-Last_secret_level);		//couldn't find which secret level
+        }
 
-		if (Current_level_num < 0)	{			//on secret level, where to go?
+        if (Current_level_num < 0)	{			//on secret level, where to go?
 
-			Assert(!secret_flag);				//shouldn't be going to secret level
-			Assert(Current_level_num<=-1 && Current_level_num>=Last_secret_level);
+            Assert(!secret_flag);				//shouldn't be going to secret level
+            Assert(Current_level_num<=-1 && Current_level_num>=Last_secret_level);
 
-			Next_level_num = Secret_level_table[(-Current_level_num)-1]+1;
-		}
+            Next_level_num = Secret_level_table[(-Current_level_num)-1]+1;
+        }
 
-		StartNewLevel(Next_level_num);
+        StartNewLevel(Next_level_num);
 
-	}
+    }
 
-	key_flush();
+    key_flush();
 
-	return 0;
+    return 0;
 }
 
 //called when the player has died
 void DoPlayerDead()
 {
-	int cycle_window_vis = 1;
+    int cycle_window_vis = 1;
 #ifdef NETWORK
-	if ( (Game_mode & GM_MULTI) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW))  {
-		cycle_window_vis = 0; 
-	}
+    if ( (Game_mode & GM_MULTI) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW))  {
+        cycle_window_vis = 0; 
+    }
 #endif
 
-	reset_auto_select();
+    reset_auto_select();
 
-	if (Game_wind && cycle_window_vis)
-		window_set_visible(Game_wind, 0);
+    if (Game_wind && cycle_window_vis)
+        window_set_visible(Game_wind, 0);
 
-	reset_palette_add();
+    reset_palette_add();
 
-	gr_palette_load (gr_palette);
+    gr_palette_load (gr_palette);
 
-	dead_player_end();		//terminate death sequence (if playing)
+    dead_player_end();		//terminate death sequence (if playing)
 
-	#ifdef EDITOR
-	if (Game_mode == GM_EDITOR) {			//test mine, not real level
-		object * player = &Objects[Players[Player_num].objnum];
-		//nm_messagebox( "You're Dead!", 1, "Continue", "Not a real game, though." );
-		if (Game_wind)
-			window_set_visible(Game_wind, 1);
-		load_level("gamesave.lvl");
-		init_player_stats_new_ship(Player_num);
-		player->flags &= ~OF_SHOULD_BE_DEAD;
-		StartLevel(0);
-		return;
-	}
-	#endif
+    #ifdef EDITOR
+    if (Game_mode == GM_EDITOR) {			//test mine, not real level
+        object * player = &Objects[Players[Player_num].objnum];
+        //nm_messagebox( "You're Dead!", 1, "Continue", "Not a real game, though." );
+        if (Game_wind)
+            window_set_visible(Game_wind, 1);
+        load_level("gamesave.lvl");
+        init_player_stats_new_ship(Player_num);
+        player->flags &= ~OF_SHOULD_BE_DEAD;
+        StartLevel(0);
+        return;
+    }
+    #endif
 
 #ifdef NETWORK
-	if ( Game_mode&GM_MULTI )
-	{
-		multi_do_death(Players[Player_num].objnum);
-	}
-	else
+    if ( Game_mode&GM_MULTI )
+    {
+        multi_do_death(Players[Player_num].objnum);
+    }
+    else
 #endif
-	{				//Note link to above else!
-		Players[Player_num].lives--;
-		if (Players[Player_num].lives == 0)
-		{
-			DoGameOver();
-			return;
-		}
-	}
+    {				//Note link to above else!
+        Players[Player_num].lives--;
+        if (Players[Player_num].lives == 0)
+        {
+            DoGameOver();
+            return;
+        }
+    }
 
-	if ( Control_center_destroyed ) {
-		int	rval;
+    if ( Control_center_destroyed ) {
+        int	rval;
 
-		//clear out stuff so no bonus
-		Players[Player_num].hostages_on_board = 0;
-		Players[Player_num].energy = 0;
-		Players[Player_num].shields = 0;
+        //clear out stuff so no bonus
+        Players[Player_num].hostages_on_board = 0;
+        Players[Player_num].energy = 0;
+        Players[Player_num].shields = 0;
 #ifdef NETWORK
-		Players[Player_num].connected = CONNECT_DIED_IN_MINE;
+        Players[Player_num].connected = CONNECT_DIED_IN_MINE;
 #endif
 
-		do_screen_message(TXT_DIED_IN_MINE); // Give them some indication of what happened
+        do_screen_message(TXT_DIED_IN_MINE); // Give them some indication of what happened
 
-		if (Current_level_num == Last_level) {
+        if (Current_level_num == Last_level) {
 #ifdef NETWORK
-			if ((Game_mode & GM_MULTI) && !(Game_mode & GM_MULTI_COOP))
-			{
-				multi_endlevel_score();
-				rval = AdvanceLevel(0);			//if finished, go on to next level
-			}
-			else
+            if ((Game_mode & GM_MULTI) && !(Game_mode & GM_MULTI_COOP))
+            {
+                multi_endlevel_score();
+                rval = AdvanceLevel(0);			//if finished, go on to next level
+            }
+            else
 #endif
-			{			// Note link to above else!
-				rval = AdvanceLevel(0);			//if finished, go on to next level
-				DoEndLevelScoreGlitz(0);
-			}
-			init_player_stats_new_ship(Player_num);
-			last_drawn_cockpit = -1;
-		} else {
+            {			// Note link to above else!
+                rval = AdvanceLevel(0);			//if finished, go on to next level
+                DoEndLevelScoreGlitz(0);
+            }
+            init_player_stats_new_ship(Player_num);
+            last_drawn_cockpit = -1;
+        } else {
 #ifdef NETWORK
-			if (Game_mode & GM_MULTI)
-				multi_endlevel_score();
-			else
+            if (Game_mode & GM_MULTI)
+                multi_endlevel_score();
+            else
 #endif
-				DoEndLevelScoreGlitz(0);		// Note above link!
+                DoEndLevelScoreGlitz(0);		// Note above link!
 
-			rval = AdvanceLevel(0);			//if finished, go on to next level
-			init_player_stats_new_ship(Player_num);
-			last_drawn_cockpit = -1;
-		}
+            rval = AdvanceLevel(0);			//if finished, go on to next level
+            init_player_stats_new_ship(Player_num);
+            last_drawn_cockpit = -1;
+        }
 
-		if (rval) {
+        if (rval) {
 #ifndef SHAREWARE
-			if (PLAYING_BUILTIN_MISSION)
+            if (PLAYING_BUILTIN_MISSION)
 #endif
-				scores_maybe_add_player(0);
-			if (Game_wind)
-				window_close(Game_wind);		// Exit out of game loop
-		}
-	} else {
-		init_player_stats_new_ship(Player_num);
-		StartLevel(1);
-	}
+                scores_maybe_add_player(0);
+            if (Game_wind)
+                window_close(Game_wind);		// Exit out of game loop
+        }
+    } else {
+        init_player_stats_new_ship(Player_num);
+        StartLevel(1);
+    }
 
-	if (Game_wind  && cycle_window_vis)
-		window_set_visible(Game_wind, 1);
-	reset_time();
+    if (Game_wind  && cycle_window_vis)
+        window_set_visible(Game_wind, 1);
+    reset_time();
 }
 
 //called when the player is starting a new level for normal game mode and restore state
 void StartNewLevelSub(int level_num, int page_in_textures, int secret_flag)
 {
-	/*
-	 * This flag is present for compatibility with D2X.  Set it to zero
-	 * so the optimizer deletes all reference to it.
-	 */
-	secret_flag = 0;
-	if (!(Game_mode & GM_MULTI)) {
-		last_drawn_cockpit = -1;
-	}
+    /*
+     * This flag is present for compatibility with D2X.  Set it to zero
+     * so the optimizer deletes all reference to it.
+     */
+    secret_flag = 0;
+    if (!(Game_mode & GM_MULTI)) {
+        last_drawn_cockpit = -1;
+    }
 
-	if (GameArg.GameLogSplit) {
-		// Include the mission name, level number and timestamp in the log filename
-		char log_filename[PATH_MAX];
-		time_t now = time(NULL);
-		struct tm *t = localtime(&now);
-		snprintf(log_filename, SDL_arraysize(log_filename), "gamelog-%s-%d-%04d%02d%02d-%02d%02d%02d.txt",
-			Current_mission_filename, level_num, t->tm_year + 1900, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+    if (GameArg.GameLogSplit) {
+        // Include the mission name, level number and timestamp in the log filename
+        char log_filename[PATH_MAX];
+        time_t now = time(NULL);
+        struct tm *t = localtime(&now);
+        snprintf(log_filename, SDL_arraysize(log_filename), "gamelog-%s-%d-%04d%02d%02d-%02d%02d%02d.txt",
+            Current_mission_filename, level_num, t->tm_year + 1900, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 
-		con_switch_log(log_filename);
-	}
+        con_switch_log(log_filename);
+    }
 
-	if (Newdemo_state == ND_STATE_PAUSED)
-		Newdemo_state = ND_STATE_RECORDING;
+    if (Newdemo_state == ND_STATE_PAUSED)
+        Newdemo_state = ND_STATE_RECORDING;
 
-	if (Newdemo_state == ND_STATE_RECORDING) {
-		newdemo_set_new_level(level_num);
-		newdemo_record_start_frame(FrameTime );
-	} 
+    if (Newdemo_state == ND_STATE_RECORDING) {
+        newdemo_set_new_level(level_num);
+        newdemo_record_start_frame(FrameTime );
+    } 
 
-	LoadLevel(level_num, page_in_textures);
+    LoadLevel(level_num, page_in_textures);
 
-	Assert(Current_level_num == level_num);	//make sure level set right
+    Assert(Current_level_num == level_num);	//make sure level set right
 
-	gameseq_init_network_players(); // Initialize the Players array for
-											  // this level
+    gameseq_init_network_players(); // Initialize the Players array for
+                                              // this level
 
 #ifdef NETWORK
-	if (Game_mode & GM_NETWORK)
-	{
-		if(multi_level_sync()) // After calling this, Player_num is set
-		{
-			songs_play_song( SONG_TITLE, 1 ); // level song already plays but we fail to start level...
-			return;
-		}
+    if (Game_mode & GM_NETWORK)
+    {
+        if(multi_level_sync()) // After calling this, Player_num is set
+        {
+            songs_play_song( SONG_TITLE, 1 ); // level song already plays but we fail to start level...
+            return;
+        }
 
-		// Reset the timestamp when we can send another ship status packet (for observer mode)
-		Next_ship_status_time = GameTime64;
+        // Reset the timestamp when we can send another ship status packet (for observer mode)
+        Next_ship_status_time = GameTime64;
 
-		if (imulti_new_game)
-		{
-			for (int i=0;i<MAX_PLAYERS;i++)
-			{
-				init_player_stats_new_ship(i);
-			}
-		}
-	}
+        if (imulti_new_game)
+        {
+            for (int i=0;i<MAX_PLAYERS;i++)
+            {
+                init_player_stats_new_ship(i);
+            }
+        }
+    }
 #endif
 
-	HUD_clear_messages();
+    HUD_clear_messages();
 
-	automap_clear_visited();
+    automap_clear_visited();
 
-	init_player_stats_level(secret_flag);
+    init_player_stats_level(secret_flag);
 
-	gr_use_palette_table( "palette.256" );
-	gr_palette_load(gr_palette);
+    gr_use_palette_table( "palette.256" );
+    gr_palette_load(gr_palette);
 
 #ifndef SHAREWARE
 #ifdef NETWORK
-	if ((Game_mode & GM_MULTI_COOP) && Network_rejoined)
-	{
-		int i;
-		for (i = 0; i < N_players; i++)
-			Players[i].flags |= Netgame.player_flags[i];
-	}
+    if ((Game_mode & GM_MULTI_COOP) && Network_rejoined)
+    {
+        int i;
+        for (i = 0; i < N_players; i++)
+            Players[i].flags |= Netgame.player_flags[i];
+    }
 #endif
 #endif
 
-	Viewer = &Objects[Players[Player_num].objnum];
+    Viewer = &Objects[Players[Player_num].objnum];
 
 #ifdef NETWORK
-	if (Game_mode & GM_MULTI)
-	{
-		multi_prep_level(); // Removes robots from level if necessary
-	}
+    if (Game_mode & GM_MULTI)
+    {
+        multi_prep_level(); // Removes robots from level if necessary
+    }
 #endif
 
-	gameseq_remove_unused_players();
+    gameseq_remove_unused_players();
 
-	Game_suspended = 0;
+    Game_suspended = 0;
 
-	Control_center_destroyed = 0;
+    Control_center_destroyed = 0;
 
-	init_cockpit();
-	init_robots_for_level();
-	init_ai_objects();
-	init_morphs();
-	init_all_matcens();
-	reset_palette_add();
+    init_cockpit();
+    init_robots_for_level();
+    init_ai_objects();
+    init_morphs();
+    init_all_matcens();
+    reset_palette_add();
 
-	if (!(Game_mode & GM_MULTI) && !cheats.enabled)
-		set_highest_level(Current_level_num);
+    if (!(Game_mode & GM_MULTI) && !cheats.enabled)
+        set_highest_level(Current_level_num);
 
-	reset_special_effects();
-	init_exploding_walls();
+    reset_special_effects();
+    init_exploding_walls();
 
 #ifdef NETWORK
-	if (Network_rejoined == 1)
-	{
-		Network_rejoined = 0;
-		StartLevel(1);
-	}
-	else
+    if (Network_rejoined == 1)
+    {
+        Network_rejoined = 0;
+        StartLevel(1);
+    }
+    else
 #endif
-		StartLevel(0);		// Note link to above if!
+        StartLevel(0);		// Note link to above if!
 
-	copy_defaults_to_robot_all();
-	init_controlcen_for_level();
+    copy_defaults_to_robot_all();
+    init_controlcen_for_level();
 
-	reset_respawnable_bots();
+    reset_respawnable_bots();
 
-	set_homing_update_rate(Game_mode & GM_MULTI ? Netgame.HomingUpdateRate : 25);
+    set_homing_update_rate(Game_mode & GM_MULTI ? Netgame.HomingUpdateRate : 25);
 
-	//	Say player can use FLASH cheat to mark path to exit.
-	Last_level_path_created = -1;
+    //	Say player can use FLASH cheat to mark path to exit.
+    Last_level_path_created = -1;
 
-	// Initialise for palette_restore()
-	if (!((Game_mode & GM_MULTI) && (Newdemo_state != ND_STATE_PLAYBACK)))
-		palette_save();
+    // Initialise for palette_restore()
+    if (!((Game_mode & GM_MULTI) && (Newdemo_state != ND_STATE_PLAYBACK)))
+        palette_save();
 
-	int autodemo_enabled_for_game_mode =
-		(!(Game_mode & GM_MULTI) && PlayerCfg.AutoDemoSp) ||
-		((Game_mode & GM_MULTI) && PlayerCfg.AutoDemoMp);
-	if (autodemo_enabled_for_game_mode && Newdemo_state != ND_STATE_RECORDING) {
-		newdemo_start_recording(1);
-	}
+    int autodemo_enabled_for_game_mode =
+        (!(Game_mode & GM_MULTI) && PlayerCfg.AutoDemoSp) ||
+        ((Game_mode & GM_MULTI) && PlayerCfg.AutoDemoMp);
+    if (autodemo_enabled_for_game_mode && Newdemo_state != ND_STATE_RECORDING) {
+        newdemo_start_recording(1);
+    }
 
-	if (!Game_wind)
-		game();
+    if (!Game_wind)
+        game();
 }
 
 #ifdef NETWORK
@@ -1532,143 +1532,143 @@ extern char PowerupsInMine[MAX_POWERUP_TYPES], MaxPowerupsAllowed[MAX_POWERUP_TY
 void bash_to_shield (int i,char *s)
 {
 #ifdef NETWORK
-	int type=Objects[i].id;
+    int type=Objects[i].id;
 #endif
 
 #ifdef NETWORK
-	PowerupsInMine[type]=MaxPowerupsAllowed[type]=0;
+    PowerupsInMine[type]=MaxPowerupsAllowed[type]=0;
 #endif
 
-	Objects[i].id = POW_SHIELD_BOOST;
-	Objects[i].rtype.vclip_info.vclip_num = Powerup_info[Objects[i].id].vclip_num;
-	Objects[i].rtype.vclip_info.frametime = Vclip[Objects[i].rtype.vclip_info.vclip_num].frame_time;
-	Objects[i].size = Powerup_info[POW_SHIELD_BOOST].size;
+    Objects[i].id = POW_SHIELD_BOOST;
+    Objects[i].rtype.vclip_info.vclip_num = Powerup_info[Objects[i].id].vclip_num;
+    Objects[i].rtype.vclip_info.frametime = Vclip[Objects[i].rtype.vclip_info.vclip_num].frame_time;
+    Objects[i].size = Powerup_info[POW_SHIELD_BOOST].size;
 }
 
 //called when the player is starting a new level for normal game model
 void StartNewLevel(int level_num)
 {
-	speedrun_transition_start();
-	hide_menus();
+    speedrun_transition_start();
+    hide_menus();
 
-	GameTime64 = 0;
-	ThisLevelTime=0;
+    GameTime64 = 0;
+    ThisLevelTime=0;
 
-	if (!(Game_mode & GM_MULTI)) {
-		do_briefing_screens(Briefing_text_filename, level_num);
-	}
-	StartNewLevelSub(level_num, 1, 0 );
+    if (!(Game_mode & GM_MULTI)) {
+        do_briefing_screens(Briefing_text_filename, level_num);
+    }
+    StartNewLevelSub(level_num, 1, 0 );
 
 }
 
 struct spawn_point_candidate {
-	int start_num;
-	fix closest_distance;
-	fix cumulative_weight;
+    int start_num;
+    fix closest_distance;
+    fix cumulative_weight;
 };
 
 int spawn_point_sort_func(const void* element1, const void* element2)
 {
-	const struct spawn_point_candidate* candidate1 = element1;
-	const struct spawn_point_candidate* candidate2 = element2;
-	return candidate2->closest_distance - candidate1->closest_distance;
+    const struct spawn_point_candidate* candidate1 = element1;
+    const struct spawn_point_candidate* candidate2 = element2;
+    return candidate2->closest_distance - candidate1->closest_distance;
 }
 
 int choose_multi_spawn_point()
 {
-	struct spawn_point_candidate candidates[MAX_PLAYERS];
+    struct spawn_point_candidate candidates[MAX_PLAYERS];
 
-	// Calculate the distance to closest player for each spawn point
-	for (int start_num = 0; start_num < NumNetPlayerPositions; start_num++) {
-		candidates[start_num].start_num = start_num;
-		candidates[start_num].closest_distance = -1;
+    // Calculate the distance to closest player for each spawn point
+    for (int start_num = 0; start_num < NumNetPlayerPositions; start_num++) {
+        candidates[start_num].start_num = start_num;
+        candidates[start_num].closest_distance = -1;
 
-		for (int i = 0; i < N_players; i++) {
-			if ((i != Player_num) && (Objects[Players[i].objnum].type == OBJ_PLAYER)) {
-				fix distance;
+        for (int i = 0; i < N_players; i++) {
+            if ((i != Player_num) && (Objects[Players[i].objnum].type == OBJ_PLAYER)) {
+                fix distance;
 
-				// If the start point is visible to this player, use the straight line distance.
-				// Also divide it by 2; we want to discourage the selection of spawns within
-				// line-of-sight of other players.
-				fvi_query fq;
-				fq.p0 = &Objects[Players[i].objnum].pos;
-				fq.p1 = &Player_init[start_num].pos;
-				fq.startseg = Objects[Players[i].objnum].segnum;
-				fq.rad = 0x10;
-				fq.thisobjnum = Players[i].objnum;
-				fq.ignore_obj_list = NULL;
-				fq.flags = FQ_TRANSWALL;
-				fvi_info hit_data;
-				if (find_vector_intersection(&fq, &hit_data) == HIT_NONE) {
-					distance = vm_vec_dist(&Objects[Players[i].objnum].pos, &Player_init[start_num].pos) / 2;
-				}
-				else {
-					// Path-find from this player to the start point, and use that distance.
-					distance = find_connected_distance(&Objects[Players[i].objnum].pos, Objects[Players[i].objnum].segnum,
-						&Player_init[start_num].pos, Player_init[start_num].segnum, -1, WID_FLY_FLAG);
-					// find_connected_distance returns -1 if it can't find a path to that location.
-					// We used a max_depth of -1 to reduce the chances of that happening, but just
-					// in case it still does, treat invalid distances as 1000 (since that's what's
-					// written into the FCD cache anyway - we just don't want to call the function
-					// twice).
-					if (distance < 0) distance = i2f(1000);
-				}
+                // If the start point is visible to this player, use the straight line distance.
+                // Also divide it by 2; we want to discourage the selection of spawns within
+                // line-of-sight of other players.
+                fvi_query fq;
+                fq.p0 = &Objects[Players[i].objnum].pos;
+                fq.p1 = &Player_init[start_num].pos;
+                fq.startseg = Objects[Players[i].objnum].segnum;
+                fq.rad = 0x10;
+                fq.thisobjnum = Players[i].objnum;
+                fq.ignore_obj_list = NULL;
+                fq.flags = FQ_TRANSWALL;
+                fvi_info hit_data;
+                if (find_vector_intersection(&fq, &hit_data) == HIT_NONE) {
+                    distance = vm_vec_dist(&Objects[Players[i].objnum].pos, &Player_init[start_num].pos) / 2;
+                }
+                else {
+                    // Path-find from this player to the start point, and use that distance.
+                    distance = find_connected_distance(&Objects[Players[i].objnum].pos, Objects[Players[i].objnum].segnum,
+                        &Player_init[start_num].pos, Player_init[start_num].segnum, -1, WID_FLY_FLAG);
+                    // find_connected_distance returns -1 if it can't find a path to that location.
+                    // We used a max_depth of -1 to reduce the chances of that happening, but just
+                    // in case it still does, treat invalid distances as 1000 (since that's what's
+                    // written into the FCD cache anyway - we just don't want to call the function
+                    // twice).
+                    if (distance < 0) distance = i2f(1000);
+                }
 
-				if (distance < candidates[start_num].closest_distance ||
-					candidates[start_num].closest_distance < 0)
-					candidates[start_num].closest_distance = distance;
-			}
-		}
+                if (distance < candidates[start_num].closest_distance ||
+                    candidates[start_num].closest_distance < 0)
+                    candidates[start_num].closest_distance = distance;
+            }
+        }
 
-		// This usually means there are no other players in the map - just weight them equally
-		if (candidates[start_num].closest_distance < 0)
-			candidates[start_num].closest_distance = i2f(1000);
-	}
+        // This usually means there are no other players in the map - just weight them equally
+        if (candidates[start_num].closest_distance < 0)
+            candidates[start_num].closest_distance = i2f(1000);
+    }
 
-	// Sort them in order of descending closest distance...
-	qsort(candidates, NumNetPlayerPositions, sizeof(struct spawn_point_candidate), spawn_point_sort_func);
-	// Figure out weights for the best half of the candidates
-	// (uses closest distance but scaled so they sum to 1, for RNG purposes)
-	int num_candidates = NumNetPlayerPositions / 2;
-	fix total_cumulative_weight = 0;
-	fix weight_adjustment = 0;
-	if (num_candidates > 1)
-	{
-		// This is a little fudge to ensure that the most likely candidate is no more than twice as
+    // Sort them in order of descending closest distance...
+    qsort(candidates, NumNetPlayerPositions, sizeof(struct spawn_point_candidate), spawn_point_sort_func);
+    // Figure out weights for the best half of the candidates
+    // (uses closest distance but scaled so they sum to 1, for RNG purposes)
+    int num_candidates = NumNetPlayerPositions / 2;
+    fix total_cumulative_weight = 0;
+    fix weight_adjustment = 0;
+    if (num_candidates > 1)
+    {
+        // This is a little fudge to ensure that the most likely candidate is no more than twice as
         // likely to be chosen as the least likely candidate.
-		fix min_closest_distance = candidates[num_candidates - 1].closest_distance;
-		fix max_closest_distance = candidates[0].closest_distance;
-		if (max_closest_distance > 2 * min_closest_distance) {
-			weight_adjustment = max_closest_distance - 2 * min_closest_distance;
-		}
-	}
-	for (int start_num = 0; start_num < num_candidates; start_num++) {
-		total_cumulative_weight += candidates[start_num].closest_distance + weight_adjustment;
-		candidates[start_num].cumulative_weight = total_cumulative_weight;
-	}
-	for (int start_num = 0; start_num < num_candidates; start_num++) {
-		candidates[start_num].cumulative_weight = fixdiv(candidates[start_num].cumulative_weight, total_cumulative_weight);
-		con_printf(CON_VERBOSE, "Start %d: nearest player %.1f, cumulative weight %.3f\n", candidates[start_num].start_num,
-			f2fl(candidates[start_num].closest_distance), f2fl(candidates[start_num].cumulative_weight));
-	}
+        fix min_closest_distance = candidates[num_candidates - 1].closest_distance;
+        fix max_closest_distance = candidates[0].closest_distance;
+        if (max_closest_distance > 2 * min_closest_distance) {
+            weight_adjustment = max_closest_distance - 2 * min_closest_distance;
+        }
+    }
+    for (int start_num = 0; start_num < num_candidates; start_num++) {
+        total_cumulative_weight += candidates[start_num].closest_distance + weight_adjustment;
+        candidates[start_num].cumulative_weight = total_cumulative_weight;
+    }
+    for (int start_num = 0; start_num < num_candidates; start_num++) {
+        candidates[start_num].cumulative_weight = fixdiv(candidates[start_num].cumulative_weight, total_cumulative_weight);
+        con_printf(CON_VERBOSE, "Start %d: nearest player %.1f, cumulative weight %.3f\n", candidates[start_num].start_num,
+            f2fl(candidates[start_num].closest_distance), f2fl(candidates[start_num].cumulative_weight));
+    }
 
-	// Now do a weighted random selection from those candidates
-	timer_update();
-	d_srand((fix)timer_query());
-	// F1_0 is 65536; d_rand is 0-32767, so we need to double it
-	int result = d_rand() * 2;
-	// Figure out where we landed...
-	for (int start_num = 0; start_num < num_candidates; start_num++) {
-		if (candidates[start_num].cumulative_weight > result ||
-			start_num == num_candidates - 1) {
-			con_printf(CON_VERBOSE, "Result %.3f: chose start %d\n", f2fl(result), candidates[start_num].start_num);
-			return candidates[start_num].start_num;
-		}
-	}
+    // Now do a weighted random selection from those candidates
+    timer_update();
+    d_srand((fix)timer_query());
+    // F1_0 is 65536; d_rand is 0-32767, so we need to double it
+    int result = d_rand() * 2;
+    // Figure out where we landed...
+    for (int start_num = 0; start_num < num_candidates; start_num++) {
+        if (candidates[start_num].cumulative_weight > result ||
+            start_num == num_candidates - 1) {
+            con_printf(CON_VERBOSE, "Result %.3f: chose start %d\n", f2fl(result), candidates[start_num].start_num);
+            return candidates[start_num].start_num;
+        }
+    }
 
-	// We shouldn't get here... but just return 0 (first start) if we do
-	Assert(0);
-	return 0;
+    // We shouldn't get here... but just return 0 (first start) if we do
+    Assert(0);
+    return 0;
 }
 
 int previewed_spawn_point = 0; 
@@ -1676,71 +1676,71 @@ int previewed_spawn_point = 0;
 //initialize the player object position & orientation (at start of game, or new ship)
 void InitPlayerPosition(int random)
 {
-	int NewPlayer=0;
+    int NewPlayer=0;
 
-	if (is_observer())
-		NewPlayer = 0;
-	else if (! ((Game_mode & GM_MULTI) && !(Game_mode&GM_MULTI_COOP)) ) // If not deathmatch
-		NewPlayer = Player_num;
+    if (is_observer())
+        NewPlayer = 0;
+    else if (! ((Game_mode & GM_MULTI) && !(Game_mode&GM_MULTI_COOP)) ) // If not deathmatch
+        NewPlayer = Player_num;
 #ifdef NETWORK	
-	else if ((Game_mode & GM_MULTI) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW)  && Dead_player_camera != NULL)
-		NewPlayer = previewed_spawn_point; 
+    else if ((Game_mode & GM_MULTI) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW)  && Dead_player_camera != NULL)
+        NewPlayer = previewed_spawn_point; 
 #endif
-	else if (random == 1)
-	{
-		if (Netgame.NewSpawnAlgorithm) {
-			NewPlayer = choose_multi_spawn_point();
-		}
-		else {
-			int i, trys=0;
-			fix closest_dist = 0x7ffffff, dist;
+    else if (random == 1)
+    {
+        if (Netgame.NewSpawnAlgorithm) {
+            NewPlayer = choose_multi_spawn_point();
+        }
+        else {
+            int i, trys=0;
+            fix closest_dist = 0x7ffffff, dist;
 
-			timer_update();
-			d_srand((fix)timer_query());
-			do {
-				trys++;
-				NewPlayer = d_rand() % NumNetPlayerPositions;
+            timer_update();
+            d_srand((fix)timer_query());
+            do {
+                trys++;
+                NewPlayer = d_rand() % NumNetPlayerPositions;
 
-				closest_dist = 0x7fffffff;
+                closest_dist = 0x7fffffff;
 
-				for (i=0; i<N_players; i++ )	{
-					if ( (i!=Player_num) && (Objects[Players[i].objnum].type == OBJ_PLAYER) )	{
-						dist = find_connected_distance(&Objects[Players[i].objnum].pos, Objects[Players[i].objnum].segnum, &Player_init[NewPlayer].pos, Player_init[NewPlayer].segnum, 15, WID_FLY_FLAG ); // Used to be 5, search up to 15 segments
-						if ( (dist < closest_dist) && (dist >= 0) )	{
-							closest_dist = dist;
-						}
-					}
-				}
-			} while ( (closest_dist<i2f(15*20)) && (trys<MAX_PLAYERS*2) );
-		}
-	}
-	else
-	{
-		// If deathmatch and not random, positions were already determined by sync packet
-		reset_player_object();
-		reset_cruise();
-		return;
-	}
+                for (i=0; i<N_players; i++ )	{
+                    if ( (i!=Player_num) && (Objects[Players[i].objnum].type == OBJ_PLAYER) )	{
+                        dist = find_connected_distance(&Objects[Players[i].objnum].pos, Objects[Players[i].objnum].segnum, &Player_init[NewPlayer].pos, Player_init[NewPlayer].segnum, 15, WID_FLY_FLAG ); // Used to be 5, search up to 15 segments
+                        if ( (dist < closest_dist) && (dist >= 0) )	{
+                            closest_dist = dist;
+                        }
+                    }
+                }
+            } while ( (closest_dist<i2f(15*20)) && (trys<MAX_PLAYERS*2) );
+        }
+    }
+    else
+    {
+        // If deathmatch and not random, positions were already determined by sync packet
+        reset_player_object();
+        reset_cruise();
+        return;
+    }
 
-	Assert(NewPlayer >= 0);
-	Assert(NewPlayer < NumNetPlayerPositions);
-	ConsoleObject->pos = Player_init[NewPlayer].pos;
-	ConsoleObject->orient = Player_init[NewPlayer].orient;
+    Assert(NewPlayer >= 0);
+    Assert(NewPlayer < NumNetPlayerPositions);
+    ConsoleObject->pos = Player_init[NewPlayer].pos;
+    ConsoleObject->orient = Player_init[NewPlayer].orient;
 #ifdef NETWORK	
-	if ((Game_mode & GM_MULTI) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW) && Dead_player_camera != NULL) {
-		ConsoleObject->orient = Dead_player_camera->orient;  
-		Dead_player_camera = NULL; 
-	}
+    if ((Game_mode & GM_MULTI) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW) && Dead_player_camera != NULL) {
+        ConsoleObject->orient = Dead_player_camera->orient;  
+        Dead_player_camera = NULL; 
+    }
 
-	if (is_observer()) {
-		ConsoleObject->pos = Objects[Players[Current_obs_player].objnum].pos;
-		ConsoleObject->orient = Objects[Players[Current_obs_player].objnum].orient;
-		obj_relink_all();
-	} else
+    if (is_observer()) {
+        ConsoleObject->pos = Objects[Players[Current_obs_player].objnum].pos;
+        ConsoleObject->orient = Objects[Players[Current_obs_player].objnum].orient;
+        obj_relink_all();
+    } else
 #endif	
-		obj_relink(ConsoleObject-Objects,Player_init[NewPlayer].segnum);
-	reset_player_object();
-	reset_cruise();
+        obj_relink(ConsoleObject-Objects,Player_init[NewPlayer].segnum);
+    reset_player_object();
+    reset_cruise();
 }
 
 //	-----------------------------------------------------------------------------------------------------
@@ -1748,16 +1748,16 @@ void InitPlayerPosition(int random)
 //	What about setting size!?  Where does that come from?
 void copy_defaults_to_robot(object *objp)
 {
-	robot_info	*robptr;
-	int			objid;
+    robot_info	*robptr;
+    int			objid;
 
-	Assert(objp->type == OBJ_ROBOT);
-	objid = objp->id;
-	Assert(objid < N_robot_types);
+    Assert(objp->type == OBJ_ROBOT);
+    objid = objp->id;
+    Assert(objid < N_robot_types);
 
-	robptr = &Robot_info[objid];
+    robptr = &Robot_info[objid];
 
-	objp->shields = robptr->strength;
+    objp->shields = robptr->strength;
 
 }
 
@@ -1767,11 +1767,17 @@ void copy_defaults_to_robot(object *objp)
 //	This function should be called at level load time.
 void copy_defaults_to_robot_all(void)
 {
-	int	i;
+    int	i;
 
-	for (i=0; i<=Highest_object_index; i++)
-		if (Objects[i].type == OBJ_ROBOT)
-			copy_defaults_to_robot(&Objects[i]);
+    for (i=0; i<=Highest_object_index; i++)
+        if (Objects[i].type == OBJ_ROBOT)
+            copy_defaults_to_robot(&Objects[i]);
+
+    // Force global weapon data alignment to match authentic Mac PIG bounding footprint definitions.
+    // This stabilizes corner-clipping math and protects multiplayer robot damage consistency.
+    #ifdef HOMING_ID
+    Weapon_info[HOMING_ID].size = 0x26666; 
+    #endif
 }
 
 int	Do_appearance_effect=0;
@@ -1780,41 +1786,41 @@ int	Do_appearance_effect=0;
 //called when the player is starting a level (new game or new ship)
 void StartLevel(int random)
 {
-	Assert(!Player_is_dead);
+    Assert(!Player_is_dead);
 
-	InitPlayerPosition(random);
+    InitPlayerPosition(random);
 
-	verify_console_object();
+    verify_console_object();
 
-	ConsoleObject->control_type	= CT_FLYING;
-	ConsoleObject->movement_type	= MT_PHYSICS;
+    ConsoleObject->control_type	= CT_FLYING;
+    ConsoleObject->movement_type	= MT_PHYSICS;
 
-	// create_player_appearance_effect(ConsoleObject);
-	Do_appearance_effect = 1;
+    // create_player_appearance_effect(ConsoleObject);
+    Do_appearance_effect = 1;
 
-	if (Game_mode & GM_MULTI)
-	{
-		if ((Game_mode & GM_MULTI_COOP) || (Game_mode & GM_MULTI_ROBOTS))
-			multi_send_score();
-	 	multi_send_reappear();
-		multi_do_protocol_frame(1, 1);
-	}
-	else // in Singleplayer, after we died ...
-	{
-		disable_matcens(); // ... disable matcens and ...
-		clear_transient_objects(0); // ... clear all transient objects.
-	}
+    if (Game_mode & GM_MULTI)
+    {
+        if ((Game_mode & GM_MULTI_COOP) || (Game_mode & GM_MULTI_ROBOTS))
+            multi_send_score();
+         multi_send_reappear();
+        multi_do_protocol_frame(1, 1);
+    }
+    else // in Singleplayer, after we died ...
+    {
+        disable_matcens(); // ... disable matcens and ...
+        clear_transient_objects(0); // ... clear all transient objects.
+    }
 
-	ai_reset_all_paths();
-	ai_init_boss_for_ship();
+    ai_reset_all_paths();
+    ai_init_boss_for_ship();
 
-	reset_rear_view();
-	Auto_fire_fusion_cannon_time = 0;
-	Fusion_charge = 0;
+    reset_rear_view();
+    Auto_fire_fusion_cannon_time = 0;
+    Fusion_charge = 0;
 
-	if (!(Game_mode & GM_MULTI)) // stuff for Singleplayer only
-	{
+    if (!(Game_mode & GM_MULTI)) // stuff for Singleplayer only
+    {
 
-	}
+    }
 }
 

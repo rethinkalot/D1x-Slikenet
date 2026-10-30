@@ -2384,6 +2384,7 @@ void do_ai_frame(object *obj)
         #ifndef NDEBUG
         if (Break_on_object != objnum) {    // don't time slice if we're interested in this object.
         #endif
+			if (!((Game_mode & GM_MULTI) && aip->REMOTE_OWNER != Player_num && aip->REMOTE_OWNER != -1)) {
             if ((dist_to_player > F1_0*250) && (ailp->time_since_processed <= F1_0*2))
                 return;
             else if (!((aip->behavior == AIB_STATION) && (ailp->mode == AIM_FOLLOW_PATH) && (aip->hide_segment != obj->segnum))) {
@@ -2392,7 +2393,8 @@ void do_ai_frame(object *obj)
                 else if ((dist_to_player > F1_0*100) && (ailp->time_since_processed <= F1_0/2))
                     return;
             }
-        #ifndef NDEBUG
+        			}
+#ifndef NDEBUG
         }
         #endif
     }
@@ -2503,6 +2505,16 @@ void do_ai_frame(object *obj)
                 // -- show_path_and_other(obj);
                 ai_multi_send_robot_position(objnum, -1);
             } else if ((aip->CURRENT_STATE != AIS_REST) && (aip->GOAL_STATE != AIS_REST)) {
+                if (!ai_multiplayer_awareness(obj, 70)) {
+                    if (maybe_ai_do_actual_firing_stuff(obj, aip))
+                        ai_do_actual_firing_stuff(obj, aip, ailp, robptr, &vec_to_player, dist_to_player, &gun_point, player_visibility, object_animates);
+                    return;
+                }
+                if (!ai_multiplayer_awareness(obj, 70)) {
+                    if (maybe_ai_do_actual_firing_stuff(obj, aip))
+                        ai_do_actual_firing_stuff(obj, aip, ailp, robptr, &vec_to_player, dist_to_player, &gun_point, player_visibility, object_animates);
+                    return;
+                }
                 if (!ai_multiplayer_awareness(obj, 70)) {
                     if (maybe_ai_do_actual_firing_stuff(obj, aip))
                         ai_do_actual_firing_stuff(obj, aip, ailp, robptr, &vec_to_player, dist_to_player, &gun_point, player_visibility, object_animates);
@@ -2665,6 +2677,16 @@ void do_ai_frame(object *obj)
                 if (player_visibility) {		//	Change, MK, 01/03/94 for Multiplayer reasons.  If robots can't see you (even with eyes on back of head), then don't do evasion.
                     if (robptr->attack_type == 1) {
                         aip->behavior = AIB_NORMAL;
+                        if (!ai_multiplayer_awareness(obj, 80)) {
+                            if (maybe_ai_do_actual_firing_stuff(obj, aip))
+                                ai_do_actual_firing_stuff(obj, aip, ailp, robptr, &vec_to_player, dist_to_player, &gun_point, player_visibility, object_animates);
+                            return;
+                        }
+                        if (!ai_multiplayer_awareness(obj, 80)) {
+                            if (maybe_ai_do_actual_firing_stuff(obj, aip))
+                                ai_do_actual_firing_stuff(obj, aip, ailp, robptr, &vec_to_player, dist_to_player, &gun_point, player_visibility, object_animates);
+                            return;
+                        }
                         if (!ai_multiplayer_awareness(obj, 80)) {
                             if (maybe_ai_do_actual_firing_stuff(obj, aip))
                                 ai_do_actual_firing_stuff(obj, aip, ailp, robptr, &vec_to_player, dist_to_player, &gun_point, player_visibility, object_animates);
