@@ -41,6 +41,11 @@ void read_flying_controls( object * obj )
 {
     Assert(FrameTime > 0); 		//Get MATT if hit this!
 
+    // Isolate observer input to the local console handle only
+    if (is_observer() && obj != ConsoleObject) {
+        return;
+    }
+
     int no_thrust = 0; 
 #ifdef NETWORK
     if((Game_mode & GM_NETWORK) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW) && Player_is_dead && Player_exploded) {
