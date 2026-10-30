@@ -69,63 +69,63 @@ extern int multi_protocol; // set and determinate used protocol
 // PROTOCOL VARIABLES AND DEFINES - END
 
 
-#define define_multiplayer_command(NAME,SIZE)	NAME,
+#define define_multiplayer_command(NAME,SIZE)    NAME,
 
-#define for_each_multiplayer_command(BEFORE,VALUE,AFTER)	\
-	BEFORE	\
-	VALUE(MULTI_POSITION             , 25)	\
-	VALUE(MULTI_REAPPEAR             , 4)	\
-	VALUE(MULTI_FIRE                 , 20)	/* CED sniperpackets -- was 8 */ \
-	VALUE(MULTI_KILL                 , 5)	\
-	VALUE(MULTI_REMOVE_OBJECT        , 5)	\
-	VALUE(MULTI_MESSAGE              , 37)	/* (MAX_MESSAGE_LENGTH = 40) */	\
+#define for_each_multiplayer_command(BEFORE,VALUE,AFTER)    \
+    BEFORE    \
+    VALUE(MULTI_POSITION             , 25)    \
+    VALUE(MULTI_REAPPEAR             , 4)    \
+    VALUE(MULTI_FIRE                 , 20)    /* CED sniperpackets -- was 8 */ \
+    VALUE(MULTI_KILL                 , 5)    \
+    VALUE(MULTI_REMOVE_OBJECT        , 5)    \
+    VALUE(MULTI_MESSAGE              , 37)    /* (MAX_MESSAGE_LENGTH = 40) */    \
     VALUE(MULTI_OBS_MESSAGE          , 47)  \
-	VALUE(MULTI_QUIT                 , 2)	\
-	VALUE(MULTI_PLAY_SOUND           , 4)	\
-	VALUE(MULTI_CONTROLCEN           , 4)	\
-	VALUE(MULTI_ROBOT_CLAIM          , 5)	\
-	VALUE(MULTI_END_SYNC             , 4)	\
-	VALUE(MULTI_CLOAK                , 2)	\
-	VALUE(MULTI_INVULN               , 2)	\
-	VALUE(MULTI_ENDLEVEL_START       , 3)	\
-	VALUE(MULTI_CREATE_EXPLOSION     , 2)	\
-	VALUE(MULTI_CONTROLCEN_FIRE      , 16)	\
-	VALUE(MULTI_CREATE_POWERUP       , 19)	\
-	VALUE(MULTI_DECLOAK              , 2)	\
-	VALUE(MULTI_DEINVULN             , 2)	\
-	VALUE(MULTI_MENU_CHOICE          , 2)	\
-	VALUE(MULTI_ROBOT_POSITION       , 5+sizeof(shortpos))	\
-	VALUE(MULTI_PLAYER_EXPLODE       , 57)	\
-	VALUE(MULTI_BEGIN_SYNC           , 37)	\
-	VALUE(MULTI_DOOR_OPEN            , 4)	\
-	VALUE(MULTI_PLAYER_DROP          , 57)	\
-	VALUE(MULTI_ROBOT_EXPLODE        , 8)	\
-	VALUE(MULTI_ROBOT_RELEASE        , 5)	\
-	VALUE(MULTI_ROBOT_FIRE           , 18)	\
-	VALUE(MULTI_SCORE                , 6)	\
-	VALUE(MULTI_CREATE_ROBOT         , 6)	\
-	VALUE(MULTI_TRIGGER              , 3)	\
-	VALUE(MULTI_BOSS_ACTIONS         , 10)	\
-	VALUE(MULTI_CREATE_ROBOT_POWERUPS, 27)	\
-	VALUE(MULTI_HOSTAGE_DOOR         , 7)	\
-	VALUE(MULTI_SAVE_GAME            , 2+24)	/* (ubyte slot, uint id, char name[20]) */	\
-	VALUE(MULTI_RESTORE_GAME         , 2+4)	/* (ubyte slot, uint id) */	\
-	VALUE(MULTI_HEARTBEAT            , 5)	\
-	VALUE(MULTI_KILLGOALS            , 11)	\
-	VALUE(MULTI_POWCAP_UPDATE        , MAX_POWERUP_TYPES+1)	\
-	VALUE(MULTI_DO_BOUNTY            , 2)	\
-	VALUE(MULTI_TYPING_STATE         , 3)	\
-	VALUE(MULTI_GMODE_UPDATE         , 3)	\
-	VALUE(MULTI_KILL_HOST            , 7)	\
-	VALUE(MULTI_KILL_CLIENT          , 5)	\
-	VALUE(MULTI_RANK                 , 3)	\
-	VALUE(MULTI_RESPAWN_ROBOT        , 60)	\
-	VALUE(MULTI_OBS_UPDATE           , 4 + 8*MAX_OBSERVERS)	\
-	VALUE(MULTI_DAMAGE               , 14)  \
-	VALUE(MULTI_REPAIR               , 11)  \
-	VALUE(MULTI_SHIP_STATUS          , 29)  \
-	VALUE(MULTI_CREATE_EXPLOSION2    , 24)  \
-	AFTER
+    VALUE(MULTI_QUIT                 , 2)    \
+    VALUE(MULTI_PLAY_SOUND           , 4)    \
+    VALUE(MULTI_CONTROLCEN           , 4)    \
+    VALUE(MULTI_ROBOT_CLAIM          , 5)    \
+    VALUE(MULTI_END_SYNC             , 4)    \
+    VALUE(MULTI_CLOAK                , 2)    \
+    VALUE(MULTI_INVULN               , 2)    \
+    VALUE(MULTI_ENDLEVEL_START       , 3)    \
+    VALUE(MULTI_CREATE_EXPLOSION     , 2)    \
+    VALUE(MULTI_CONTROLCEN_FIRE      , 16)    \
+    VALUE(MULTI_CREATE_POWERUP       , 19)    \
+    VALUE(MULTI_DECLOAK              , 2)    \
+    VALUE(MULTI_DEINVULN             , 2)    \
+    VALUE(MULTI_MENU_CHOICE          , 2)    \
+    VALUE(MULTI_ROBOT_POSITION       , 5+sizeof(shortpos))    \
+    VALUE(MULTI_PLAYER_EXPLODE       , 57)    \
+    VALUE(MULTI_BEGIN_SYNC           , 37)    \
+    VALUE(MULTI_DOOR_OPEN            , 4)    \
+    VALUE(MULTI_PLAYER_DROP          , 57)    \
+    VALUE(MULTI_ROBOT_EXPLODE        , 8)    \
+    VALUE(MULTI_ROBOT_RELEASE        , 5)    \
+    VALUE(MULTI_ROBOT_FIRE           , 18)    \
+    VALUE(MULTI_SCORE                , 6)    \
+    VALUE(MULTI_CREATE_ROBOT         , 6)    \
+    VALUE(MULTI_TRIGGER              , 3)    \
+    VALUE(MULTI_BOSS_ACTIONS         , 10)    \
+    VALUE(MULTI_CREATE_ROBOT_POWERUPS, 27)    \
+    VALUE(MULTI_HOSTAGE_DOOR         , 7)    \
+    VALUE(MULTI_SAVE_GAME            , 2+24)    /* (ubyte slot, uint id, char name[20]) */    \
+    VALUE(MULTI_RESTORE_GAME         , 2+4)    /* (ubyte slot, uint id) */    \
+    VALUE(MULTI_HEARTBEAT            , 5)    \
+    VALUE(MULTI_KILLGOALS            , 11)    \
+    VALUE(MULTI_POWCAP_UPDATE        , MAX_POWERUP_TYPES+1)    \
+    VALUE(MULTI_DO_BOUNTY            , 2)    \
+    VALUE(MULTI_TYPING_STATE         , 3)    \
+    VALUE(MULTI_GMODE_UPDATE         , 3)    \
+    VALUE(MULTI_KILL_HOST            , 7)    \
+    VALUE(MULTI_KILL_CLIENT          , 5)    \
+    VALUE(MULTI_RANK                 , 3)    \
+    VALUE(MULTI_RESPAWN_ROBOT        , 60)    \
+    VALUE(MULTI_OBS_UPDATE           , 4 + 8*MAX_OBSERVERS)    \
+    VALUE(MULTI_DAMAGE               , 14)  \
+    VALUE(MULTI_REPAIR               , 11)  \
+    VALUE(MULTI_SHIP_STATUS          , 29)  \
+    VALUE(MULTI_CREATE_EXPLOSION2    , 24)  \
+    AFTER
 for_each_multiplayer_command(enum {, define_multiplayer_command, });
 
 #define MAX_MULTI_MESSAGE_LEN  (4 + 8*MAX_OBSERVERS)
@@ -138,7 +138,7 @@ for_each_multiplayer_command(enum {, define_multiplayer_command, });
 #define NETGAME_TEAM_ANARCHY    1
 #define NETGAME_ROBOT_ANARCHY   2
 #define NETGAME_COOPERATIVE     3
-#define NETGAME_BOUNTY		7
+#define NETGAME_BOUNTY        7
 
 #define NETSTAT_MENU                0
 #define NETSTAT_PLAYING             1
@@ -176,31 +176,31 @@ for_each_multiplayer_command(enum {, define_multiplayer_command, });
 #define GAUSS_STYLE_STEADY_RECHARGING 2
 #define GAUSS_STYLE_STEADY_RESPAWNING 3
 
-#define for_each_netflag_value(VALUE)	\
-	VALUE(NETFLAG_DOLASER, "Laser upgrade")	\
-	VALUE(NETFLAG_DOQUAD, "Quad lasers")	\
-	VALUE(NETFLAG_DOVULCAN, "Vulcan cannon")	\
-	VALUE(NETFLAG_DOVULCANAMMO, "Vulcan ammo")	\
-	VALUE(NETFLAG_DOSPREAD, "Spreadfire cannon")	\
-	VALUE(NETFLAG_DOPLASMA, "Plasma cannon")	\
-	VALUE(NETFLAG_DOFUSION, "Fusion cannon")	\
-	VALUE(NETFLAG_DOHOMING, "Homing missiles")	\
-	VALUE(NETFLAG_DOPROXIM, "Proximity bombs")	\
-	VALUE(NETFLAG_DOSMART, "Smart missiles")	\
-	VALUE(NETFLAG_DOMEGA, "Mega missiles")	\
-	VALUE(NETFLAG_DOCLOAK, "Cloaking")	\
-	VALUE(NETFLAG_DOINVUL, "Invulnerability")	\
+#define for_each_netflag_value(VALUE)    \
+    VALUE(NETFLAG_DOLASER, "Laser upgrade")    \
+    VALUE(NETFLAG_DOQUAD, "Quad lasers")    \
+    VALUE(NETFLAG_DOVULCAN, "Vulcan cannon")    \
+    VALUE(NETFLAG_DOVULCANAMMO, "Vulcan ammo")    \
+    VALUE(NETFLAG_DOSPREAD, "Spreadfire cannon")    \
+    VALUE(NETFLAG_DOPLASMA, "Plasma cannon")    \
+    VALUE(NETFLAG_DOFUSION, "Fusion cannon")    \
+    VALUE(NETFLAG_DOHOMING, "Homing missiles")    \
+    VALUE(NETFLAG_DOPROXIM, "Proximity bombs")    \
+    VALUE(NETFLAG_DOSMART, "Smart missiles")    \
+    VALUE(NETFLAG_DOMEGA, "Mega missiles")    \
+    VALUE(NETFLAG_DOCLOAK, "Cloaking")    \
+    VALUE(NETFLAG_DOINVUL, "Invulnerability")    \
 
-#define define_netflag_bit_enum(NAME,STR)	BIT_##NAME,
-#define define_netflag_bit_mask(NAME,STR)	NAME = (1 << BIT_##NAME),
-#define define_netflag_powerup_mask(NAME,STR)	| (NAME)
+#define define_netflag_bit_enum(NAME,STR)    BIT_##NAME,
+#define define_netflag_bit_mask(NAME,STR)    NAME = (1 << BIT_##NAME),
+#define define_netflag_powerup_mask(NAME,STR)    | (NAME)
 enum { for_each_netflag_value(define_netflag_bit_enum) };
 // Bitmask for netgame_info->AllowedItems to set allowed items in Netgame
 enum { for_each_netflag_value(define_netflag_bit_mask) };
 enum { NETFLAG_DOPOWERUP = 0 for_each_netflag_value(define_netflag_powerup_mask) };
 
-#define MULTI_GAME_TYPE_COUNT	8
-#define MULTI_GAME_NAME_LENGTH	13
+#define MULTI_GAME_TYPE_COUNT    8
+#define MULTI_GAME_NAME_LENGTH    13
 #define MULTI_ALLOW_POWERUP_MAX 13
 extern int multi_allow_powerup_mask[MAX_POWERUP_TYPES];
 extern char *multi_allow_powerup_text[MULTI_ALLOW_POWERUP_MAX];
@@ -311,6 +311,11 @@ bool is_observing_player();
 bool object_is_observer(object* obj);
 int get_observer_game_mode();
 
+void multi_send_ship_status_for_frame();
+bool is_observing_player();
+bool object_is_observer(object* obj);
+int get_observer_game_mode();
+
 // Exported variables
 
 extern int Network_status;
@@ -378,8 +383,8 @@ extern char *RankStrings[];
 
 #define NETGAME_NAME_LEN                15
 
-#define NETPLAYER_ORIG_SIZE	22
-#define NETPLAYER_D1X_SIZE	22 /* D1X version removes last char from callsign */
+#define NETPLAYER_ORIG_SIZE    22
+#define NETPLAYER_D1X_SIZE    22 /* D1X version removes last char from callsign */
 
 int multi_i_am_master(void);
 int multi_who_is_master(void);
@@ -414,27 +419,27 @@ extern fix64 Next_ship_status_time; // The next time we are allowed to send a sh
 typedef struct netplayer_info
 {
 #if defined(USE_UDP)
-	union
-	{
+    union
+    {
 #ifdef USE_UDP
-		struct
-		{
-			struct _sockaddr	addr; // IP address of this peer
-			ubyte				isyou; // This flag is set true while sending info to tell player his designated (re)join position
-		} udp;
+        struct
+        {
+            struct _sockaddr    addr; // IP address of this peer
+            ubyte                isyou; // This flag is set true while sending info to tell player his designated (re)join position
+        } udp;
 #endif
-	} protocol;	
+    } protocol;    
 #endif
-	char						callsign[CALLSIGN_LEN+1];
-	sbyte						connected;
-	ubyte						rank;
-	ubyte						color;
-	ubyte						missilecolor;
-	ubyte                       observer;
-	fix							ping;
-	ubyte						loss; 
-	ubyte						rx_loss; 
-	fix64							LastPacketTime;
+    char                        callsign[CALLSIGN_LEN+1];
+    sbyte                        connected;
+    ubyte                        rank;
+    ubyte                        color;
+    ubyte                        missilecolor;
+    ubyte                       observer;
+    fix                            ping;
+    ubyte                        loss; 
+    ubyte                        rx_loss; 
+    fix64                            LastPacketTime;
 } __pack__ netplayer_info;
 
 /*
@@ -445,85 +450,85 @@ typedef struct netplayer_info
 typedef struct netgame_info
 {
 #if defined(USE_UDP)
-	union
-	{
+    union
+    {
 #ifdef USE_UDP
-		struct
-		{
-			struct _sockaddr		addr; // IP address of this netgame's host
-			short				program_iver[4]; // IVER of program for version checking
-			sbyte				valid; // Status of Netgame info: -1 = Failed, Wrong version; 0 = No info, yet; 1 = Success
-			fix				GameID;
-		} udp;
+        struct
+        {
+            struct _sockaddr        addr; // IP address of this netgame's host
+            short                program_iver[4]; // IVER of program for version checking
+            sbyte                valid; // Status of Netgame info: -1 = Failed, Wrong version; 0 = No info, yet; 1 = Success
+            fix                GameID;
+        } udp;
 #endif
-	} protocol;	
+    } protocol;    
 #endif
-	struct netplayer_info 				players[MAX_PLAYERS+4];
-	struct netplayer_info               observers[MAX_OBSERVERS]; 
-	char    					game_name[NETGAME_NAME_LEN+1];
-	char    					mission_title[MISSION_NAME_LEN+1];
-	char    					mission_name[9];
-	int     					levelnum;
-	ubyte   					gamemode;
-	ubyte   					RefusePlayers;
-	ubyte   					difficulty;
-	ubyte   					game_status;
-	ubyte   					numplayers;
-	ubyte                       numobservers; 
-	ubyte   					max_numplayers;
-	ubyte                       max_numobservers;
-	ubyte                       obs_delay;
-	ubyte						obs_min;
-	ubyte						host_is_obs;
-	ubyte   					numconnected;
-	ubyte   					game_flags;
-	ubyte   					team_vector;
-	u_int32_t					AllowedItems;
-	short						Allow_marker_view; // (unused in D1 - no markers in game)
-	short						AlwaysLighting; // (unused in D1 - cannot destroy lights after all)
-	short						ShowEnemyNames;
-	short						BrightPlayers;
-	char						team_name[2][CALLSIGN_LEN+1];
-	signed char						TeamKillGoalCount[2]; 
-	int						locations[MAX_PLAYERS];
-	short						kills[MAX_PLAYERS][MAX_PLAYERS];
-	ushort						segments_checksum;
-	short						team_kills[2];
-	short						killed[MAX_PLAYERS];
-	short						player_kills[MAX_PLAYERS];
-	int						KillGoal;
-	fix						PlayTimeAllowed;
-	fix						level_time;
-	int						control_invul_time;
-	int						monitor_vector;
-	int						player_score[MAX_PLAYERS];
-	ubyte						player_flags[MAX_PLAYERS];
-	short						PacketsPerSec;
-	ubyte						ShortPackets;
-	ubyte						PacketLossPrevention;
-	ubyte						NoFriendlyFire;
+    struct netplayer_info                 players[MAX_PLAYERS+4];
+    struct netplayer_info               observers[MAX_OBSERVERS]; 
+    char                        game_name[NETGAME_NAME_LEN+1];
+    char                        mission_title[MISSION_NAME_LEN+1];
+    char                        mission_name[9];
+    int                         levelnum;
+    ubyte                       gamemode;
+    ubyte                       RefusePlayers;
+    ubyte                       difficulty;
+    ubyte                       game_status;
+    ubyte                       numplayers;
+    ubyte                       numobservers; 
+    ubyte                       max_numplayers;
+    ubyte                       max_numobservers;
+    ubyte                       obs_delay;
+    ubyte                        obs_min;
+    ubyte                        host_is_obs;
+    ubyte                       numconnected;
+    ubyte                       game_flags;
+    ubyte                       team_vector;
+    u_int32_t                    AllowedItems;
+    short                        Allow_marker_view; // (unused in D1 - no markers in game)
+    short                        AlwaysLighting; // (unused in D1 - cannot destroy lights after all)
+    short                        ShowEnemyNames;
+    short                        BrightPlayers;
+    char                        team_name[2][CALLSIGN_LEN+1];
+    signed char                        TeamKillGoalCount[2]; 
+    int                        locations[MAX_PLAYERS];
+    short                        kills[MAX_PLAYERS][MAX_PLAYERS];
+    ushort                        segments_checksum;
+    short                        team_kills[2];
+    short                        killed[MAX_PLAYERS];
+    short                        player_kills[MAX_PLAYERS];
+    int                        KillGoal;
+    fix                        PlayTimeAllowed;
+    fix                        level_time;
+    int                        control_invul_time;
+    int                        monitor_vector;
+    int                        player_score[MAX_PLAYERS];
+    ubyte                        player_flags[MAX_PLAYERS];
+    short                        PacketsPerSec;
+    ubyte                        ShortPackets;
+    ubyte                        PacketLossPrevention;
+    ubyte                        NoFriendlyFire;
 #ifdef USE_TRACKER
-	ubyte						Tracker;
+    ubyte                        Tracker;
 #endif
-	ubyte						RetroProtocol;
-	ubyte						RespawnConcs; 
-	ubyte						AllowColoredLighting;
-	ubyte						FairColors;	
-	ubyte						BlackAndWhitePyros;
-	ubyte						PrimaryDupFactor;
-	ubyte						SecondaryDupFactor;
-	ubyte						SecondaryCapFactor;
-	ubyte						SpawnStyle; 
-	ubyte						DarkSmartBlobs;
-	ubyte						LowVulcan;
-	ubyte						AllowPreferredColors;
-	ubyte						HomingUpdateRate;
-	ubyte						RemoteHitSpark;
-	ubyte						AllowCustomModelsTextures;
-	ubyte						ReducedFlash;
-	ubyte						GaussAmmoStyle;
-	ubyte						team_color[2];
-	ubyte						NewSpawnAlgorithm;
+    ubyte                        RetroProtocol;
+    ubyte                        RespawnConcs; 
+    ubyte                        AllowColoredLighting;
+    ubyte                        FairColors;    
+    ubyte                        BlackAndWhitePyros;
+    ubyte                        PrimaryDupFactor;
+    ubyte                        SecondaryDupFactor;
+    ubyte                        SecondaryCapFactor;
+    ubyte                        SpawnStyle; 
+    ubyte                        DarkSmartBlobs;
+    ubyte                        LowVulcan;
+    ubyte                        AllowPreferredColors;
+    ubyte                        HomingUpdateRate;
+    ubyte                        RemoteHitSpark;
+    ubyte                        AllowCustomModelsTextures;
+    ubyte                        ReducedFlash;
+    ubyte                        GaussAmmoStyle;
+    ubyte                        team_color[2];
+    ubyte                        NewSpawnAlgorithm;
 } __pack__ netgame_info;
 
 extern int Host_is_obs; // Reminder for host only that they are an observer.  Do not set for other players or observers.
@@ -539,11 +544,11 @@ extern int Host_is_obs; // Reminder for host only that they are an observer.  Do
 
 // Defines a single kill event.  Doubly linked list.
 typedef struct kill_event {
-	fix64 timestamp; // The time the event occurred.
-	ubyte obs_event; // The OBSEV event.  Can be added bitwise.
-	int score; // The player's score as a result of the event.
-	struct kill_event* next;
-	struct kill_event* prev;
+    fix64 timestamp; // The time the event occurred.
+    ubyte obs_event; // The OBSEV event.  Can be added bitwise.
+    int score; // The player's score as a result of the event.
+    struct kill_event* next;
+    struct kill_event* prev;
 } __pack__ kill_event;
 
 // The first event for each player.
@@ -567,24 +572,24 @@ extern fix64 Show_graph_until;
 // Game statuses for observatory UI.
 enum game_status_type
 {
-	GST_KILL_STREAK = 1,
-	GST_LAST_KILL = 2,
-	GST_LAST_DEATH = 3,
-	GST_RUN = 4
+    GST_KILL_STREAK = 1,
+    GST_LAST_KILL = 2,
+    GST_LAST_DEATH = 3,
+    GST_RUN = 4
 };
 
 // Defines a single game status.  Singly linked list.
 typedef struct game_status {
-	ubyte type; // The game_status_type.
-	char text[50]; // The text to be displayed.
-	struct game_status* next;
+    ubyte type; // The game_status_type.
+    char text[50]; // The text to be displayed.
+    struct game_status* next;
 } __pack__ game_status;
 
 // Defines all game statuses for a single player.  Singly linked list.
 typedef struct player_status {
-	ubyte pnum; // The player num.
-	struct game_status* statuses; // The beginning of the list of game statuses for the player.
-	struct player_status* next;
+    ubyte pnum; // The player num.
+    struct game_status* statuses; // The beginning of the list of game statuses for the player.
+    struct player_status* next;
 } __pack__ player_status;
 
 // The first player status to display.
@@ -599,21 +604,21 @@ void remove_player_status(ubyte pnum, ubyte type);
 // Types of damage for observatory UI.
 enum damage_type
 {
-	DAMAGE_WEAPON = 0,
-	DAMAGE_BLAST = 1,
-	DAMAGE_COLLISION = 2,
-	DAMAGE_WALL	= 3,
-	DAMAGE_LAVA = 4,
-	DAMAGE_OVERCHARGE = 5,
-	DAMAGE_SHIELD = 6,
-	DAMAGE_UNKNOWN = 255
+    DAMAGE_WEAPON = 0,
+    DAMAGE_BLAST = 1,
+    DAMAGE_COLLISION = 2,
+    DAMAGE_WALL    = 3,
+    DAMAGE_LAVA = 4,
+    DAMAGE_OVERCHARGE = 5,
+    DAMAGE_SHIELD = 6,
+    DAMAGE_UNKNOWN = 255
 };
 
 // Defines a shield status for a single source.  Singly linked list.
 typedef struct shield_status {
-	fix64 timestamp; // The time the status occurred.
-	fix shields; // The shield count.
-	struct shield_status* next;
+    fix64 timestamp; // The time the status occurred.
+    fix shields; // The shield count.
+    struct shield_status* next;
 } __pack__ shield_status;
 
 // The beginning of the shield status list for the current point.
@@ -636,13 +641,13 @@ extern fix64 Show_death_until[MAX_PLAYERS];
 
 // Defines damage taken totals for a single source.  Doubly linked list.
 typedef struct damage_taken_totals {
-	fix64 total_damage; // The total damage taken by this source.
-	ubyte killer_type; // The killer type, OBJ_WALL OBJ_ROBOT OBJ_PLAYER or OBJ_CNTRLCEN.
-	ubyte killer_id; // If killer type is a player, this is the player ID who did the damage.
-	ubyte damage_type; // The damage_type.
-	ubyte source_id; // If damage type is a weapon or a blast, this is the weapon ID.  Convert to name with weapon_id_to_name.
-	struct damage_taken_totals* next;
-	struct damage_taken_totals* prev;
+    fix64 total_damage; // The total damage taken by this source.
+    ubyte killer_type; // The killer type, OBJ_WALL OBJ_ROBOT OBJ_PLAYER or OBJ_CNTRLCEN.
+    ubyte killer_id; // If killer type is a player, this is the player ID who did the damage.
+    ubyte damage_type; // The damage_type.
+    ubyte source_id; // If damage type is a weapon or a blast, this is the weapon ID.  Convert to name with weapon_id_to_name.
+    struct damage_taken_totals* next;
+    struct damage_taken_totals* prev;
 } __pack__ damage_taken_totals;
 
 // The beginning of the list of overall (for the whole game) damage taken totals.
@@ -656,10 +661,10 @@ extern damage_taken_totals* First_damage_taken_previous_totals[MAX_PLAYERS];
 
 // Defines damage done totals for a single source.  Doubly linked list.
 typedef struct damage_done_totals {
-	fix64 total_damage; // The total damage done by this source.
-	ubyte source_id; // The weapon ID, or SHIP_EXPLOSION_DAMAGE, or SHIP_COLLISION_DAMAGE.
-	struct damage_done_totals* next;
-	struct damage_done_totals* prev;
+    fix64 total_damage; // The total damage done by this source.
+    ubyte source_id; // The weapon ID, or SHIP_EXPLOSION_DAMAGE, or SHIP_COLLISION_DAMAGE.
+    struct damage_done_totals* next;
+    struct damage_done_totals* prev;
 } __pack__ damage_done_totals;
 
 // The beginning of the list of damage done totals.
@@ -667,13 +672,13 @@ extern damage_done_totals* First_damage_done_totals[MAX_PLAYERS];
 
 // Defines a kill for the kill log.  Singly linked list.
 typedef struct kill_log_event {
-	fix64 timestamp;
-	ubyte killed_id;
-	ubyte killer_type;
-	ubyte killer_id;
-	ubyte damage_type;
-	ubyte source_id;
-	struct kill_log_event* next;
+    fix64 timestamp;
+    ubyte killed_id;
+    ubyte killer_type;
+    ubyte killer_id;
+    ubyte damage_type;
+    ubyte source_id;
+    struct kill_log_event* next;
 } __pack__ kill_log_event;
 
 // The kill log, with the first entry being the most recent.
