@@ -717,16 +717,16 @@ multi_do_robot_position(const ubyte *buf)
         }
         else
         {
-            if (Objects[botnum].type == OBJ_ROBOT) {
-                // Adopt master broadcast authority to stop separate instance splitting
-                Objects[botnum].ctype.ai_info.REMOTE_OWNER = pnum;
-            } else {
-                return;
-            }
+            // Reject unauthorized ownership changes via raw packets; requires bump/hit trigger
+            return;
         }
     }
 
-    set_thrust_from_velocity(&Objects[botnum]); // Try to smooth out movement
+    // SLikeNet: Disable local thrust emulation calculation for remote-owned robots
+    // This stops the internal physics engine from fighting network packets, killing velocity cycles completely
+    if (Objects[botnum].ctype.ai_info.REMOTE_OWNER == Player_num) {
+        set_thrust_from_velocity(&Objects[botnum]);
+    }
 //	Objects[botnum].phys_info.drag = Robot_info[Objects[botnum].id].drag >> 4; // Set drag to low
 
 #ifndef WORDS_BIGENDIAN
@@ -752,36 +752,25 @@ multi_do_robot_position(const ubyte *buf)
 			vms_vector pos_error;
 			vm_vec_sub(&pos_error, &Objects[botnum].pos, &client_pos);
 			
-			if (vm_vec_mag_quick(&pos_error) > F1_0 * 15) {
+			if (vm_vec_mag_quick(&pos_error) > F1_0 * 80) {
 				update_object_seg(&Objects[botnum]);
 			} else {
-				vms_matrix target_orient = Objects[botnum].orient;
-				fix turn_dot = vm_vec_dot(&client_orient.fvec, &target_orient.fvec);
-				int blend_shift = 2; // Locked to continuous fluid linear glide scale
-				Objects[botnum].pos = client_pos;
+				// Capture the fresh look-vectors extracted by the network payload
+				vms_matrix fresh_packet_orient = Objects[botnum].orient;
+				fix blend_factor = FrameTime * 4;
 				
-				Objects[botnum].orient.fvec.x = client_orient.fvec.x + ((target_orient.fvec.x - client_orient.fvec.x) >> blend_shift);
-				Objects[botnum].orient.fvec.y = client_orient.fvec.y + ((target_orient.fvec.y - client_orient.fvec.y) >> blend_shift);
-				Objects[botnum].orient.fvec.z = client_orient.fvec.z + ((target_orient.fvec.z - client_orient.fvec.z) >> blend_shift);
+				Objects[botnum].pos.x += fixmul(pos_error.x, blend_factor);
+				Objects[botnum].pos.y += fixmul(pos_error.y, blend_factor);
+				Objects[botnum].pos.z += fixmul(pos_error.z, blend_factor);
 				
-				Objects[botnum].orient.uvec.x = client_orient.uvec.x + ((target_orient.uvec.x - client_orient.uvec.x) >> blend_shift);
-				Objects[botnum].orient.uvec.y = client_orient.uvec.y + ((target_orient.uvec.y - client_orient.uvec.y) >> blend_shift);
-				Objects[botnum].orient.uvec.z = client_orient.uvec.z + ((target_orient.uvec.z - client_orient.uvec.z) >> blend_shift);
+				// UNIFIED CROSS-GENERATION: Rebuilds a perfectly square orthogonal matrix
+				// using true look-direction and vertical reference to kill the loopty-loop entirely
+				vm_vector_2_matrix(&Objects[botnum].orient, &fresh_packet_orient.fvec, &fresh_packet_orient.uvec, NULL);
 				
-				Objects[botnum].orient.rvec.x = client_orient.rvec.x + ((target_orient.rvec.x - client_orient.rvec.x) >> blend_shift);
-				Objects[botnum].orient.rvec.y = client_orient.rvec.y + ((target_orient.rvec.y - client_orient.rvec.y) >> blend_shift);
-				Objects[botnum].orient.rvec.z = client_orient.rvec.z + ((target_orient.rvec.z - client_orient.rvec.z) >> blend_shift);
-				
-				vm_vec_normalize_quick(&Objects[botnum].orient.fvec);
-				vm_vec_normalize_quick(&Objects[botnum].orient.uvec);
-				vm_vec_normalize_quick(&Objects[botnum].orient.rvec);
-
-				fix vertical_tilt = abs(Objects[botnum].orient.fvec.y);
-				int error_dampen = (vertical_tilt > F1_0 / 2) ? 2 : 4;
-
-				Objects[botnum].mtype.phys_info.velocity.x = (pos_error.x * error_dampen);
-				Objects[botnum].mtype.phys_info.velocity.y = (pos_error.y * error_dampen);
-				Objects[botnum].mtype.phys_info.velocity.z = (pos_error.z * error_dampen);
+				// Feed the tracking velocity pipeline with metrics calibrated to your rendering cadence
+				Objects[botnum].mtype.phys_info.velocity.x = fixdiv(pos_error.x, FrameTime) / 4;
+				Objects[botnum].mtype.phys_info.velocity.y = fixdiv(pos_error.y, FrameTime) / 4;
+				Objects[botnum].mtype.phys_info.velocity.z = fixdiv(pos_error.z, FrameTime) / 4;
 				
 				update_object_seg(&Objects[botnum]);
 			}

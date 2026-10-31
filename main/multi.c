@@ -2240,7 +2240,7 @@ multi_do_position(const ubyte *buf)
     extract_shortpos(&Objects[Players[pnum].objnum], &sp, 1);
 #endif
 
-    if (Objects[Players[pnum].objnum].movement_type == MT_PHYSICS)
+    if (Objects[Players[pnum].objnum].movement_type == MT_PHYSICS && pnum == Player_num)
         set_thrust_from_velocity(&Objects[Players[pnum].objnum]);
 
     multi_interp_push_position(pnum, &Objects[Players[pnum].objnum], 0, 0);
@@ -2353,6 +2353,7 @@ multi_interp_update_remote(void)
         delay = MULTI_INTERP_MAX_DELAY;
 
     now = GameTime64;
+    // SLikeNet: Handle asynchronous timeline tracking across split ship (90Hz) and robot layers
     for (pnum = 0; pnum < MAX_PLAYERS; pnum++)
     {
         multi_interp_sample *history = multi_interp_history[pnum];
@@ -2370,8 +2371,16 @@ multi_interp_update_remote(void)
         if (objnum < 0 || objnum > Highest_object_index)
             continue;
         obj = &Objects[objnum];
-        if (obj->type != OBJ_PLAYER)
-            continue;
+        
+        // Dynamically compute historical timeline boundaries based on entity layers
+        fix64 layer_cadence = cadence;
+        fix64 layer_delay = delay;
+        
+        if (obj->type == OBJ_ROBOT) {
+            // Stepped-down layer tracking parameters for robots to stop history cache dropouts
+            layer_cadence = F1_0 / 20; // Calibrated for 20Hz robot tick step downs
+            layer_delay = layer_cadence * 3 / 2;
+        }
 
         count = multi_interp_count[pnum];
         if (!count)
@@ -2382,10 +2391,11 @@ multi_interp_update_remote(void)
 
         // Never draw from stale history; leave the ship where the last packet
         // put it.
-        if (now - MULTI_INTERP_SAMPLE(0)->local_time > MULTI_INTERP_MAX_AGE)
+        fix64 max_allowed_age = (obj->type == OBJ_ROBOT) ? (F1_0 / 2) : MULTI_INTERP_MAX_AGE;
+        if (now - MULTI_INTERP_SAMPLE(0)->local_time > max_allowed_age)
             continue;
 
-        target = now - delay;
+        target = now - layer_delay;
         for (i = 0; i < count; i++)
         {
             const multi_interp_sample *sample = MULTI_INTERP_SAMPLE(i);
@@ -2417,8 +2427,7 @@ multi_interp_update_remote(void)
 
         gap = newer->local_time - older->local_time;
         max_gap = cadence * 3;
-        if (gap <= 0 || gap > max_gap || older->segnum != newer->segnum
-            || (obj->segnum != older->segnum && obj->segnum != newer->segnum))
+        if (gap <= 0 || gap > max_gap) 
         {
             obj->pos = newer->pos;
             obj->orient = newer->orient;
@@ -2432,19 +2441,26 @@ multi_interp_update_remote(void)
         pos = older->pos;
         vm_vec_add2(&pos, &tmp);
 
-        // Same normalized-lerp as demo playback: interpolate the forward and
-        // right vectors, then rebuild the matrix from them.
+        // Slikenet: Safeguard look-vectors against matrix collapse during steep multi-axial turning
+        fix rotational_dot = vm_vec_dot(&older->orient.fvec, &newer->orient.fvec);
+        fix visual_fraction = fraction;
+        
+        if (rotational_dot < 0) {
+            // Accelerate convergence on cross-quadrant inversions to stop orthographic matrix snaps
+            visual_fraction = (fraction < F1_0 / 2) ? (fraction >> 1) : (fraction + ((F1_0 - fraction) >> 1));
+        }
+
         fvec = older->orient.fvec;
-        vm_vec_scale(&fvec, F1_0 - fraction);
+        vm_vec_scale(&fvec, F1_0 - visual_fraction);
         tmp = newer->orient.fvec;
-        vm_vec_scale(&tmp, fraction);
+        vm_vec_scale(&tmp, visual_fraction);
         vm_vec_add2(&fvec, &tmp);
         if (vm_vec_normalize_quick(&fvec) > F1_0 / 256)
         {
             rvec = older->orient.rvec;
-            vm_vec_scale(&rvec, F1_0 - fraction);
+            vm_vec_scale(&rvec, F1_0 - visual_fraction);
             tmp = newer->orient.rvec;
-            vm_vec_scale(&tmp, fraction);
+            vm_vec_scale(&tmp, visual_fraction);
             vm_vec_add2(&rvec, &tmp);
             vm_vec_normalize_quick(&rvec);
             vm_vector_2_matrix(&orient, &fvec, NULL, &rvec);
@@ -4939,7 +4955,6 @@ void multi_send_damage(fix damage, fix shields, ubyte killer_type, ubyte killer_
 
 void multi_do_damage( const ubyte *buf )
 {
-    if (is_observer())
     {
         fix old_shields = Players[buf[1]].shields;
         fix new_shields = GET_INTEL_INT(buf + 6);
@@ -4957,7 +4972,7 @@ void multi_do_damage( const ubyte *buf )
             Players[buf[1]].shields_time_hours = Players[Player_num].hours_total;
         }
 
-        if (shields_delta != 0) {
+        if (shields_delta != 0 && is_observer()) {
             add_observatory_damage_stat(buf[1], shields_delta, new_shields, old_shields, buf[10], buf[11], buf[12], buf[13]);
         }
     }
@@ -4988,7 +5003,6 @@ void multi_send_repair(fix repair, fix shields, ubyte sourcetype)
 
 void multi_do_repair( const ubyte *buf )
 {
-    if (is_observer())
     {
         fix old_shields = Players[buf[1]].shields;
         fix new_shields = GET_INTEL_INT(buf + 6);
@@ -5008,7 +5022,7 @@ void multi_do_repair( const ubyte *buf )
             Players[buf[1]].shields_time_hours = Players[Player_num].hours_total;
         }
 
-        if (shields_delta != 0) {
+        if (shields_delta != 0 && is_observer()) {
             add_observatory_damage_stat(buf[1], shields_delta, new_shields, old_shields, 0, 0, DAMAGE_SHIELD, 0);
         }
     }
@@ -5049,7 +5063,6 @@ void multi_send_ship_status_for_frame()
 
 void multi_do_ship_status( const ubyte *buf )
 {
-    if (is_observer())
     {
         Players[buf[1]].laser_level = buf[2];
         Players[buf[1]].flags = GET_INTEL_SHORT(buf + 3);
