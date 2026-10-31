@@ -403,6 +403,16 @@ void fix_illegal_wall_intersection(object *obj, vms_vector *origin)
 //Simulate a physics object for this frame
 void do_physics_sim(object *obj)
 {
+    // Bypasses local extrapolation for remote entities to completely kill packet tug-of-wars
+    if (Game_mode & GM_MULTI) {
+        if (obj->type == OBJ_PLAYER && obj->id != Player_num) {
+            return;
+        }
+        if (obj->type == OBJ_ROBOT && obj->ctype.ai_info.REMOTE_OWNER != Player_num && obj->ctype.ai_info.REMOTE_OWNER != -1) {
+            return;
+        }
+    }
+
     int ignore_obj_list[MAX_IGNORE_OBJS],n_ignore_objs;
     int iseg;
     int try_again;
@@ -898,13 +908,29 @@ void do_physics_sim(object *obj)
         && ((fate == HIT_WALL) || (fate == HIT_OBJECT) || (fate == HIT_BAD_P0))
         )
     {
-		// Network authority safety gate: Do not locally overwrite or freeze velocity for remote-owned robots
-		if (!((Game_mode & GM_MULTI) && obj->type == OBJ_ROBOT && obj->ctype.ai_info.REMOTE_OWNER != Player_num && obj->ctype.ai_info.REMOTE_OWNER != -1)) {	
+        // Network authority safety gate: Do not locally overwrite or freeze velocity for remote-owned robots
+        if ((Game_mode & GM_MULTI) && obj->type == OBJ_ROBOT) {
+            if (obj->ctype.ai_info.REMOTE_OWNER != Player_num && obj->ctype.ai_info.REMOTE_OWNER != -1) {
+                // Safely return to let incoming network packets dictate velocity tracking maps
+                return;
+            }
+        }
+        
+        // Retain native velocity generation calculations for local players and owned objects to stop erratic jumping
         vms_vector moved_vec;
-        vm_vec_sub(&moved_vec,&obj->pos,&start_pos);
-        vm_vec_copy_scale(&obj->mtype.phys_info.velocity,&moved_vec,fixdiv(f1_0,FrameTime));
+        vm_vec_sub(&moved_vec, &obj->pos, &start_pos);
+        if (obj->type == OBJ_ROBOT) {
+            vms_vector local_error;
+            local_error.x = vm_vec_dot(&moved_vec, &obj->orient.rvec);
+            local_error.y = vm_vec_dot(&moved_vec, &obj->orient.uvec);
+            local_error.z = vm_vec_dot(&moved_vec, &obj->orient.fvec);
+            obj->mtype.phys_info.velocity.x = fixdiv(local_error.x, FrameTime);
+            obj->mtype.phys_info.velocity.y = fixdiv(local_error.y, FrameTime);
+            obj->mtype.phys_info.velocity.z = fixdiv(local_error.z, FrameTime);
+        } else {
+            vm_vec_copy_scale(&obj->mtype.phys_info.velocity, &moved_vec, fixdiv(f1_0, FrameTime));
+        }
     }
-		}
 
     fix_illegal_wall_intersection(obj, &start_pos);
 

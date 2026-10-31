@@ -2081,6 +2081,13 @@ void ai_do_actual_firing_stuff(object *obj, ai_static *aip, ai_local *ailp, robo
 void do_ai_frame(object *obj)
 {
     int			objnum = obj-Objects;
+    
+    // AUTHORITY GATE: If we are not the network owner of this robot, skip local AI tracking entirely
+    if (Game_mode & GM_MULTI) {
+        if (obj->ctype.ai_info.REMOTE_OWNER != Player_num && obj->ctype.ai_info.REMOTE_OWNER != -1) {
+            return;
+        }
+    }
     ai_static	*aip = &obj->ctype.ai_info;
     ai_local		*ailp = &Ai_local_info[objnum];
     fix			dist_to_player;
@@ -2101,8 +2108,9 @@ void do_ai_frame(object *obj)
         return;
     }
 
-    // Robots do nothing for observers; those controlling them handle their actions
-    if(is_observer()) {
+    // Targeted AI Safety Shield: Only bypass processing frames for actual bot entities on observer nodes
+    // This leaves animation structures intact, keeping the observer view rendering with full movement controls
+    if (is_observer() && obj->type == OBJ_ROBOT) {
         return;
     }
 
