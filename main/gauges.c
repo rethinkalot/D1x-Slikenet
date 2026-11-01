@@ -4262,7 +4262,7 @@ void draw_hud()
             if (PlayerCfg.CurrentCockpitMode==CM_STATUS_BAR || PlayerCfg.CurrentCockpitMode==CM_FULL_SCREEN)
                 hud_show_homing_warning();
 
-            if (PlayerCfg.CurrentCockpitMode==CM_FULL_SCREEN) {
+            if (PlayerCfg.CurrentCockpitMode==CM_STATUS_BAR || PlayerCfg.CurrentCockpitMode==CM_FULL_SCREEN) {
                 hud_show_energy();
                 hud_show_shield();
                 hud_show_weapons();
@@ -4272,10 +4272,18 @@ void draw_hud()
 
                 if (Newdemo_state==ND_STATE_RECORDING)
                 {
-                    newdemo_record_player_flags(Players[pnum].flags);
-                    // Record kills and deaths for the observer
-                    newdemo_record_multi_kill(pnum, Players[pnum].num_kills_total);
-                    newdemo_record_multi_death(pnum);
+                    if (is_observer()) {
+                        // Record for the observer
+                        newdemo_record_player_flags(Players[pnum].flags);
+                        newdemo_record_multi_kill(pnum, Players[pnum].num_kills_total);
+                        newdemo_record_multi_death(pnum);
+                        // Record consolidated stats for the observer
+                        newdemo_record_player_stats(
+                            f2ir(Players[pnum].shields),
+                            f2ir(Players[pnum].energy),
+                            Players[pnum].score
+                        );
+                    }
                 }
             }
 
@@ -4466,8 +4474,29 @@ void render_gauges()
 
     } else if (PlayerCfg.CurrentCockpitMode == CM_STATUS_BAR) {
 
-        if (Newdemo_state == ND_STATE_RECORDING)
-            newdemo_record_player_energy(energy);
+        if (Newdemo_state == ND_STATE_RECORDING) {
+            if (is_observer()) {
+                int _op;
+                for (_op = 0; _op < MAX_PLAYERS; _op++) {
+                    if (!Players[_op].connected) continue;
+                    // Record consolidated player stats: shields, energy, score
+                    newdemo_record_player_stats(
+                        f2ir(Players[_op].shields),
+                        f2ir(Players[_op].energy),
+                        Players[_op].score
+                    );
+                    // Record kills and deaths for each connected player
+                    newdemo_record_multi_kill(_op, Players[_op].num_kills_total);
+                    newdemo_record_multi_death(_op);
+                }
+            }
+            // Non-observer: record individual player stats
+            else {
+                newdemo_record_player_energy(energy);
+                newdemo_record_player_shields(shields);
+                newdemo_record_player_flags(Players[pnum].flags);
+            }
+        }
         sb_draw_energy_bar(energy);
         if (!PlayerCfg.HudMode)
             show_bomb_count(HUD_SCALE_X(SB_BOMB_COUNT_X), HUD_SCALE_Y(SB_BOMB_COUNT_Y), gr_find_closest_color(0, 0, 0), 0, 0);
