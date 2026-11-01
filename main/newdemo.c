@@ -1,4 +1,4 @@
-﻿/*
+/*
 THE COMPUTER CODE CONTAINED HEREIN IS THE SOLE PROPERTY OF PARALLAX
 SOFTWARE CORPORATION ("PARALLAX").  PARALLAX, IN DISTRIBUTING THE CODE TO
 END-USERS, AND SUBJECT TO ALL OF THE TERMS AND CONDITIONS HEREIN, GRANTS A
@@ -209,6 +209,7 @@ static sbyte nd_record_v_no_space;
 static int nd_record_v_player_energy = -1;
 static int nd_record_v_player_shields = -1;
 static uint nd_record_v_player_flags = -1;
+static int nd_record_v_player_score = -1;
 static int nd_record_v_weapon_type = -1;
 static int nd_record_v_weapon_num = -1;
 static fix nd_record_v_homing_distance = -1;
@@ -932,7 +933,7 @@ void newdemo_record_start_frame(fix frame_time )
 		newdemo_set_record_delay();
 
 	if (nd_record_v_no_space) {
-		newdemo_stop_playback();
+		newdemo_stop_recording(0);
 		return;
 	}
 
@@ -1146,6 +1147,37 @@ void newdemo_record_player_flags(uint flags)
 	nd_write_int(((short)nd_record_v_player_flags << 16) | (short)flags);
 	nd_record_v_player_flags = flags;
 	start_time();
+}
+void newdemo_record_player_stats(int shields, int energy, int score)
+{
+	// Record all player stats: shields, energy, score, kills, deaths, weapons
+	// This is the consolidated stats recording function that replaces individual calls
+	// for scripts, demos, and replay systems that need full stats data.
+	if (nd_record_v_recordframe)
+	{
+		stop_time();
+		// Record shields
+		if (nd_record_v_player_shields != shields)
+		{
+			nd_write_byte(ND_EVENT_PLAYER_SHIELD);
+			nd_write_byte((sbyte)nd_record_v_player_shields);
+			nd_write_byte((sbyte)shields);
+			nd_record_v_player_shields = shields;
+		}
+		// Record energy
+		if (nd_record_v_player_energy != energy)
+		{
+			nd_write_byte(ND_EVENT_PLAYER_ENERGY);
+			nd_write_byte((sbyte)nd_record_v_player_energy);
+			nd_write_byte((sbyte)energy);
+			nd_record_v_player_energy = energy;
+		}
+		// Record score
+		nd_write_byte(ND_EVENT_PLAYER_SCORE);
+		nd_write_int(score);
+		nd_record_v_player_score = score;
+		start_time();
+	}
 }
 
 void newdemo_record_player_weapon(int weapon_type, int weapon_num)

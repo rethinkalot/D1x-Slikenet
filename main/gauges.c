@@ -4273,6 +4273,9 @@ void draw_hud()
                 if (Newdemo_state==ND_STATE_RECORDING)
                 {
                     newdemo_record_player_flags(Players[pnum].flags);
+                    // Record kills and deaths for the observer
+                    newdemo_record_multi_kill(pnum, Players[pnum].num_kills_total);
+                    newdemo_record_multi_death(pnum);
                 }
             }
 
@@ -4426,10 +4429,15 @@ void render_gauges()
             int _op;
             for (_op = 0; _op < MAX_PLAYERS; _op++) {
                 if (!Players[_op].connected) continue;
-                newdemo_record_player_energy(f2ir(Players[_op].energy));
-                newdemo_record_player_shields(f2ir(Players[_op].shields));
-                newdemo_record_player_flags(Players[_op].flags);
-                newdemo_record_multi_score(_op, Players[_op].score);
+                // Record consolidated player stats: shields, energy, score
+                newdemo_record_player_stats(
+                    f2ir(Players[_op].shields),
+                    f2ir(Players[_op].energy),
+                    Players[_op].score
+                );
+                // Record kills and deaths for each connected player
+                newdemo_record_multi_kill(_op, Players[_op].num_kills_total);
+                newdemo_record_multi_death(_op);
             }
         } else {
             newdemo_record_player_energy(energy);
