@@ -711,13 +711,13 @@ static inline void hud_bitblt (int x, int y, grs_bitmap *bm)
 
 int get_pnum_for_hud()
 {
-	if (Newdemo_state == ND_STATE_PLAYBACK && ConsoleObject && ConsoleObject->type == OBJ_PLAYER) {
-		return ConsoleObject->id;
-	}
-	if (is_observer() && is_observing_player())
-		return Current_obs_player;
-	else
-		return Player_num;
+    if (Newdemo_state == ND_STATE_PLAYBACK && ConsoleObject && ConsoleObject->type == OBJ_PLAYER) {
+        return ConsoleObject->id;
+    }
+    if (is_observer() && is_observing_player())
+        return Current_obs_player;
+    else
+        return Player_num;
 }
 
 void hud_show_score()
@@ -4192,17 +4192,17 @@ void observer_show_bomb_highlights()
 #define VEL_HIST 200
 void hud_show_vel()
 {
-	if (is_observer()) return;
-	if (get_pnum_for_hud() != 0) return;
+    if (is_observer()) return;
+    if (get_pnum_for_hud() != 0) return;
 
     char vel_str[40], *p;
     static float vels[VEL_HIST], veltot;
     static int velidx = 0;
     float velmax;
-	vms_vector *vel = &ConsoleObject->mtype.phys_info.velocity;
-	if (Newdemo_state == ND_STATE_PLAYBACK && ConsoleObject) {
-		vel = &ConsoleObject->mtype.phys_info.velocity;
-	}
+    vms_vector *vel = &ConsoleObject->mtype.phys_info.velocity;
+    if (Newdemo_state == ND_STATE_PLAYBACK && ConsoleObject) {
+        vel = &ConsoleObject->mtype.phys_info.velocity;
+    }
     float velmag = f2fl(vm_vec_mag(vel));
     veltot += velmag - vels[velidx];
     vels[velidx] = velmag;
@@ -4262,7 +4262,7 @@ void draw_hud()
             if (PlayerCfg.CurrentCockpitMode==CM_STATUS_BAR || PlayerCfg.CurrentCockpitMode==CM_FULL_SCREEN)
                 hud_show_homing_warning();
 
-            if (PlayerCfg.CurrentCockpitMode==CM_STATUS_BAR || PlayerCfg.CurrentCockpitMode==CM_FULL_SCREEN) {
+            if (PlayerCfg.CurrentCockpitMode==CM_FULL_SCREEN) {
                 hud_show_energy();
                 hud_show_shield();
                 hud_show_weapons();
@@ -4272,18 +4272,7 @@ void draw_hud()
 
                 if (Newdemo_state==ND_STATE_RECORDING)
                 {
-                    if (is_observer()) {
-                        // Record for the observer
-                        newdemo_record_player_flags(Players[pnum].flags);
-                        newdemo_record_multi_kill(pnum, Players[pnum].num_kills_total);
-                        newdemo_record_multi_death(pnum);
-                        // Record consolidated stats for the observer
-                        newdemo_record_player_stats(
-                            f2ir(Players[pnum].shields),
-                            f2ir(Players[pnum].energy),
-                            Players[pnum].score
-                        );
-                    }
+                    newdemo_record_player_flags(Players[pnum].flags);
                 }
             }
 
@@ -4437,15 +4426,10 @@ void render_gauges()
             int _op;
             for (_op = 0; _op < MAX_PLAYERS; _op++) {
                 if (!Players[_op].connected) continue;
-                // Record consolidated player stats: shields, energy, score
-                newdemo_record_player_stats(
-                    f2ir(Players[_op].shields),
-                    f2ir(Players[_op].energy),
-                    Players[_op].score
-                );
-                // Record kills and deaths for each connected player
-                newdemo_record_multi_kill(_op, Players[_op].num_kills_total);
-                newdemo_record_multi_death(_op);
+                newdemo_record_player_energy(f2ir(Players[_op].energy));
+                newdemo_record_player_shields(f2ir(Players[_op].shields));
+                newdemo_record_player_flags(Players[_op].flags);
+                newdemo_record_multi_score(_op, Players[_op].score);
             }
         } else {
             newdemo_record_player_energy(energy);
@@ -4474,29 +4458,8 @@ void render_gauges()
 
     } else if (PlayerCfg.CurrentCockpitMode == CM_STATUS_BAR) {
 
-        if (Newdemo_state == ND_STATE_RECORDING) {
-            if (is_observer()) {
-                int _op;
-                for (_op = 0; _op < MAX_PLAYERS; _op++) {
-                    if (!Players[_op].connected) continue;
-                    // Record consolidated player stats: shields, energy, score
-                    newdemo_record_player_stats(
-                        f2ir(Players[_op].shields),
-                        f2ir(Players[_op].energy),
-                        Players[_op].score
-                    );
-                    // Record kills and deaths for each connected player
-                    newdemo_record_multi_kill(_op, Players[_op].num_kills_total);
-                    newdemo_record_multi_death(_op);
-                }
-            }
-            // Non-observer: record individual player stats
-            else {
-                newdemo_record_player_energy(energy);
-                newdemo_record_player_shields(shields);
-                newdemo_record_player_flags(Players[pnum].flags);
-            }
-        }
+        if (Newdemo_state == ND_STATE_RECORDING)
+            newdemo_record_player_energy(energy);
         sb_draw_energy_bar(energy);
         if (!PlayerCfg.HudMode)
             show_bomb_count(HUD_SCALE_X(SB_BOMB_COUNT_X), HUD_SCALE_Y(SB_BOMB_COUNT_Y), gr_find_closest_color(0, 0, 0), 0, 0);
