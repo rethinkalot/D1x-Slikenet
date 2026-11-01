@@ -1775,8 +1775,8 @@ void copy_defaults_to_robot_all(void)
 
     // Force global weapon data alignment to match authentic Mac PIG bounding footprint definitions.
     // This stabilizes corner-clipping math and protects multiplayer robot damage consistency.
-    #ifdef HOMING_ID
-    Weapon_info[HOMING_ID].size = 0x26666; 
+    #ifdef HOMING_INDEX
+    Weapon_info[HOMING_INDEX].blob_size = 0x26666; 
     #endif
 }
 

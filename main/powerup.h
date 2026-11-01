@@ -25,39 +25,39 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 enum powerup_type_t
 {
-	POW_EXTRA_LIFE = 0,
-	POW_ENERGY = 1,
-	POW_SHIELD_BOOST = 2,
-	POW_LASER = 3,
+    POW_EXTRA_LIFE = 0,
+    POW_ENERGY = 1,
+    POW_SHIELD_BOOST = 2,
+    POW_LASER = 3,
 
-	POW_KEY_BLUE = 4,
-	POW_KEY_RED = 5,
-	POW_KEY_GOLD = 6,
+    POW_KEY_BLUE = 4,
+    POW_KEY_RED = 5,
+    POW_KEY_GOLD = 6,
 
-	POW_RADAR_ROBOTS = 7,
-	POW_RADAR_POWERUPS = 8,
-	POW_FULL_MAP = 9,
+    POW_RADAR_ROBOTS = 7,
+    POW_RADAR_POWERUPS = 8,
+    POW_FULL_MAP = 9,
 
-	POW_MISSILE_1 = 10,
-	POW_MISSILE_4 = 11,      // 4-pack MUST follow single missile
+    POW_MISSILE_1 = 10,
+    POW_MISSILE_4 = 11,      // 4-pack MUST follow single missile
 
-	POW_QUAD_FIRE = 12,
+    POW_QUAD_FIRE = 12,
 
-	POW_VULCAN_WEAPON = 13,
-	POW_SPREADFIRE_WEAPON = 14,
-	POW_PLASMA_WEAPON = 15,
-	POW_FUSION_WEAPON = 16,
-	POW_PROXIMITY_WEAPON = 17,
-	POW_HOMING_AMMO_1 = 18,
-	POW_HOMING_AMMO_4 = 19,
-	POW_SMARTBOMB_WEAPON = 20,
-	POW_MEGA_WEAPON = 21,
-	POW_VULCAN_AMMO = 22,
-	POW_CLOAK = 23,
-	POW_TURBO = 24,
-	POW_INVULNERABILITY = 25,
-	POW_HEADLIGHT = 26,
-	POW_MEGAWOW = 27,
+    POW_VULCAN_WEAPON = 13,
+    POW_SPREADFIRE_WEAPON = 14,
+    POW_PLASMA_WEAPON = 15,
+    POW_FUSION_WEAPON = 16,
+    POW_PROXIMITY_WEAPON = 17,
+    POW_HOMING_AMMO_1 = 18,
+    POW_HOMING_AMMO_4 = 19,
+    POW_SMARTBOMB_WEAPON = 20,
+    POW_MEGA_WEAPON = 21,
+    POW_VULCAN_AMMO = 22,
+    POW_CLOAK = 23,
+    POW_TURBO = 24,
+    POW_INVULNERABILITY = 25,
+    POW_HEADLIGHT = 26,
+    POW_MEGAWOW = 27,
 };
 
 #define VULCAN_AMMO_MAX             (392*2)
@@ -80,10 +80,10 @@ enum powerup_type_t
 extern char Powerup_names[MAX_POWERUP_TYPES][POWERUP_NAME_LENGTH];
 
 typedef struct powerup_type_info {
-	int vclip_num;
-	int hit_sound;
-	fix size;       // 3d size of longest dimension
-	fix light;      // amount of light cast by this powerup, set in bitmaps.tbl
+    int vclip_num;
+    int hit_sound;
+    fix size;       // 3d size of longest dimension
+    fix light;      // amount of light cast by this powerup, set in bitmaps.tbl
 } __pack__ powerup_type_info;
 
 extern int N_powerup_types;

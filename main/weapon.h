@@ -26,49 +26,49 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "piggy.h"
 
 typedef struct weapon_info {
-	sbyte   render_type;        // How to draw 0=laser, 1=blob, 2=object
-	sbyte	model_num;					// Model num if rendertype==2.
-	sbyte	model_num_inner;			// Model num of inner part if rendertype==2.
-	sbyte   persistent;         // 0 = dies when it hits something, 1 = continues (eg, fusion cannon)
+    sbyte   render_type;        // How to draw 0=laser, 1=blob, 2=object
+    sbyte	model_num;					// Model num if rendertype==2.
+    sbyte	model_num_inner;			// Model num of inner part if rendertype==2.
+    sbyte   persistent;         // 0 = dies when it hits something, 1 = continues (eg, fusion cannon)
 
-	sbyte   flash_vclip;        // What vclip to use for muzzle flash
-	short   flash_sound;        // What sound to play when fired
-	sbyte   robot_hit_vclip;    // What vclip for impact with robot
-	short   robot_hit_sound;    // What sound for impact with robot
+    sbyte   flash_vclip;        // What vclip to use for muzzle flash
+    short   flash_sound;        // What sound to play when fired
+    sbyte   robot_hit_vclip;    // What vclip for impact with robot
+    short   robot_hit_sound;    // What sound for impact with robot
 
-	sbyte   wall_hit_vclip;     // What vclip for impact with wall
-	short   wall_hit_sound;     // What sound for impact with wall
-	sbyte   fire_count;         // Number of bursts fired from EACH GUN per firing.  For weapons which fire from both sides, 3*fire_count shots will be fired.
-	sbyte   ammo_usage;         // How many units of ammunition it uses.
+    sbyte   wall_hit_vclip;     // What vclip for impact with wall
+    short   wall_hit_sound;     // What sound for impact with wall
+    sbyte   fire_count;         // Number of bursts fired from EACH GUN per firing.  For weapons which fire from both sides, 3*fire_count shots will be fired.
+    sbyte   ammo_usage;         // How many units of ammunition it uses.
 
-	sbyte   weapon_vclip;       // Vclip to render for the weapon, itself.
-	sbyte   destroyable;        // If !0, this weapon can be destroyed by another weapon.
-	sbyte   matter;             // Flag: set if this object is matter (as opposed to energy)
-	sbyte	bounce;						//	Flag: set if this object bounces off walls
+    sbyte   weapon_vclip;       // Vclip to render for the weapon, itself.
+    sbyte   destroyable;        // If !0, this weapon can be destroyed by another weapon.
+    sbyte   matter;             // Flag: set if this object is matter (as opposed to energy)
+    sbyte	bounce;						//	Flag: set if this object bounces off walls
 
-	sbyte   homing_flag;        // Set if this weapon can home in on a target.
-	sbyte	dum1, dum2, dum3;
+    sbyte   homing_flag;        // Set if this weapon can home in on a target.
+    sbyte	dum1, dum2, dum3;
 
-	fix energy_usage;           // How much fuel is consumed to fire this weapon.
-	fix fire_wait;              // Time until this weapon can be fired again.
+    fix energy_usage;           // How much fuel is consumed to fire this weapon.
+    fix fire_wait;              // Time until this weapon can be fired again.
 
-	bitmap_index bitmap;        // Pointer to bitmap if rendertype==0 or 1.
+    bitmap_index bitmap;        // Pointer to bitmap if rendertype==0 or 1.
 
-	fix blob_size;              // Size of blob if blob type
-	fix flash_size;             // How big to draw the flash
-	fix impact_size;            // How big of an impact
-	fix strength[NDL];          // How much damage it can inflict
-	fix speed[NDL];             // How fast it can move, difficulty level based.
-	fix mass;                   // How much mass it has
-	fix drag;                   // How much drag it has
-	fix thrust;                 // How much thrust it has
-	fix po_len_to_width_ratio;  // For polyobjects, the ratio of len/width. (10 maybe?)
-	fix light;                  // Amount of light this weapon casts.
-	fix lifetime;               // Lifetime in seconds of this weapon.
-	fix damage_radius;          // Radius of damage caused by weapon, used for missiles (not lasers) to apply to damage to things it did not hit
+    fix blob_size;              // Size of blob if blob type
+    fix flash_size;             // How big to draw the flash
+    fix impact_size;            // How big of an impact
+    fix strength[NDL];          // How much damage it can inflict
+    fix speed[NDL];             // How fast it can move, difficulty level based.
+    fix mass;                   // How much mass it has
+    fix drag;                   // How much drag it has
+    fix thrust;                 // How much thrust it has
+    fix po_len_to_width_ratio;  // For polyobjects, the ratio of len/width. (10 maybe?)
+    fix light;                  // Amount of light this weapon casts.
+    fix lifetime;               // Lifetime in seconds of this weapon.
+    fix damage_radius;          // Radius of damage caused by weapon, used for missiles (not lasers) to apply to damage to things it did not hit
 //-- unused--   fix damage_force;           // Force of damage caused by weapon, used for missiles (not lasers) to apply to damage to things it did not hit
 // damage_force was a real mess.  Wasn't Difficulty_level based, and was being applied instead of weapon's actual strength.  Now use 2*strength instead. --MK, 01/19/95
-	bitmap_index    picture;    // a picture of the weapon for the cockpit
+    bitmap_index    picture;    // a picture of the weapon for the cockpit
 } __pack__ weapon_info;
 
 #define REARM_TIME                  (F1_0)
@@ -187,7 +187,7 @@ extern int weapon_info_read_n(weapon_info *wi, int n, PHYSFS_file *fp, int file_
 //return which bomb will be dropped next time the bomb key is pressed
 static inline int which_bomb(void)
 {
-	return PROXIMITY_INDEX;
+    return PROXIMITY_INDEX;
 }
 
 #endif

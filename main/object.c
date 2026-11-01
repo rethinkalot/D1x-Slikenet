@@ -1947,6 +1947,16 @@ void object_move_all()
 //	check_duplicate_objects();
 //	remove_incorrect_objects();
 
+    if (Newdemo_state == ND_STATE_RECORDING) {
+        int r_pnum = Player_num;
+        if (r_pnum >= 0) {
+            newdemo_record_player_shields(f2ir(Players[r_pnum].shields));
+            newdemo_record_player_energy(f2ir(Players[r_pnum].energy));
+            newdemo_record_player_flags(Players[r_pnum].flags);
+            newdemo_record_primary_ammo(Players[r_pnum].primary_ammo[Players[r_pnum].primary_weapon]);
+            newdemo_record_secondary_ammo(Players[r_pnum].secondary_ammo[Players[r_pnum].secondary_weapon]);
+        }
+    }
 }
 
 
