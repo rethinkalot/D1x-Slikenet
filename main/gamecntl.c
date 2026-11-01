@@ -1421,15 +1421,17 @@ int ReadControls(d_event *event)
         // Force the observer to a certain camera based on whether they are freely observing or observing a specific player.
         if (is_observing_player()) {
             // We're observing a player directly, and need to interpolate the position and orientation.  Check to see if the real position has updated, and accumulate Last_real_update time.
-            if (vm_vec_equal(&Real_pos, &Objects[Players[Current_obs_player].objnum].pos) && vm_mat_equal(&Real_orient, &Objects[Players[Current_obs_player].objnum].orient)) {
+            if (vm_vec_equal(&Real_raw_pos, &Objects[Players[Current_obs_player].objnum].pos) && vm_mat_equal(&Real_raw_orient, &Objects[Players[Current_obs_player].objnum].orient)) {
                 Last_real_update += FrameTime;
             } else {
 
-                Real_pos = Objects[Players[Current_obs_player].objnum].pos;
-                Real_orient = Objects[Players[Current_obs_player].objnum].orient;
+                Real_raw_pos = Objects[Players[Current_obs_player].objnum].pos;
+                Real_raw_orient = Objects[Players[Current_obs_player].objnum].orient;
+                Real_pos = Real_raw_pos;
+                Real_orient = Real_raw_orient;
                 Last_real_update = 0;
 
-                // If we're observing at a distance, move the camera accordingly.achieved_state
+                // If we're observing at a distance, move the camera accordingly.
                 if (Obs_at_distance == 1) {
                     int dist = PlayerCfg.ObsIncreaseThirdPersonDist[get_observer_game_mode()] ? -30 : -20;
                     vms_vector move = ZERO_VECTOR;

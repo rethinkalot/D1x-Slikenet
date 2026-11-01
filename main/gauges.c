@@ -4421,9 +4421,21 @@ void render_gauges()
 
     if (PlayerCfg.CurrentCockpitMode == CM_FULL_COCKPIT) {
 
-        if (Newdemo_state == ND_STATE_RECORDING)
+    if (Newdemo_state == ND_STATE_RECORDING) {
+        if (is_observer()) {
+            int _op;
+            for (_op = 0; _op < MAX_PLAYERS; _op++) {
+                if (!Players[_op].connected) continue;
+                newdemo_record_player_energy(f2ir(Players[_op].energy));
+                newdemo_record_player_shields(f2ir(Players[_op].shields));
+                newdemo_record_player_flags(Players[_op].flags);
+                newdemo_record_multi_score(_op, Players[_op].score);
+            }
+        } else {
             newdemo_record_player_energy(energy);
-        draw_energy_bar(energy);
+        }
+    }
+    draw_energy_bar(energy);
         draw_numerical_display(shields, energy);
         if (!PlayerCfg.HudMode)
             show_bomb_count(HUD_SCALE_X(BOMB_COUNT_X), HUD_SCALE_Y(BOMB_COUNT_Y), gr_find_closest_color(0, 0, 0), 0, 0);

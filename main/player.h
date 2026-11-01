@@ -204,6 +204,8 @@ extern vms_matrix Last_orient; // Saved orientation of observer prior to followi
 extern fix Last_real_update; // How long ago in seconds the observed player's real position got updated.
 extern vms_vector Real_pos; // The observed player's position.
 extern vms_matrix Real_orient; // The observed player's orientation.
+extern vms_vector Real_raw_pos; // The observed player's raw (un-offset) position.
+extern vms_matrix Real_raw_orient; // The observed player's raw (un-offset) orientation.
 
 /*
  * reads a player_ship structure from a PHYSFS_file
