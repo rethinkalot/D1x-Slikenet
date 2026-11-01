@@ -17,6 +17,8 @@ vms_matrix Last_orient; // Saved orientation of observer prior to following a pl
 fix Last_real_update; // How long ago in seconds the observed player's real position got updated.
 vms_vector Real_pos; // The observed player's position.
 vms_matrix Real_orient; // The observed player's orientation.
+vms_vector Real_raw_pos; // The observed player's raw (un-offset) position.
+vms_matrix Real_raw_orient; // The observed player's raw (un-offset) orientation.
 int VulcanAmmoBoxesOnBoard[MAX_PLAYERS];
 int VulcanBoxAmmo[MAX_PLAYERS];
 
