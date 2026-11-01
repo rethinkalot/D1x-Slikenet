@@ -117,3 +117,4 @@ collect2.exe: error: ld returned 1 exit status
 ninja: build stopped: subcommand failed.
 2026-11-01 06:45:09 UTC
 Observer recording fix: newdemo_record_player_stats implemented, kills/deaths recorded
+2026-11-01 07:08:58 UTC Fixed observer recording for CM_STATUS_BAR (third person chase) - added kills, deaths, weapons, score recording for all connected players
