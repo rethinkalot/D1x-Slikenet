@@ -1451,7 +1451,19 @@ int ReadControls(d_event *event)
                 ConsoleObject->orient = Real_orient;
             } else {
                 // Determine how close we should get to the real position and orientation, and update the console object accordingly.
-                fix factor = fixdiv(FrameTime, (sample_time - Last_real_update));
+                fix factor;
+                fix remaining = sample_time - Last_real_update;
+                if (remaining <= 0) {
+                    factor = F1_0;
+                } else {
+                    factor = fixdiv(FrameTime, remaining);
+                    if (factor > F1_0) {
+                        factor = F1_0;
+                    }
+                    if (factor < 0) {
+                        factor = 0;
+                    }
+                }
 
                 vms_vector  fvec1, fvec2, rvec1, rvec2;
                 fix         mag1;
