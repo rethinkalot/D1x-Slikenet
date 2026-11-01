@@ -2392,7 +2392,7 @@ void do_ai_frame(object *obj)
         #ifndef NDEBUG
         if (Break_on_object != objnum) {    // don't time slice if we're interested in this object.
         #endif
-			if (!((Game_mode & GM_MULTI) && aip->REMOTE_OWNER != Player_num && aip->REMOTE_OWNER != -1)) {
+            if (!((Game_mode & GM_MULTI) && aip->REMOTE_OWNER != Player_num && aip->REMOTE_OWNER != -1)) {
             if ((dist_to_player > F1_0*250) && (ailp->time_since_processed <= F1_0*2))
                 return;
             else if (!((aip->behavior == AIB_STATION) && (ailp->mode == AIM_FOLLOW_PATH) && (aip->hide_segment != obj->segnum))) {
@@ -2401,7 +2401,7 @@ void do_ai_frame(object *obj)
                 else if ((dist_to_player > F1_0*100) && (ailp->time_since_processed <= F1_0/2))
                     return;
             }
-        			}
+                    }
 #ifndef NDEBUG
         }
         #endif
