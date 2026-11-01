@@ -70,6 +70,7 @@ extern void newdemo_record_palette_effect(short r, short g, short b);
 extern void newdemo_record_player_energy(int);
 extern void newdemo_record_player_shields(int);
 extern void newdemo_record_player_flags(uint);
+extern void newdemo_record_player_stats(int shields, int energy, int score);
 extern void newdemo_record_player_weapon(int, int);
 extern void newdemo_record_effect_blowup(short, int, vms_vector *);
 extern void newdemo_record_homing_distance(fix);

@@ -115,3 +115,5 @@ C:/Programs/msys64/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.2.0/../../../../
 C:/Programs/msys64/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.2.0/../../../../x86_64-w64-mingw32/bin/ld.exe: main/CMakeFiles/d1x-redux.dir/net_udp.c.obj:net_udp.c:(.text+0x9b1): undefined reference to `multi_send_bounty'
 collect2.exe: error: ld returned 1 exit status
 ninja: build stopped: subcommand failed.
+2026-11-01 06:45:09 UTC
+Observer recording fix: newdemo_record_player_stats implemented, kills/deaths recorded
