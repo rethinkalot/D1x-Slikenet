@@ -1,63 +1,55 @@
 import os
 
-filepath = "gameseq.c"
+file_path = r"C:\Games\D2s\build\main"
+if not os.path.exists(file_path):
+    print(f"Error: File not found at {file_path}")
+    exit(1)
 
-if not os.path.exists(filepath):
-    print(f"ERROR: Could not find {filepath} in the current folder execution path.")
+with open(file_path, "r", encoding="utf-8") as f:
+    content = f.read()
+
+# Target render_gauges logic block precisely
+old_block = """    if (Newdemo_state == ND_STATE_RECORDING) {
+        if (0) {
+            int _op;
+            for (_op = 0; _op < MAX_PLAYERS; _op++) {
+                if (!Players[_op].connected) continue;
+                newdemo_record_player_energy(f2ir(Players[_op].energy));
+                newdemo_record_player_shields(f2ir(Players[_op].shields));
+                newdemo_record_player_flags(Players[_op].flags);
+                newdemo_record_multi_score(_op, Players[_op].score);
+            }
+        } else {
+            newdemo_record_player_energy(energy);
+        }
+    }"""
+
+new_block = """        if (Newdemo_state == ND_STATE_RECORDING) {
+            if (is_observer()) {
+                int _op;
+                for (_op = 0; _op < MAX_PLAYERS; _op++) {
+                    if (!Players[_op].connected) continue;
+                    newdemo_record_player_stats(
+                        f2ir(Players[_op].shields),
+                        f2ir(Players[_op].energy),
+                        Players[_op].score
+                    );
+                    newdemo_record_multi_kill(_op, Players[_op].num_kills_total);
+                    newdemo_record_multi_death(_op);
+                }
+            } else {
+                newdemo_record_player_energy(energy);
+            }
+        }"""
+
+if old_block in content:
+    content = content.replace(old_block, new_block)
+    with open(file_path, "w", encoding="utf-8", newline="\n") as f:
+        f.write(content)
+    print("Successfully patched CM_FULL_COCKPIT recording block in gauges.c!")
 else:
-    with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-        lines = f.readlines()
-
-    found = False
-    for i, line in enumerate(lines):
-        if "action == OBSERVER_CONTROL_TOGGLE_MODE" in line:
-            # Dynamically look ahead for the nested statements regardless of layout brackets
-            start_idx = i - 1 if "{" in lines[i-1] else i
-            
-            # Find the true outer trailing bracket ending index safely
-            end_idx = None
-            for offset in range(3, 12):
-                if "}" in lines[i + offset]:
-                    # Match the closing segment brace safely
-                    if "return 1;" in lines[i + offset - 1] or "return 1;" in lines[i + offset - 2]:
-                        end_idx = i + offset + 1
-                        break
-            
-            if end_idx is not None:
-                new_logic = [
-                    "    if (action == OBSERVER_CONTROL_TOGGLE_MODE)\n",
-                    "    {\n",
-                    "        if (is_observing_player())\n",
-                    "        {\n",
-                    "            if (Obs_at_distance == 0)\n",
-                    "            {\n",
-                    "                HUD_init_message_literal(HM_MULTI, \"Observing third person.\");\n",
-                    "                Obs_at_distance = 1;\n",
-                    "                init_cockpit();\n",
-                    "            }\n",
-                    "            else\n",
-                    "            {\n",
-                    "                reset_obs();\n",
-                    "            }\n",
-                    "        }\n",
-                    "        else\n",
-                    "        {\n",
-                    "            cycle_observed_player(1, 0);\n",
-                    "            HUD_init_message_literal(HM_MULTI, \"Observing first person.\");\n",
-                    "            Obs_at_distance = 0;\n",
-                    "            init_cockpit();\n",
-                    "        }\n",
-                    "        return 1;\n",
-                    "    }\n"
-                ]
-                
-                lines[start_idx:end_idx] = new_logic
-                found = True
-                break
-
-    if found:
-        with open(filepath, "w", encoding="utf-8") as f:
-            f.writelines(lines)
-        print("SUCCESS: gameseq.c camera cycle logic updated successfully.")
+    # Backup lookup check for different indentation/spacing forms
+    if "newdemo_record_multi_score" in content:
+        print("Target code structural pattern matches partially, but code may have slightly modified line spaces.")
     else:
-        print("ERROR: Target structural toggle configuration block not found in gameseq.c.")
+        print("Block already patched or missing standard layout target signatures.")

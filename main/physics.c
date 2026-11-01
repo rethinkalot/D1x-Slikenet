@@ -405,9 +405,6 @@ void do_physics_sim(object *obj)
 {
     // Bypasses local extrapolation for remote entities to completely kill packet tug-of-wars
     if (Game_mode & GM_MULTI) {
-        if (obj->type == OBJ_PLAYER && obj->id != Player_num) {
-            return;
-        }
         if (obj->type == OBJ_ROBOT && obj->ctype.ai_info.REMOTE_OWNER != Player_num && obj->ctype.ai_info.REMOTE_OWNER != -1) {
             return;
         }
