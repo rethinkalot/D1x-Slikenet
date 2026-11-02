@@ -16,6 +16,7 @@ extern "C" void con_printf(int priority, const char *fmt, ...);
 #define SLIKENET_MAX_PEERS 24 // MAX_PLAYERS + MAX_OBSERVERS
 #define SLIKENET_MAX_PACKET 1024 // UPID_MAX_SIZE
 #define SLIKENET_RETRY_MS 5000
+#define SLIKENET_PORT_OFFSET 1000 // far enough that copies on adjacent game ports (42424, 42425) don't collide
 
 enum {
     ID_DXX_DATA = ID_USER_PACKET_ENUM, // UPID values collide with SLikeNet's own IDs, so frame them
@@ -35,6 +36,13 @@ static SLNet::RakPeerInterface *peer = 0;
 static slikenet_peer peers[SLIKENET_MAX_PEERS];
 static SLNet::SystemAddress last_hello_sender;
 static unsigned int packets_sent, packets_received, packets_fallback; // session totals, logged at shutdown
+
+static unsigned short slikenet_port_for(unsigned short game_port)
+{
+    if (game_port > 65535 - SLIKENET_PORT_OFFSET)
+        return (unsigned short)(game_port - SLIKENET_PORT_OFFSET);
+    return (unsigned short)(game_port + SLIKENET_PORT_OFFSET);
+}
 
 static slikenet_peer *find_peer_by_addr(const void *addr, int addr_len)
 {
@@ -81,7 +89,7 @@ static void send_control(unsigned char id, const void *data, int len, const SLNe
 
 extern "C" int slikenet_startup(unsigned short game_port)
 {
-    unsigned short port = (unsigned short)(game_port + 1);
+    unsigned short port = slikenet_port_for(game_port);
 
     slikenet_shutdown();
     peer = SLNet::RakPeerInterface::GetInstance();
@@ -129,7 +137,7 @@ extern "C" void slikenet_connect_peer(const void *addr, int addr_len, const void
             return;
         char ip[INET_ADDRSTRLEN];
         snprintf(ip, sizeof(ip), "%s", inet_ntoa(p->addr.sin_addr));
-        p->system.FromStringExplicitPort(ip, (unsigned short)(ntohs(p->addr.sin_port) + 1));
+        p->system.FromStringExplicitPort(ip, slikenet_port_for(ntohs(p->addr.sin_port)));
     }
 
     SLNet::ConnectionState state = peer->GetConnectionState(p->system);
