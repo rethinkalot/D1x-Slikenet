@@ -35,7 +35,8 @@ struct slikenet_peer {
 static SLNet::RakPeerInterface *peer = 0;
 static slikenet_peer peers[SLIKENET_MAX_PEERS];
 static SLNet::SystemAddress last_hello_sender;
-static unsigned int packets_sent, packets_received, packets_fallback; // session totals, logged at shutdown
+static unsigned int packets_sent, packets_received, packets_fallback, peers_ready; // session totals
+static unsigned short lane_port; // 0 if the lane didn't start
 
 static unsigned short slikenet_port_for(unsigned short game_port)
 {
@@ -92,6 +93,8 @@ extern "C" int slikenet_startup(unsigned short game_port)
     unsigned short port = slikenet_port_for(game_port);
 
     slikenet_shutdown();
+    packets_sent = packets_received = packets_fallback = peers_ready = 0;
+    lane_port = 0;
     peer = SLNet::RakPeerInterface::GetInstance();
 
     SLNet::SocketDescriptor sd(port, 0);
@@ -104,9 +107,18 @@ extern "C" int slikenet_startup(unsigned short game_port)
         return -1;
     }
     peer->SetMaximumIncomingConnections(SLIKENET_MAX_PEERS);
-    packets_sent = packets_received = packets_fallback = 0;
+    lane_port = port;
     con_printf(SLIKENET_CON_STATUS, "\033[32mSLikeNet Lane is ACTIVE on port %u\033[0m\n", port);
     return 0;
+}
+
+extern "C" void slikenet_get_stats(unsigned int *port, unsigned int *ready, unsigned int *sent, unsigned int *received, unsigned int *fallback)
+{
+    *port = lane_port;
+    *ready = peers_ready;
+    *sent = packets_sent;
+    *received = packets_received;
+    *fallback = packets_fallback;
 }
 
 extern "C" void slikenet_shutdown(void)
@@ -177,7 +189,10 @@ extern "C" int slikenet_accept_hello(const void *addr, int addr_len)
         return 0;
     p->system = last_hello_sender;
     if (!p->ready)
+    {
+        peers_ready++;
         con_printf(SLIKENET_CON_STATUS, "\033[32mSLikeNet Peer READY: %s\033[0m\n", p->system.ToString(true));
+    }
     p->ready = true;
     send_control(ID_DXX_HELLO_ACK, 0, 0, p->system);
     return 1;
@@ -257,6 +272,7 @@ extern "C" int slikenet_receive(void *buf, int maxlen, void *out_addr, int addr_
                 if (p && !p->ready)
                 {
                     p->ready = true;
+                    peers_ready++;
                     con_printf(SLIKENET_CON_STATUS, "\033[32mSLikeNet Peer READY: %s\033[0m\n", packet->systemAddress.ToString(true));
                 }
                 break;
