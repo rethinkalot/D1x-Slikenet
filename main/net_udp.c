@@ -52,6 +52,7 @@
 #include "config.h"
 #include "vers_id.h"
 #include "physfsx.h"
+#include "slikenet_bridge.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -547,11 +548,20 @@ static void net_udp_log_host_start_netinfo(void)
 // Prototypes
 void net_udp_init();
 void net_udp_close();
+static ssize_t net_udp_slikenet_send(int sockfd, const void *msg, int len, unsigned int flags,
+    const struct sockaddr *to, socklen_t tolen);
 void net_udp_request_game_info(struct _sockaddr game_addr, int lite);
 void net_udp_listen();
 int net_udp_show_game_info();
 int net_udp_do_join_game(ubyte join_as_obs);
 int net_udp_can_join_netgame(netgame_info *game, ubyte join_as_obs);
+static ssize_t net_udp_slikenet_send(int sockfd, const void *msg, int len, unsigned int flags,
+    const struct sockaddr *to, socklen_t tolen)
+{
+    (void)sockfd; (void)flags; (void)to; (void)tolen;
+    return slikenet_send(msg, len);
+}
+
 void net_udp_flush();
 void net_udp_update_netgame(void);
 void net_udp_send_objects(void);
@@ -718,7 +728,7 @@ int udp_tracker_unregister()
     PUT_INTEL_INT( pBuf+1, Netgame.protocol.udp.GameID );
     
     // Send it off
-    result = dxx_sendto( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
+    result = net_udp_slikenet_send( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
 
     free(pBuf);
 
@@ -759,7 +769,7 @@ int udp_tracker_register()
     PUT_INTEL_SHORT( pBuf+13, DXX_VERSION_MICROi );
     
     // Send it off
-    result = dxx_sendto( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
+    result = net_udp_slikenet_send( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
 
     free(pBuf);
 
@@ -790,7 +800,7 @@ int udp_tracker_reqgames()
 #endif
     
     // Send it off
-    result = dxx_sendto( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
+    result = net_udp_slikenet_send( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
 
     free(pBuf);
 
@@ -5315,7 +5325,7 @@ void net_udp_send_to_player(ubyte* data, int len, int to_player) {
 }
 
 void net_udp_send_to_player_direct(ubyte* data, int len, int to_player) {
-    dxx_sendto(UDP_Socket[0], data, len, 0, (struct sockaddr *)&Netgame.players[to_player].protocol.udp.addr, sizeof(struct _sockaddr));
+    net_udp_slikenet_send(UDP_Socket[0], data, len, 0, (struct sockaddr *)&Netgame.players[to_player].protocol.udp.addr, sizeof(struct _sockaddr));
 }
 
 void net_udp_send_to_player_proxy(ubyte* data, int data_len, int to_player, int through_player) {
@@ -5332,7 +5342,7 @@ void net_udp_send_to_player_proxy(ubyte* data, int data_len, int to_player, int 
     buf[len] = Player_num; len++; 
     memcpy(buf + len, data, data_len); len += data_len; 
 
-    dxx_sendto(UDP_Socket[0], buf, len, 0, (struct sockaddr *)&Netgame.players[through_player].protocol.udp.addr, sizeof(struct _sockaddr));
+    net_udp_slikenet_send(UDP_Socket[0], buf, len, 0, (struct sockaddr *)&Netgame.players[through_player].protocol.udp.addr, sizeof(struct _sockaddr));
     free(buf);
 }
 
