@@ -1006,12 +1006,23 @@ int net_udp_list_join_poll( newmenu *menu, d_event *event, direct_join *dj )
             break;
         }
         case EVENT_IDLE:
+        {
+            static fix64 last_list_request = 0;
+
             if (dj->connecting)
             {
                 if (net_udp_game_connect(dj))
                     return -2;	// Success!
             }
+            // Off the default port this copy can't hear a host's broadcasts, so keep asking
+            else if (GameArg.MplUdpMyPort != 0 && GameArg.MplUdpMyPort != UDP_PORT_DEFAULT &&
+                timer_query() >= last_list_request + (F1_0*5))
+            {
+                last_list_request = timer_query();
+                net_udp_request_game_info(GBcast, 1);
+            }
             break;
+        }
         case EVENT_KEY_COMMAND:
         {
             int key = event_key_get(event);
@@ -1246,9 +1257,8 @@ void net_udp_list_join_game()
     if (udp_open_socket(0, GameArg.MplUdpMyPort != 0?GameArg.MplUdpMyPort:UDP_PORT_DEFAULT) < 0)
         return;
 
-    if (GameArg.MplUdpMyPort != 0)
-        if (udp_open_socket(1, UDP_PORT_DEFAULT) < 0)
-            nm_messagebox(TXT_WARNING, 1, TXT_OK, "Cannot open default port!\nYou can only scan for games\nmanually.");
+    // Don't also listen on the default port here: on one PC that socket catches
+    // this copy's own broadcast before a host on that port can hear it.
 
     // prepare broadcast address to discover games
     memset(&GBcast, '\0', sizeof(struct _sockaddr));
