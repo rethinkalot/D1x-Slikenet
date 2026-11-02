@@ -92,6 +92,7 @@ if(UDP)
         net_udp.c
         net_udp_socket.c
         net_udp_ui.c
+        slikenet_bridge.cpp
         )
 endif()
 

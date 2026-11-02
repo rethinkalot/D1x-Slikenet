@@ -20,7 +20,7 @@ static unsigned int UDP_num_recvfrom = 0, UDP_len_recvfrom = 0;
 ssize_t dxx_sendto(int sockfd, const void *msg, int len, unsigned int flags,
 	const struct sockaddr *to, socklen_t tolen)
 {
-	ssize_t result = sendto(sockfd, msg, len, flags, to, tolen);
+	ssize_t result = sendto(sockfd, (const char *)msg, len, flags, to, tolen);
 	if (result >= 0)
 	{
 		UDP_num_sendto++;
@@ -36,7 +36,7 @@ ssize_t dxx_sendto(int sockfd, const void *msg, int len, unsigned int flags,
 ssize_t dxx_recvfrom(int sockfd, void *buf, int len, unsigned int flags,
 	struct sockaddr *from, socklen_t *fromlen)
 {
-	ssize_t result = recvfrom(sockfd, buf, len, flags, from, fromlen);
+	ssize_t result = recvfrom(sockfd, (char *)buf, len, flags, from, fromlen);
 	if (result > 0)
 	{
 		UDP_num_recvfrom++;
