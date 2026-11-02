@@ -10,7 +10,7 @@ static SLNet::RakPeerInterface *peer = 0;
 extern "C" void slikenet_init(void) {
     if (peer) return;
     peer = SLNet::RakPeerInterface::GetInstance();
-    SLNet::SocketDescriptor sd(60000, 0);
+    SLNet::SocketDescriptor sd(42425, 0);
     peer->Startup(32, &sd, 1);
     peer->SetMaximumIncomingConnections(32);
 }
