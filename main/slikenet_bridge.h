@@ -3,7 +3,7 @@
 extern "C" {
 #endif
 
-/* In-game traffic runs over SLikeNet on the game port + 1. Peers are always
+/* In-game traffic runs over SLikeNet on the game port + 1000. Peers are always
  * named by their plain UDP player address (struct _sockaddr), and the bridge
  * keeps the mapping to the SLikeNet address, which NAT may have changed. */
 

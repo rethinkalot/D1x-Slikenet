@@ -69,7 +69,7 @@ The testbench folders also hold `gamelog.txt` and `memlog.txt`.
 
 Check these against the current code before relying on them:
 
-- Two ports: plain UDP on the game port (42424) for discovery, lobby, tracker, join and sync; SLikeNet on game port + 1 (42425) for in-game traffic. Hosts forward both. Two instances on one PC must not use adjacent game ports, or one's SLikeNet port lands on the other's plain UDP port: `-udp_myport` in `d1x.ini` is 42424 for `D1x` and 42426 for `D1x2`.
+- Two ports: plain UDP on the game port (42424) for discovery, lobby, tracker, join and sync; SLikeNet on game port + 1000 for in-game traffic (`SLIKENET_PORT_OFFSET` in `slikenet_bridge.cpp`). Hosts forward both. In `d1x.ini`, `-udp_hostport` is 42424 on both copies, and `-udp_myport` is 42424 for `D1x` (SLikeNet 43424) and 42425 for `D1x2` (SLikeNet 43425).
 - The peer starts and stops with game socket 0 in `udp_open_socket` / `udp_close_socket`. If it can't bind, the game stays on plain UDP.
 - Only 4 packet types ride SLikeNet; `dxx_sendto` in `net_udp_socket.c` picks the transport by packet ID (`udp_send_slikenet`), falling back to plain UDP when the peer isn't ready:
   - `UPID_PDATA` (position/velocity/orientation): sequenced, newest wins.
