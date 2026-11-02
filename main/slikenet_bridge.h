@@ -34,6 +34,10 @@ int  slikenet_accept_hello(const void *addr, int addr_len);
  * use plain UDP. mode is one of the SLIKENET_* delivery modes above. */
 int  slikenet_send_to_peer(const void *addr, int addr_len, const void *data, int len, int mode);
 
+/* Totals for the current or most recent session. port is 0 if the lane didn't
+ * start. Still valid after slikenet_shutdown(). */
+void slikenet_get_stats(unsigned int *port, unsigned int *ready, unsigned int *sent, unsigned int *received, unsigned int *fallback);
+
 /* Returns the packet length, or 0 once nothing is left. out_addr is filled for
  * SLIKENET_PACKET_DATA only. */
 int  slikenet_receive(void *buf, int maxlen, void *out_addr, int addr_len, int *out_type);

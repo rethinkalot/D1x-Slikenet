@@ -484,6 +484,14 @@ static void net_udp_telemetry_log_summary(void)
         net_udp_fire_history_count, net_udp_fire_history_total,
         net_udp_fire_history_tx_total, net_udp_fire_history_rx_total,
         NET_TELEMETRY_FIRE_CAPACITY);
+    {
+        unsigned int lane_port, peers_ready, lane_sent, lane_received, lane_fallback;
+
+        slikenet_get_stats(&lane_port, &peers_ready, &lane_sent, &lane_received, &lane_fallback);
+        PHYSFSX_printf(memlog,
+            "SLikeNet lane: port=%u peers-ready=%u sent=%u received=%u plain-UDP-while-not-ready=%u\n",
+            lane_port, peers_ready, lane_sent, lane_received, lane_fallback);
+    }
     PHYSFS_close(memlog);
 }
 
