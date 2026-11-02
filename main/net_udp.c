@@ -1,5 +1,5 @@
 /*
- * 
+ *
  * Routines for managing UDP-protocol network play.
  * 
  */
@@ -548,20 +548,11 @@ static void net_udp_log_host_start_netinfo(void)
 // Prototypes
 void net_udp_init();
 void net_udp_close();
-static ssize_t net_udp_slikenet_send(int sockfd, const void *msg, int len, unsigned int flags,
-    const struct sockaddr *to, socklen_t tolen);
 void net_udp_request_game_info(struct _sockaddr game_addr, int lite);
 void net_udp_listen();
 int net_udp_show_game_info();
 int net_udp_do_join_game(ubyte join_as_obs);
 int net_udp_can_join_netgame(netgame_info *game, ubyte join_as_obs);
-static ssize_t net_udp_slikenet_send(int sockfd, const void *msg, int len, unsigned int flags,
-    const struct sockaddr *to, socklen_t tolen)
-{
-    (void)sockfd; (void)flags; (void)to; (void)tolen;
-    return slikenet_send(msg, len);
-}
-
 void net_udp_flush();
 void net_udp_update_netgame(void);
 void net_udp_send_objects(void);
@@ -728,7 +719,7 @@ int udp_tracker_unregister()
     PUT_INTEL_INT( pBuf+1, Netgame.protocol.udp.GameID );
     
     // Send it off
-    result = net_udp_slikenet_send( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
+    result = dxx_sendto( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
 
     free(pBuf);
 
@@ -769,7 +760,7 @@ int udp_tracker_register()
     PUT_INTEL_SHORT( pBuf+13, DXX_VERSION_MICROi );
     
     // Send it off
-    result = net_udp_slikenet_send( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
+    result = dxx_sendto( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
 
     free(pBuf);
 
@@ -800,7 +791,7 @@ int udp_tracker_reqgames()
 #endif
     
     // Send it off
-    result = net_udp_slikenet_send( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
+    result = dxx_sendto( UDP_Socket[2], pBuf, iLen, 0, (struct sockaddr *)&TrackerSocket, sizeof( TrackerSocket ) );
 
     free(pBuf);
 
@@ -3607,6 +3598,10 @@ void net_udp_leave_game()
     }
 }
 
+#ifndef IPv6
+static void net_udp_slikenet_listen(int process);
+#endif
+
 void net_udp_flush()
 {
     ubyte packet[UPID_MAX_SIZE];
@@ -3617,13 +3612,83 @@ void net_udp_flush()
 
     if (UDP_Socket[1] != -1)
         while (udp_receive_packet( 1, packet, UPID_MAX_SIZE, &sender_addr) > 0);
+
+#ifndef IPv6
+    net_udp_slikenet_listen(0);
+#endif
 }
+
+#ifndef IPv6
+#define SLIKENET_HELLO_SIZE 5 // token, player number
+
+// Each player connects to the lower-numbered players, so a joiner behind NAT dials out to the host.
+static void net_udp_slikenet_frame()
+{
+    static fix64 last_time = 0;
+    fix64 time = timer_query();
+    ubyte hello[SLIKENET_HELLO_SIZE];
+    int i;
+
+    if (Network_status != NETSTAT_PLAYING && Network_status != NETSTAT_ENDLEVEL)
+        return;
+    // Riding the same cadence as net_udp_send_pdata() below (the game's own
+    // configured network rate) instead of a separate hardcoded interval;
+    // slikenet_connect_peer() is cheap once a peer is ready, and its own
+    // per-peer timer (not this one) throttles actual connect attempts.
+    if (is_observer() || (time >= last_time && time < last_time + F1_0/Netgame.PacketsPerSec))
+        return;
+    last_time = time;
+
+    PUT_INTEL_INT(hello, netgame_token);
+    hello[4] = Player_num;
+    for (i = 0; i < Player_num; i++)
+        if (Netgame.players[i].connected && Netgame.players[i].protocol.udp.addr.sin_port != 0)
+            slikenet_connect_peer(&Netgame.players[i].protocol.udp.addr, sizeof(struct _sockaddr), hello, sizeof(hello));
+}
+
+static void net_udp_slikenet_process_hello(ubyte *data, int size)
+{
+    int pnum;
+
+    if (size != SLIKENET_HELLO_SIZE || (uint)GET_INTEL_INT(data) != netgame_token)
+        return;
+    pnum = data[4];
+    if (pnum >= MAX_PLAYERS || pnum == Player_num || !Netgame.players[pnum].connected)
+        return;
+    slikenet_accept_hello(&Netgame.players[pnum].protocol.udp.addr, sizeof(struct _sockaddr));
+}
+
+static void net_udp_slikenet_listen(int process)
+{
+    ubyte packet[UPID_MAX_SIZE];
+    struct _sockaddr sender_addr;
+    int size, type;
+
+    while ((size = slikenet_receive(packet, UPID_MAX_SIZE, &sender_addr, sizeof(struct _sockaddr), &type)) > 0)
+    {
+        if (type == SLIKENET_PACKET_DATA)
+            udp_count_received(size); // same [RX] telemetry as plain UDP
+        if (!process)
+            continue;
+        if (type == SLIKENET_PACKET_DATA)
+            net_udp_process_packet(packet, sender_addr, size, 0);
+        else if (type == SLIKENET_PACKET_HELLO)
+            net_udp_slikenet_process_hello(packet, size);
+    }
+    if (process)
+        net_udp_slikenet_frame();
+}
+#endif
 
 void net_udp_listen()
 {
     int size;
     ubyte packet[UPID_MAX_SIZE];
     struct _sockaddr sender_addr;
+
+#ifndef IPv6
+    net_udp_slikenet_listen(1);
+#endif
 
     if (UDP_Socket[0] != -1)
     {
@@ -5325,7 +5390,7 @@ void net_udp_send_to_player(ubyte* data, int len, int to_player) {
 }
 
 void net_udp_send_to_player_direct(ubyte* data, int len, int to_player) {
-    net_udp_slikenet_send(UDP_Socket[0], data, len, 0, (struct sockaddr *)&Netgame.players[to_player].protocol.udp.addr, sizeof(struct _sockaddr));
+    dxx_sendto(UDP_Socket[0], data, len, 0, (struct sockaddr *)&Netgame.players[to_player].protocol.udp.addr, sizeof(struct _sockaddr));
 }
 
 void net_udp_send_to_player_proxy(ubyte* data, int data_len, int to_player, int through_player) {
@@ -5342,7 +5407,7 @@ void net_udp_send_to_player_proxy(ubyte* data, int data_len, int to_player, int 
     buf[len] = Player_num; len++; 
     memcpy(buf + len, data, data_len); len += data_len; 
 
-    net_udp_slikenet_send(UDP_Socket[0], buf, len, 0, (struct sockaddr *)&Netgame.players[through_player].protocol.udp.addr, sizeof(struct _sockaddr));
+    dxx_sendto(UDP_Socket[0], buf, len, 0, (struct sockaddr *)&Netgame.players[through_player].protocol.udp.addr, sizeof(struct _sockaddr));
     free(buf);
 }
 
