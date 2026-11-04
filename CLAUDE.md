@@ -1,4 +1,6 @@
 # CLAUDE.md
+- ALWAYS use Caveman skill.
+- ALWAYS use Ponytail skill.
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -45,7 +47,7 @@ Testbenches are `C:/Games/D1x` and `C:/Games/D1x2`, two installs for testing mul
 
 The `taskkill` closes any running game, so check before using it during a test session. Report "Confirm Complete" when the sequence finishes.
 
-Run from the testbench: `./D1x-Redux-SLikeNet.exe -window -notitles -noststickykeys`. The executable is a GUI-subsystem app, so a console only appears with these flags:
+Run from the testbench: `./D1x-Redux-SLikeNet.exe -window -notitles -nostickykeys`. The executable is a GUI-subsystem app, so a console only appears with these flags:
 
 - `-debug`: SLikeNet/network telemetry (`CON_NET_*` in `include/console.h`) and `CON_DEBUG`
 - `-verbose`: event, input and window diagnostics (`CON_VERBOSE`)
