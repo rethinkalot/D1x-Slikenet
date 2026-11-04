@@ -62,7 +62,7 @@ The testbench folders also hold `gamelog.txt` and `memlog.txt`.
 
 ### Multiplayer layers
 
-1. `main/multi.c`, `main/multibot.c`: game-level messages and robot sync. Robot positions use `quaternionpos` and are blended per frame by `multi_blend_robot_positions()`, called from `do_ai_frame_all()`. Robots owned locally (`REMOTE_OWNER == Player_num`) must not be blended.
+1. `main/multi.c`, `main/multibot.c`: game-level messages and robot sync. Robot positions are `shortpos` (`MULTI_ROBOT_POSITION`). For a robot another player owns, `multi_do_robot_position()` zeroes its velocity, clears `PF_LEVELLING | PF_TURNROLL`, places it at the packet pose and rebuilds the orientation, and `do_ai_frame()` / `do_physics_sim()` return early for it, so only packets move it. `multi_blend_robot_positions()` (called from `do_ai_frame_all()`) only refreshes segments; there is no per-frame blend and no `quaternionpos` robot sync. Robots owned locally (`REMOTE_OWNER == Player_num`) are skipped.
 2. `main/net_udp.c`, `main/net_udp_ui.c`: session, join, sync and tracker logic.
 3. `main/net_udp_socket.c`: raw sockets and receive (`udp_receive_packet`).
 4. `main/slikenet_bridge.cpp` / `.h`: the C-callable wrapper around `SLNet::RakPeerInterface`, linked to `slikenet_modern` (built in `thirdparty/CMakeLists.txt`) as a whole archive.

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.24)
 project(d1x-redux VERSION 1.1)
 
 option(OPENGL "Build with OpenGL support [default: ON]" ON)
