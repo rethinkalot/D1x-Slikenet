@@ -339,7 +339,7 @@ void con_switch_log(const char* filename)
 			time_t now = time(NULL);
 			struct tm *t = localtime(&now);
 			snprintf(filenameBuffer, SDL_arraysize(filenameBuffer), "gamelog-%04d%02d%02d-%02d%02d%02d.txt",
-				t->tm_year + 1900, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+				t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 		} else {
 			strcpy(filenameBuffer, "gamelog.txt");
 		}

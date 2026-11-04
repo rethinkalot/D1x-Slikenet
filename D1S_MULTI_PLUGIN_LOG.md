@@ -79,3 +79,7 @@ Builds clean; not yet play-tested. Console/log output only; no network behaviour
 
 - `main/gamecntl.c` `handle_observer_control_event`: the Previous / Next player branch was missing (lost when the Cycle camera toggle was rewritten), so the custom Next and Previous player binds did nothing and the function fell off the end without returning. Restored; it only acts while following a player. The stock Ctrl binds are unchanged.
 - Found, not changed: `do_obs_menu` (`menu.c`) uses `if (i < 0) break;`, which exits on "Switch Game Mode" and "Share Settings" and discards edits on ESC (should be `i == -1`); `multi.c` `!PlayerCfg.ObsChat` lacks its `[mode]` index; the advanced netgame menu sets `ShortPackets` from the Difficulty slider (`net_udp_ui.c:273`).
+
+## Follow-ups from the 2026-11-04 tests
+
+Builds clean and deployed; not yet play-tested. Scores at leave now print score, kills and deaths; the bridge ignores observer addresses in its fallback counter, throttles the hello resend, refuses a same-IP takeover and logs a failed `Connect()`; the handshake "Requested update"/"not updated" lines only log real changes; `do_obs_menu` only exits on ESC (-1) so Switch Game Mode and Share Settings work; `ObsChat` is indexed by game mode in `multi_do_obs_message`. ShortPackets is deliberately left as is. See D2S_MULTI_PLUGIN_LOG.md for the matching D2s items.
