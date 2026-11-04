@@ -2687,7 +2687,8 @@ int newdemo_read_frame_information(int rewrite)
     else
     {
         Rear_view = 0;
-        if (PlayerCfg.CurrentCockpitMode != PlayerCfg.PreferredCockpitMode)
+        // init_cockpit forces full screen for an observer without a cockpit; reselecting the preferred mode every frame would rebuild the canvases each time
+        if (PlayerCfg.CurrentCockpitMode != PlayerCfg.PreferredCockpitMode && !(is_observer() && !can_draw_observer_cockpit()))
             select_cockpit(PlayerCfg.PreferredCockpitMode);
     }
 
@@ -3034,7 +3035,9 @@ void newdemo_playback_one_frame()
             int target_fps = PlayerCfg.maxFps > 0 ? PlayerCfg.maxFps : 60;
             int ff_steps = (target_fps > 60) ? (target_fps / 3) : 10;
             if (ff_steps < 10) ff_steps = 10;
-            
+
+            // temporary: tracking the blank HUD on fast-forward
+            int ff_dbg_cockpit = PlayerCfg.CurrentCockpitMode;
             for (i = 0; i < ff_steps; i++)
             {
                 if (newdemo_read_frame_information(0) == -1)
@@ -3046,6 +3049,8 @@ void newdemo_playback_one_frame()
                     break;
                 }
             }
+            if (ff_dbg_cockpit != PlayerCfg.CurrentCockpitMode)
+                con_printf(CON_NORMAL, "ND FF: cockpit %d -> %d (preferred %d) dead %d rear %d observer %d obs_player %d frame %d\n", ff_dbg_cockpit, PlayerCfg.CurrentCockpitMode, PlayerCfg.PreferredCockpitMode, nd_playback_v_dead, nd_playback_v_rear, is_observer(), Current_obs_player, nd_playback_v_framecount);
         }
         else
             Newdemo_vcr_state = ND_STATE_PAUSED;

@@ -376,6 +376,51 @@ static void draw_cloaked_object(object *obj,g3s_lrgb light,fix *glow,fix64 cloak
 
 }
 
+// Fade level for a player ship seen by an observer, or GR_FADE_OFF for none.
+// The observed ship gets the normal fade when "Transparent third person ship" is on, and any ship
+// closer than 15 units to the camera fades further, to almost invisible at 5 units, whatever the option.
+// Fade levels here: 0 is solid and a higher level is more transparent (alpha = 1 - level/33).
+static int observer_ship_fade(object *obj)
+{
+    if (obj->type != OBJ_PLAYER || !is_observer())
+        return GR_FADE_OFF;
+
+    int base = 0;
+    fix dist = vm_vec_dist_quick(&Viewer->pos, &obj->pos);
+
+    if (!PlayerCfg.ObsTransparentThirdPerson[get_observer_game_mode()]) {
+        // normal fade is off, only the close-up fade below applies
+    } else if (Newdemo_state == ND_STATE_PLAYBACK) {
+        // A demo doesn't store which player was observed, so treat the ship nearest the camera as the observed one.
+        if (dist <= F1_0 * 32) {
+            int i, nearest = 1;
+            for (i = 0; i < MAX_PLAYERS; i++) {
+                if (Players[i].connected != CONNECT_PLAYING || Players[i].objnum < 0 || Players[i].objnum > Highest_object_index)
+                    continue;
+                object *other = &Objects[Players[i].objnum];
+                if (other == obj || other == Viewer || other->type != OBJ_PLAYER)
+                    continue;
+                if (vm_vec_dist_quick(&Viewer->pos, &other->pos) < dist) {
+                    nearest = 0;
+                    break;
+                }
+            }
+            if (nearest)
+                base = CLOAKED_FADE_LEVEL * 2 / 3;
+        }
+    } else if (Obs_at_distance && is_observing_player() && Players[Current_obs_player].objnum == obj - Objects)
+        base = CLOAKED_FADE_LEVEL * 2 / 3;
+
+    if (dist < F1_0 * 15) {
+        int wedge = 32;
+        if (dist > F1_0 * 5)
+            wedge -= (int)(((long long)(32 - base) * (dist - F1_0 * 5)) / (F1_0 * 10));
+        if (wedge > base)
+            base = wedge;
+    }
+    return base ? base : GR_FADE_OFF;
+}
+
 //draw an object which renders as a polygon model
 void draw_polygon_object(object *obj)
 {
@@ -461,9 +506,9 @@ void draw_polygon_object(object *obj)
                                alt_textures);
             }
 
-            int observed = is_observer() && Obs_at_distance && obj->type == OBJ_PLAYER && is_observing_player() && Players[Current_obs_player].objnum == obj - Objects;
-            if (observed && PlayerCfg.ObsTransparentThirdPerson[get_observer_game_mode()])
-                gr_settransblend(CLOAKED_FADE_LEVEL*2/3, GR_BLEND_NORMAL);
+            int observer_fade = observer_ship_fade(obj);
+            if (observer_fade != GR_FADE_OFF)
+                gr_settransblend(observer_fade, GR_BLEND_NORMAL);
             draw_polygon_model(&obj->pos,
                        &obj->orient,
                        obj->rtype.pobj_info.anim_angles,obj->rtype.pobj_info.model_num,
@@ -471,7 +516,7 @@ void draw_polygon_object(object *obj)
                        light,
                        engine_glow_value,
                        alt_textures);
-            if (observed && PlayerCfg.ObsTransparentThirdPerson[get_observer_game_mode()])
+            if (observer_fade != GR_FADE_OFF)
                 gr_settransblend(GR_FADE_OFF, GR_BLEND_NORMAL);
 
 #ifndef OGL // in software rendering must draw inner model last
