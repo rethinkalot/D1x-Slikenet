@@ -775,6 +775,13 @@ static int handle_observer_control_event(d_event *event)
         }
         return 1;
     }
+
+    // Previous / Next player: only while following a player, otherwise let the key fall through
+    if (!is_observing_player())
+        return 0;
+
+    cycle_observed_player(action == OBSERVER_CONTROL_PREVIOUS_PLAYER ? -1 : 1, 0);
+    return 1;
 }
 
 int HandleGameKey(int key)
