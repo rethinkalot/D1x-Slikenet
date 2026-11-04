@@ -2214,7 +2214,7 @@ void multi_do_message(const ubyte *cbuf)
 
 void multi_do_obs_message(const ubyte *cbuf)
 {
-    if (!PlayerCfg.ObsChat) {
+    if (!PlayerCfg.ObsChat[get_observer_game_mode()]) {
         return;
     }
     const char *buf = (const char*)cbuf;

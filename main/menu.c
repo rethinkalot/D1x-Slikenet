@@ -2540,8 +2540,8 @@ void do_obs_menu(void)
 
 		i = newmenu_do1(NULL, "JinX Mode Options", SDL_arraysize(m), m, menu_obs_options_handler, &obs_menu_data, i);
 
-		// THE CIRCUIT BREAKER GATE: If ESC (-1) is caught, break instantly to prevent configuration overwrite corruption
-		if (i < 0) {
+		// ESC (-1) leaves the menu. -2 (mode switched) and -3 (overwrite modes) must fall through so the loop continues.
+		if (i == -1) {
 			break;
 		}
 

@@ -16,6 +16,7 @@ extern "C" void con_printf(int priority, const char *fmt, ...);
 #define SLIKENET_MAX_PEERS 24 // MAX_PLAYERS + MAX_OBSERVERS
 #define SLIKENET_MAX_PACKET 1024 // UPID_MAX_SIZE
 #define SLIKENET_RETRY_MS 5000
+#define SLIKENET_HELLO_MS 1000 // resend an unanswered hello at most this often
 #define SLIKENET_PORT_OFFSET 1000 // far enough that copies on adjacent game ports (42424, 42425) don't collide
 
 enum {
@@ -30,6 +31,7 @@ struct slikenet_peer {
     struct sockaddr_in addr; // plain UDP player address
     SLNet::SystemAddress system;
     SLNet::TimeMS last_attempt;
+    SLNet::TimeMS last_hello;
 };
 
 static SLNet::RakPeerInterface *peer = 0;
@@ -74,6 +76,7 @@ static slikenet_peer *add_peer(const void *addr, int addr_len)
             peers[i].ready = false;
             memcpy(&peers[i].addr, addr, sizeof(struct sockaddr_in));
             peers[i].last_attempt = 0;
+            peers[i].last_hello = 0;
             return &peers[i];
         }
     return 0;
@@ -155,7 +158,13 @@ extern "C" void slikenet_connect_peer(const void *addr, int addr_len, const void
     SLNet::ConnectionState state = peer->GetConnectionState(p->system);
     if (state == SLNet::IS_CONNECTED)
     {
-        send_control(ID_DXX_HELLO, hello, hello_len, p->system);
+        // The other side may keep refusing the hello (wrong token, player not marked connected yet), so don't resend it every tick
+        SLNet::TimeMS now = SLNet::GetTimeMS();
+        if (!p->last_hello || now - p->last_hello >= SLIKENET_HELLO_MS)
+        {
+            p->last_hello = now;
+            send_control(ID_DXX_HELLO, hello, hello_len, p->system);
+        }
         return;
     }
     if (state != SLNet::IS_NOT_CONNECTED && state != SLNet::IS_DISCONNECTED)
@@ -168,7 +177,9 @@ extern "C" void slikenet_connect_peer(const void *addr, int addr_len, const void
 
     char ip[INET_ADDRSTRLEN];
     snprintf(ip, sizeof(ip), "%s", inet_ntoa(p->addr.sin_addr));
-    peer->Connect(ip, p->system.GetPort(), 0, 0);
+    SLNet::ConnectionAttemptResult result = peer->Connect(ip, p->system.GetPort(), 0, 0);
+    if (result != SLNet::CONNECTION_ATTEMPT_STARTED)
+        con_printf(SLIKENET_CON_DEALLOC, "\033[32mSLikeNet Connect to %s:%u \033[31mFAILED\033[32m (error %d), retrying\033[0m\n", ip, (unsigned int)p->system.GetPort(), (int)result);
 }
 
 extern "C" int slikenet_accept_hello(const void *addr, int addr_len)
@@ -183,6 +194,9 @@ extern "C" int slikenet_accept_hello(const void *addr, int addr_len)
 
     // The same player may reconnect from a new SLikeNet address
     slikenet_peer *p = find_peer_by_addr(addr, addr_len);
+    // That player's lane is still up on another address: another player behind the same IP must not take it over
+    if (p && p->ready && !(p->system == last_hello_sender) && peer->GetConnectionState(p->system) == SLNet::IS_CONNECTED)
+        return 0;
     if (!p)
         p = add_peer(addr, addr_len);
     if (!p)
@@ -206,7 +220,9 @@ extern "C" int slikenet_send_to_peer(const void *addr, int addr_len, const void 
     if (!peer || len <= 0 || len > SLIKENET_MAX_PACKET)
         return -1;
     slikenet_peer *p = find_peer_by_addr(addr, addr_len);
-    if (!p || !p->ready)
+    if (!p)
+        return -1; // not a lane peer (observers, strangers): plain UDP, and not counted as a fallback
+    if (!p->ready)
     {
         packets_fallback++;
         return -1;

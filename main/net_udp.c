@@ -338,7 +338,8 @@ unsigned int net_udp_telemetry_copy_fire_history(
 static netgame_info net_udp_leave_snapshot;
 static char net_udp_leave_timestamp[32];
 static char net_udp_leave_callsigns[MAX_PLAYERS][CALLSIGN_LEN + 1];
-static int net_udp_leave_scores[MAX_PLAYERS];
+static int net_udp_leave_scores[MAX_PLAYERS]; // score is 0 outside coop; kills and deaths are what count in Anarchy
+static int net_udp_leave_kills[MAX_PLAYERS], net_udp_leave_deaths[MAX_PLAYERS];
 static int net_udp_leave_snapshot_valid;
 
 /* Write one compact end-of-session summary to a separate memlog file. */
@@ -347,6 +348,8 @@ static int net_udp_telemetry_gap_cmp(const void *a, const void *b)
     const fix64 ga = *(const fix64 *)a, gb = *(const fix64 *)b;
     return (ga > gb) - (ga < gb);
 }
+
+static void net_udp_log_host_start_netinfo(PHYSFS_file *memlog);
 
 static void net_udp_telemetry_log_summary(void)
 {
@@ -395,6 +398,7 @@ static void net_udp_telemetry_log_summary(void)
     if (!memlog)
     {
         con_printf(CON_URGENT, "Unable to create telemetry memlog.\n");
+        net_udp_log_host_start_netinfo(NULL); // still print the host-start footer to the console
         return;
     }
 
@@ -418,10 +422,12 @@ static void net_udp_telemetry_log_summary(void)
         PHYSFSX_printf(memlog, "Player scores at leave (%s):\n", net_udp_leave_timestamp);
         for (player_num = 0; player_num < MAX_PLAYERS; player_num++)
             if (net_udp_leave_callsigns[player_num][0])
-                PHYSFSX_printf(memlog, "  %s: %d\n",
-                    net_udp_leave_callsigns[player_num], net_udp_leave_scores[player_num]);
+                PHYSFSX_printf(memlog, "  %s: score %d, kills %d, deaths %d\n",
+                    net_udp_leave_callsigns[player_num], net_udp_leave_scores[player_num], net_udp_leave_kills[player_num], net_udp_leave_deaths[player_num]);
         PHYSFSX_printf(memlog, "\n");
     }
+    net_udp_log_host_start_netinfo(memlog);
+    PHYSFSX_printf(memlog, "\n");
     for (player_num = 0; player_num < MAX_PLAYERS; player_num++)
     {
         const unsigned int count = net_udp_position_history_count[player_num];
@@ -548,6 +554,8 @@ static void net_udp_capture_leave_snapshot(void)
     {
         memcpy(net_udp_leave_callsigns[i], Players[i].callsign, CALLSIGN_LEN + 1);
         net_udp_leave_scores[i] = Players[i].score;
+        net_udp_leave_kills[i] = Players[i].net_kills_total;
+        net_udp_leave_deaths[i] = Players[i].net_killed_total;
         net_udp_leave_snapshot.player_score[i] = Players[i].score;
     }
 
@@ -559,7 +567,7 @@ static void net_udp_capture_leave_snapshot(void)
     net_udp_leave_snapshot_valid = 1;
 }
 
-static void net_udp_log_host_start_netinfo(void)
+static void net_udp_log_host_start_netinfo(PHYSFS_file *memlog)
 {
     const netgame_info *g = &net_udp_host_start_snapshot;
     const char *spawn_style[] = { "No Invuln", "Short Invuln", "Long Invuln", "Preview" };
@@ -569,40 +577,54 @@ static void net_udp_log_host_start_netinfo(void)
     const char *gauss = g->GaussAmmoStyle < (sizeof(gauss_style) / sizeof(gauss_style[0])) ? gauss_style[g->GaussAmmoStyle] : "Unknown";
     const char *joinable = (!g->RefusePlayers && !(g->game_flags & NETGAME_FLAG_CLOSED)) ? "Open" : "Closed";
     char max_time[32];
+    char line[300];
+    // -debug keeps the usual green status layout; without it the settings still go to gamelog.txt at normal priority
+    int pri = (GameArg.DbgVerbose >= CON_DEBUG) ? CON_NET_STATUS : CON_NORMAL;
+
+    if (!net_udp_host_start_snapshot_valid)
+        return;
     if (g->PlayTimeAllowed)
         snprintf(max_time, sizeof(max_time), "%d min", g->PlayTimeAllowed * 5);
     else
         strcpy(max_time, "N/A");
 
-    con_printf(CON_NET_STATUS, "\n\033[32mSLikeNet Host-Start Netgame Snapshot (debug footer)\033[0m\n");
-    con_printf(CON_NET_STATUS, "\033[32mStart time: %s | Game: %s | Mission: %s (%s) | Level: %d\033[0m\n",
+    // Each settings line goes to the console (-debug) and to memlog.txt (always, so it is there for games someone else hosted)
+#define NETINFO(...) do { \
+        snprintf(line, sizeof(line), __VA_ARGS__); \
+        con_printf(pri, "\033[32m%s\033[0m\n", line); \
+        if (memlog) PHYSFSX_printf(memlog, "%s\n", line); \
+    } while (0)
+
+    con_printf(pri, "\n\033[32mSLikeNet Host-Start Netgame Snapshot (debug footer)\033[0m\n");
+    NETINFO("Start time: %s | Game: %s | Mission: %s (%s) | Level: %d",
         net_udp_host_start_timestamp, g->game_name, g->mission_title, g->mission_name, g->levelnum);
-    con_printf(CON_NET_STATUS, "\033[32mMode: %s | Players at start: %u/%u | Difficulty: %s | Version: %s\033[0m\n",
+    NETINFO("Mode: %s | Players at start: %u/%u | Difficulty: %s | Version: %s",
         mode, g->numplayers, g->max_numplayers, MENU_DIFFICULTY_TEXT(g->difficulty), RH_VERSION);
-    con_printf(CON_NET_STATUS, "\033[32mJoinable: %s | Show on minimap: %s | Status: Playing at capture\033[0m\n",
+    NETINFO("Joinable: %s | Show on minimap: %s | Status: Playing at capture",
         joinable, (g->game_flags & NETGAME_FLAG_SHOW_MAP) ? "Yes" : "No");
-    con_printf(CON_NET_STATUS, "\033[32mReactor life: %d min | Max time: %s | Kill goal: %d | Spawn: %s\033[0m\n",
+    NETINFO("Reactor life: %d min | Max time: %s | Kill goal: %d | Spawn: %s",
         g->control_invul_time / (F1_0 * 60), max_time, g->KillGoal * 10, spawn);
-    con_printf(CON_NET_STATUS, "\033[32mPPS: %d | Short packets: %s | Retro protocol: %s | Bright ships: %s\033[0m\n",
+    NETINFO("PPS: %d | Short packets: %s | Retro protocol: %s | Bright ships: %s",
         g->PacketsPerSec, g->ShortPackets ? "Yes" : "No", g->RetroProtocol ? "Yes" : "No", g->BrightPlayers ? "Yes" : "No");
-    con_printf(CON_NET_STATUS, "\033[32mPrimary multiplier: %ux | Secondary multiplier: %ux | Secondary cap: %s | Low Vulcan: %s\033[0m\n",
+    NETINFO("Primary multiplier: %ux | Secondary multiplier: %ux | Secondary cap: %s | Low Vulcan: %s",
         g->PrimaryDupFactor ? g->PrimaryDupFactor : 1,
         g->SecondaryDupFactor ? g->SecondaryDupFactor : 1,
         g->SecondaryCapFactor == 0 ? "Uncapped" : (g->SecondaryCapFactor == 1 ? "Max Six" : "Max Two"),
         g->LowVulcan ? "Yes" : "No");
-    con_printf(CON_NET_STATUS, "\033[32mCustom colors: %s | Custom models/textures: %s | Homing rate: %u | Confirmed sparks: %s\033[0m\n",
+    NETINFO("Custom colors: %s | Custom models/textures: %s | Homing rate: %u | Confirmed sparks: %s",
         g->AllowPreferredColors ? "Yes" : "No", g->AllowCustomModelsTextures ? "Yes" : "No", g->HomingUpdateRate, g->RemoteHitSpark ? "Yes" : "No");
-    con_printf(CON_NET_STATUS, "\033[32mReduced flash: %s | Gauss ammo: %s | Allowed-items mask: 0x%08lx\033[0m\n",
+    NETINFO("Reduced flash: %s | Gauss ammo: %s | Allowed-items mask: 0x%08lx",
         g->ReducedFlash ? "Yes" : "No", gauss, (unsigned long)g->AllowedItems);
-    con_printf(CON_NET_STATUS, "\033[32mThis footer contains only the captured host-start settings; no end-game values.\033[0m\n");
+#undef NETINFO
+    con_printf(pri, "\033[32mThis footer contains only the captured host-start settings; no end-game values.\033[0m\n");
     if (net_udp_leave_snapshot_valid)
     {
-        con_printf(CON_NET_STATUS, "\n\033[32mPlayer scores at leave (%s):\033[0m\n",
+        con_printf(pri, "\n\033[32mPlayer scores at leave (%s):\033[0m\n",
             net_udp_leave_timestamp);
         for (unsigned int i = 0; i < MAX_PLAYERS; i++)
             if (net_udp_leave_callsigns[i][0])
-                con_printf(CON_NET_STATUS, "\033[32m  %s: %d\033[0m\n",
-                    net_udp_leave_callsigns[i], net_udp_leave_scores[i]);
+                con_printf(pri, "\033[32m  %s: score %d, kills %d, deaths %d\033[0m\n",
+                    net_udp_leave_callsigns[i], net_udp_leave_scores[i], net_udp_leave_kills[i], net_udp_leave_deaths[i]);
     }
 }
 
@@ -3188,6 +3210,9 @@ void net_udp_process_packet(ubyte *data, struct _sockaddr sender_addr, int lengt
             net_udp_process_p2p_reattempt_direct( data, sender_addr, length);
             break; 
 
+        case UPID_OBSQUIT: // the host already handled it above; nobody else needs it
+            break;
+
         default:
             con_printf(CON_DEBUG, "unknown packet type received - type %i\n", data[0]);
             break;
@@ -3656,12 +3681,8 @@ void net_udp_leave_game()
     change_playernum_to(0);
     net_udp_flush();
     net_udp_close();
-    net_udp_telemetry_log_summary();
-    if (net_udp_host_start_snapshot_valid)
-    {
-        net_udp_log_host_start_netinfo();
-        net_udp_host_start_snapshot_valid = 0;
-    }
+    net_udp_telemetry_log_summary(); // also prints the host-start settings, to the console and memlog.txt
+    net_udp_host_start_snapshot_valid = 0;
     net_udp_leave_snapshot_valid = 0;
 }
 
@@ -3702,7 +3723,9 @@ static void net_udp_slikenet_frame()
     // configured network rate) instead of a separate hardcoded interval;
     // slikenet_connect_peer() is cheap once a peer is ready, and its own
     // per-peer timer (not this one) throttles actual connect attempts.
-    if (is_observer() || (time >= last_time && time < last_time + F1_0/Netgame.PacketsPerSec))
+    // Netgame.PacketsPerSec is 0 after net_udp_init() clears Netgame, while Network_status can still be the old game's
+    // PLAYING (manual rejoin): that divided by zero and crashed right after leaving and rejoining.
+    if (is_observer() || Netgame.PacketsPerSec <= 0 || (time >= last_time && time < last_time + F1_0/Netgame.PacketsPerSec))
         return;
     last_time = time;
 
@@ -3720,7 +3743,8 @@ static void net_udp_slikenet_process_hello(ubyte *data, int size)
     if (size != SLIKENET_HELLO_SIZE || (uint)GET_INTEL_INT(data) != netgame_token)
         return;
     pnum = data[4];
-    if (pnum >= MAX_PLAYERS || pnum == Player_num || !Netgame.players[pnum].connected)
+    // Players[] is the live state; Netgame.players[].connected is never updated on a client for someone who joined after it did
+    if (pnum >= MAX_PLAYERS || pnum == Player_num || !Players[pnum].connected)
         return;
     slikenet_accept_hello(&Netgame.players[pnum].protocol.udp.addr, sizeof(struct _sockaddr));
 }
@@ -5405,15 +5429,17 @@ void net_udp_process_p2p_pong(ubyte *data, struct _sockaddr sender_addr, int dat
 void update_address_for_player(int pnum, struct _sockaddr new_addr) {
     if(!multi_i_am_master() && is_observer()) { return; }
 
-    char logcomment[200]; 
-    snprintf(logcomment, 200, "Requested update to address for player %d to %s:%u\n", pnum, 
-        ip_from_sockaddr(new_addr), port_from_sockaddr(new_addr)); 
-    net_log_comment(logcomment); 
-
     if( (port_from_sockaddr(new_addr) != 0) && // Not null
        memcmp(&new_addr,  &Netgame.players[pnum].protocol.udp.addr, sizeof(struct _sockaddr))    // New address
 
-    ) {	
+    ) {
+        // Only log real changes: this runs for every packet from the player, so logging the no-change case
+        // filled the log with a "not updated" pair every second.
+        char logcomment[200];
+        snprintf(logcomment, 200, "Requested update to address for player %d to %s:%u\n", pnum,
+            ip_from_sockaddr(new_addr), port_from_sockaddr(new_addr));
+        net_log_comment(logcomment);
+
         char logentry[200];
         snprintf(logentry, 200, "   Updating IP address for player %d from %s:%u", 
             pnum, ip_from_sockaddr(Netgame.players[pnum].protocol.udp.addr), port_from_sockaddr(Netgame.players[pnum].protocol.udp.addr)); 
@@ -5422,9 +5448,7 @@ void update_address_for_player(int pnum, struct _sockaddr new_addr) {
         
         net_log_comment(logentry); 
 
-        memcpy(&Netgame.players[pnum].protocol.udp.addr, &new_addr, sizeof(struct _sockaddr)); 
-    } else {
-        net_log_comment("   IP address not updated (old or null)."); 
+        memcpy(&Netgame.players[pnum].protocol.udp.addr, &new_addr, sizeof(struct _sockaddr));
     }
 }
 
