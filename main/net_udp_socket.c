@@ -21,9 +21,17 @@ int UDP_Socket[3] = { -1, -1, -1 };
  * of a single packet. Both lanes, plain UDP and SLikeNet, count here. */
 static unsigned int UDP_num_sendto = 0, UDP_len_sendto = 0;
 static unsigned int UDP_num_recvfrom = 0, UDP_len_recvfrom = 0;
+static unsigned int UDP_pdata_tx_updates = 0, UDP_pdata_rx_updates = 0;
 
 /* Seconds between traffic summary lines. */
 #define TRAFFIC_STAT_INTERVAL 5
+/* The per packet [TX] / [RX] lines only sample one packet per interval, so
+ * -debug doesn't cost a console write for every packet. The counters above
+ * still count every packet. */
+#define PACKET_LOG_INTERVAL F1_0
+
+static fix64 last_packet_tx_log_time = 0, last_packet_rx_log_time = 0;
+static int packet_tx_logged = 0, packet_rx_logged = 0;
 
 #ifndef IPv6
 // Whitelist of the 4 packet IDs routed over SLikeNet, pinned to this header's
@@ -77,24 +85,48 @@ ssize_t dxx_sendto(int sockfd, const void *msg, int len, unsigned int flags,
     result = sendto(sockfd, (const char*)msg, len, flags, to, tolen);
     if (result >= 0)
     {
+        fix64 now = timer_query();
+
         UDP_num_sendto++;
         UDP_len_sendto += (unsigned int)result;
-
-        con_printf(CON_NET_TX,
-            "\033[38;5;208m[TX] SLikeNet Packet OUT: SENT %d Bytes Traffic\033[0m\n",
-            (int)result);
+        if (!packet_tx_logged || now < last_packet_tx_log_time ||
+            now - last_packet_tx_log_time >= PACKET_LOG_INTERVAL)
+        {
+            con_printf(CON_NET_TX,
+                "\033[38;5;208m[TX] SLikeNet Packet OUT: SENT %d Bytes Traffic\033[0m\n",
+                (int)result);
+            last_packet_tx_log_time = now;
+            packet_tx_logged = 1;
+        }
     }
     return result;
 }
 
 void udp_count_received(int size)
 {
+    fix64 now = timer_query();
+
     UDP_num_recvfrom++;
     UDP_len_recvfrom += (unsigned int)size;
+    if (!packet_rx_logged || now < last_packet_rx_log_time ||
+        now - last_packet_rx_log_time >= PACKET_LOG_INTERVAL)
+    {
+        con_printf(CON_NET_RX,
+            "\033[34m[RX] SLikeNet Packet IN: Received %d Bytes Traffic\033[0m\n",
+            size);
+        last_packet_rx_log_time = now;
+        packet_rx_logged = 1;
+    }
+}
 
-    con_printf(CON_NET_RX,
-        "\033[34m[RX] SLikeNet Packet IN: Received %d Bytes Traffic\033[0m\n",
-        size);
+void udp_record_pdata_tx(void)
+{
+    UDP_pdata_tx_updates++;
+}
+
+void udp_record_pdata_rx(void)
+{
+    UDP_pdata_rx_updates++;
 }
 
 ssize_t dxx_recvfrom(int sockfd, void *buf, int len, unsigned int flags,
@@ -116,29 +148,37 @@ void udp_traffic_stat(void)
 {
     static fix64 last_traf_time = 0;
     fix64 now = timer_query();
+    float elapsed_seconds;
+    float pdata_tx_per_second, pdata_rx_per_second;
 
     if (now < last_traf_time + (F1_0 * TRAFFIC_STAT_INTERVAL))
         return;
 
+    elapsed_seconds = (float)(now - last_traf_time) / (float)F1_0;
+    if (elapsed_seconds <= 0)
+        return;
     last_traf_time = now;
+    pdata_tx_per_second = (float)UDP_pdata_tx_updates / elapsed_seconds;
+    pdata_rx_per_second = (float)UDP_pdata_rx_updates / elapsed_seconds;
 
     if (UDP_num_sendto)
-    {
         con_printf(CON_NET_TX,
             "\033[38;5;208m[TX] SLikeNet Traffic OUT: %.2fKB/s %uPPS\033[0m\n",
-            (float)UDP_len_sendto / 1024, UDP_num_sendto);
-        UDP_num_sendto = 0;
-        UDP_len_sendto = 0;
-    }
-
+            (float)UDP_len_sendto / (1024.0f * elapsed_seconds),
+            (unsigned int)((float)UDP_num_sendto / elapsed_seconds + 0.5f));
     if (UDP_num_recvfrom)
-    {
         con_printf(CON_NET_RX,
             "\033[34m[RX] SLikeNet Traffic IN: %.2fKB/s %uPPS\033[0m\n",
-            (float)UDP_len_recvfrom / 1024, UDP_num_recvfrom);
-        UDP_num_recvfrom = 0;
-        UDP_len_recvfrom = 0;
-    }
+            (float)UDP_len_recvfrom / (1024.0f * elapsed_seconds),
+            (unsigned int)((float)UDP_num_recvfrom / elapsed_seconds + 0.5f));
+    if (UDP_pdata_tx_updates || UDP_pdata_rx_updates)
+        con_printf(CON_NET_STATUS,
+            "PData %.1f/%.1f updates/s TX/RX (target %d)\n",
+            pdata_tx_per_second, pdata_rx_per_second, Netgame.PacketsPerSec);
+
+    UDP_num_sendto = UDP_len_sendto = 0;
+    UDP_num_recvfrom = UDP_len_recvfrom = 0;
+    UDP_pdata_tx_updates = UDP_pdata_rx_updates = 0;
 }
 
 int udp_dns_filladdr(char *host, int port, struct _sockaddr *sAddr)

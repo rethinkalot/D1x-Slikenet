@@ -66,3 +66,16 @@ Builds clean; not yet play-tested. `MULTI_PROTO_VERSION` is now 30008, so older 
 - Narrowed from an earlier pass that also routed `UPID_SYNC`, `UPID_OBSDATA`, `UPID_MDATA_ACK`, `UPID_PING`/`PONG` and `UPID_ENDLEVEL_*` over SLikeNet; those are back on plain UDP as "native DXX lobby state."
 - `main/net_udp.c`: `net_udp_listen()` drains SLikeNet and runs the connect-and-hello handshake at the same cadence as `net_udp_send_pdata()` (`Netgame.PacketsPerSec`), not a separate hardcoded timer.
 - Observers, tracker, proxy, P2P ping/pong and reattempt-direct all stay on plain UDP.
+## Readout alignment with D2s (2026-11-03)
+
+Builds clean; not yet play-tested. Console/log output only; no network behaviour changed.
+
+- `main/net_udp_socket.c`: the per packet `[TX]` / `[RX]` lines now sample one packet per second instead of printing every packet (the counters still count every packet), so `-debug` doesn't cost a console write per packet. The 5 s `[TX]` / `[RX]` Traffic lines now divide by the elapsed time; before, they printed the 5 s totals labelled KB/s and PPS.
+- New `PData x/y updates/s TX/RX (target N)` status line in the 5 s summary (`udp_record_pdata_tx()` / `udp_record_pdata_rx()`, called from `net_udp_send_pdata()` and `net_udp_process_pdata()`).
+- `main/net_udp.c`: the debug footer now also prints "Player scores at leave", and a joining client now captures a footer too (before, only the host did). `memlog.txt` gets the same game/score header.
+- Known, not fixed here: `net_udp_process_mdata` reads the 4-byte packet number as 16 bits (`GET_INTEL_SHORT(&data[6])`), so after 65,535 priority-2 packets in one session ACKs stop matching. Fixed in D2s (see D2S_MULTI_PLUGIN_LOG.md).
+
+## Observer custom binds fix (2026-11-03)
+
+- `main/gamecntl.c` `handle_observer_control_event`: the Previous / Next player branch was missing (lost when the Cycle camera toggle was rewritten), so the custom Next and Previous player binds did nothing and the function fell off the end without returning. Restored; it only acts while following a player. The stock Ctrl binds are unchanged.
+- Found, not changed: `do_obs_menu` (`menu.c`) uses `if (i < 0) break;`, which exits on "Switch Game Mode" and "Share Settings" and discards edits on ESC (should be `i == -1`); `multi.c` `!PlayerCfg.ObsChat` lacks its `[mode]` index; the advanced netgame menu sets `ShortPackets` from the Difficulty slider (`net_udp_ui.c:273`).

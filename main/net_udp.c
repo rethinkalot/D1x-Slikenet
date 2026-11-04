@@ -334,6 +334,13 @@ unsigned int net_udp_telemetry_copy_fire_history(
     return count;
 }
 
+/* State captured when the player leaves, so the debug footer and memlog.txt can show the final scores. */
+static netgame_info net_udp_leave_snapshot;
+static char net_udp_leave_timestamp[32];
+static char net_udp_leave_callsigns[MAX_PLAYERS][CALLSIGN_LEN + 1];
+static int net_udp_leave_scores[MAX_PLAYERS];
+static int net_udp_leave_snapshot_valid;
+
 /* Write one compact end-of-session summary to a separate memlog file. */
 static int net_udp_telemetry_gap_cmp(const void *a, const void *b)
 {
@@ -400,6 +407,21 @@ static void net_udp_telemetry_log_summary(void)
     #define NET_TELEMETRY_STALL_GAP (F1_0 / 2)
 
     PHYSFSX_printf(memlog, "SLikeNet Telemetry History Summary\nGenerated: %s\n\n", timestamp);
+    if (net_udp_leave_snapshot_valid)
+    {
+        const netgame_info *g = &net_udp_leave_snapshot;
+        const char *mode = g->gamemode < MULTI_GAME_TYPE_COUNT ? GMNames[g->gamemode] : "Unknown";
+        PHYSFSX_printf(memlog,
+            "Game: %s | Mission: %s (%s) | Level: %d | Mode: %s | Difficulty: %s\n",
+            g->game_name, g->mission_title, g->mission_name, g->levelnum, mode,
+            MENU_DIFFICULTY_TEXT(g->difficulty));
+        PHYSFSX_printf(memlog, "Player scores at leave (%s):\n", net_udp_leave_timestamp);
+        for (player_num = 0; player_num < MAX_PLAYERS; player_num++)
+            if (net_udp_leave_callsigns[player_num][0])
+                PHYSFSX_printf(memlog, "  %s: %d\n",
+                    net_udp_leave_callsigns[player_num], net_udp_leave_scores[player_num]);
+        PHYSFSX_printf(memlog, "\n");
+    }
     for (player_num = 0; player_num < MAX_PLAYERS; player_num++)
     {
         const unsigned int count = net_udp_position_history_count[player_num];
@@ -514,6 +536,29 @@ static void net_udp_capture_host_start_netinfo(void)
     net_udp_host_start_snapshot_valid = 1;
 }
 
+static void net_udp_capture_leave_snapshot(void)
+{
+    time_t now = time(NULL);
+    struct tm *utc = gmtime(&now);
+    int i;
+
+    net_udp_update_netgame();
+    net_udp_leave_snapshot = Netgame;
+    for (i = 0; i < MAX_PLAYERS; i++)
+    {
+        memcpy(net_udp_leave_callsigns[i], Players[i].callsign, CALLSIGN_LEN + 1);
+        net_udp_leave_scores[i] = Players[i].score;
+        net_udp_leave_snapshot.player_score[i] = Players[i].score;
+    }
+
+    if (utc)
+        strftime(net_udp_leave_timestamp, sizeof(net_udp_leave_timestamp),
+            "%Y-%m-%d %H:%M:%S UTC", utc);
+    else
+        strcpy(net_udp_leave_timestamp, "unknown UTC time");
+    net_udp_leave_snapshot_valid = 1;
+}
+
 static void net_udp_log_host_start_netinfo(void)
 {
     const netgame_info *g = &net_udp_host_start_snapshot;
@@ -550,6 +595,15 @@ static void net_udp_log_host_start_netinfo(void)
     con_printf(CON_NET_STATUS, "\033[32mReduced flash: %s | Gauss ammo: %s | Allowed-items mask: 0x%08lx\033[0m\n",
         g->ReducedFlash ? "Yes" : "No", gauss, (unsigned long)g->AllowedItems);
     con_printf(CON_NET_STATUS, "\033[32mThis footer contains only the captured host-start settings; no end-game values.\033[0m\n");
+    if (net_udp_leave_snapshot_valid)
+    {
+        con_printf(CON_NET_STATUS, "\n\033[32mPlayer scores at leave (%s):\033[0m\n",
+            net_udp_leave_timestamp);
+        for (unsigned int i = 0; i < MAX_PLAYERS; i++)
+            if (net_udp_leave_callsigns[i][0])
+                con_printf(CON_NET_STATUS, "\033[32m  %s: %d\033[0m\n",
+                    net_udp_leave_callsigns[i], net_udp_leave_scores[i]);
+    }
 }
 
 
@@ -3418,6 +3472,8 @@ void net_udp_read_sync_packet( ubyte * data, int data_len, struct _sockaddr send
 
     Network_status = NETSTAT_PLAYING;
     multi_sort_kill_list();
+    if (!net_udp_host_start_snapshot_valid && !multi_i_am_master())
+        net_udp_capture_host_start_netinfo();
 }
 
 int net_udp_send_sync(void)
@@ -3503,6 +3559,7 @@ int net_udp_start_game(void)
         return 0;
     }
     net_udp_host_start_snapshot_valid = 0;
+    net_udp_leave_snapshot_valid = 0;
     net_udp_telemetry_reset();
 
     i = udp_open_socket(0, atoi(UDP_MyPort));
@@ -3563,6 +3620,7 @@ void net_udp_leave_game()
     int nsave, i;
 
     net_udp_do_frame(1, 1);
+    net_udp_capture_leave_snapshot();
 
     if ((multi_i_am_master()))
     {
@@ -3604,6 +3662,7 @@ void net_udp_leave_game()
         net_udp_log_host_start_netinfo();
         net_udp_host_start_snapshot_valid = 0;
     }
+    net_udp_leave_snapshot_valid = 0;
 }
 
 #ifndef IPv6
@@ -4812,6 +4871,8 @@ void net_udp_send_pdata()
     if (Player_num >= 0 && Player_num < MAX_PLAYERS && Players[Player_num].objnum >= 0 && Players[Player_num].objnum < MAX_OBJECTS)
         net_udp_telemetry_record_position(Player_num, current_pdata, Players[Player_num].connected, 1, Objects + Players[Player_num].objnum);
 
+    udp_record_pdata_tx();
+
     if(Send_ship_status && GameTime64 >= Next_ship_status_time)
     {
         multi_send_ship_status_for_frame();
@@ -5028,7 +5089,8 @@ void net_udp_process_pdata ( ubyte *data, int data_len, struct _sockaddr sender_
     }
     
 
-    received_pdata_num(pd.Player_num, packet_num); 
+    received_pdata_num(pd.Player_num, packet_num);
+    udp_record_pdata_rx();
 
     if(! Netgame.RetroProtocol) {
         if (multi_i_am_master()) // I am host - must relay this packet to others!
