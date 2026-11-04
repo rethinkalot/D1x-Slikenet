@@ -215,7 +215,8 @@ void player_ship_read(player_ship *ps, PHYSFS_file *fp);
 void player_rw_swap(player_rw *p, int swap);
 
 // Observer setting.
-void reset_obs();
+void reset_obs_at(const char *func, int line);
+#define reset_obs() reset_obs_at(__func__, __LINE__)
 void set_obs(int pnum);
 
 #endif

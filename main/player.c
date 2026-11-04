@@ -73,10 +73,10 @@ void player_ship_read(player_ship *ps, PHYSFS_file *fp)
 		PHYSFSX_readVector(&ps->gun_points[i], fp);
 }
 
-void reset_obs() {
+void reset_obs_at(const char *func, int line) {
 	if (!is_observing_player())
 		return;
-	
+
 	Current_obs_player = Player_num;
 	// Force the cockpit mode back to full screen, since we don't have data for the gauges.
 	select_cockpit(CM_FULL_SCREEN);

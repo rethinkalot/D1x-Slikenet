@@ -49,6 +49,7 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "3d.h"
 #include "effects.h"
 #include "gameseg.h"
+#include "fvi.h"
 #include "wall.h"
 #include "ai.h"
 #include "rbaudio.h"
@@ -1446,6 +1447,23 @@ int ReadControls(d_event *event)
                     Real_pos.x += move.x;
                     Real_pos.y += move.y;
                     Real_pos.z += move.z;
+
+                    // Stop the camera at the first wall behind the ship, so it stays inside the mine.
+                    object *obs_obj = &Objects[Players[Current_obs_player].objnum];
+                    fvi_query fq;
+                    fvi_info hit_data;
+                    fq.p0 = &Real_raw_pos;
+                    fq.p1 = &Real_pos;
+                    fq.startseg = obs_obj->segnum;
+                    fq.rad = F1_0;
+                    fq.thisobjnum = obs_obj - Objects;
+                    fq.ignore_obj_list = NULL;
+                    fq.flags = FQ_TRANSWALL;
+                    int hit_type = find_vector_intersection(&fq, &hit_data);
+                    if (hit_type == HIT_WALL)
+                        Real_pos = hit_data.hit_pnt;
+                    else if (hit_type == HIT_BAD_P0)
+                        Real_pos = Real_raw_pos;
                 }
             }
 
@@ -1499,6 +1517,10 @@ int ReadControls(d_event *event)
                 
                 vm_vec_add2(&ConsoleObject->pos, &vec_diff);
             }
+
+            // The camera moved, so its segment must follow or the view renders from the wrong place.
+            if (Obs_at_distance == 1)
+                update_object_seg(ConsoleObject);
         } else {
             // If we're freely observing, just update position and orientation as normal.
             ConsoleObject->pos = Objects[Players[Current_obs_player].objnum].pos;
