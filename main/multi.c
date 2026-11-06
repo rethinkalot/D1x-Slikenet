@@ -1410,6 +1410,7 @@ void multi_do_frame(void)
     // Draw remote ships at the smoothed (delayed) position, now that this
     // frame's position updates have been read.
     multi_interp_update_remote();
+    multi_interp_update_robots();
 
     if (multi_quit_game)
     {
@@ -1513,6 +1514,7 @@ multi_leave_game(void)
         return;
 
     multi_interp_clear();
+    multi_robot_interp_clear();
 
     if (Game_mode & GM_NETWORK)
     {
@@ -2402,9 +2404,12 @@ multi_interp_update_remote(void)
 
             if (sample->local_time <= target)
             {
+                // History is walked newest first, so the update just after the
+                // target is the one before this in the walk (i - 1). The newest
+                // update (i == 0) has nothing after it: hold it, never extrapolate.
                 older = sample;
-                if (i + 1 < count)
-                    newer = MULTI_INTERP_SAMPLE(i + 1);
+                if (i > 0)
+                    newer = MULTI_INTERP_SAMPLE(i - 1);
                 break;
             }
         }

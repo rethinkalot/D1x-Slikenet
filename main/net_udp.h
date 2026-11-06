@@ -87,7 +87,7 @@ unsigned int net_udp_telemetry_copy_fire_history(
 #define UDP_MCASTv6_ADDR "ff02::1"
 #endif
 #define UDP_BCAST_ADDR "255.255.255.255"
-#define UDP_PORT_DEFAULT 42424 // Our default port - easy to remember: D = 4, X = 24, X = 24
+#define UDP_PORT_DEFAULT 42424 // Our default port, shared by SLikeNet and plain UDP
 #define UDP_MANUAL_ADDR_DEFAULT "localhost"
 #ifdef USE_TRACKER
 #define TRACKER_ADDR_DEFAULT "retro-tracker.game-server.cc"

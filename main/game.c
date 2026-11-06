@@ -140,6 +140,7 @@ void game_init_render_sub_buffers(int x, int y, int w, int h);
 extern void multi_check_for_killgoal_winner();
 
 extern int ReadControls(d_event *event);		// located in gamecntl.c
+extern void observer_camera_update(void);		// located in gamecntl.c
 
 // Cheats
 game_cheats cheats;
@@ -1187,6 +1188,9 @@ int game_handler(window *wind, d_event *event, void *data)
 				calc_game_time();
 				GameProcessFrame();
 			}
+
+			// After this frame's network and object updates, so the camera and the observed ship share one position
+			observer_camera_update();
 
 			if (!Automap_active)		// efficiency hack
 			{

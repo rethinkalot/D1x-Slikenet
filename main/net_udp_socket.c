@@ -15,6 +15,10 @@
 
 int UDP_Socket[3] = { -1, -1, -1 };
 
+/* Socket 0 is SLikeNet's own socket when this is set: the game sends through it,
+ * receives from slikenet_plain_receive(), and slikenet_shutdown() closes it. */
+static int UDP_Socket0_shared = 0;
+
 /* Running totals since the last udp_traffic_stat() call. These count packets
  * rather than averaging packet sizes, so the periodic summary actually tracks
  * Netgame.PacketsPerSec - the per packet lines below only ever show the size
@@ -205,6 +209,50 @@ int udp_dns_filladdr(char *host, int port, struct _sockaddr *sAddr)
     return 0;
 }
 
+/* Proxy file: "proxy.cfg" in the working directory, one line "bind_ip=<ipv4>".
+ * It names the local address this copy binds, so several copies on one PC can
+ * all use port 42424 on their own address (127.0.0.2, 127.0.0.3, ...).
+ * Returns NULL when there is no usable file: bind all addresses as usual. */
+static const char *udp_proxy_bind_ip(void)
+{
+    static char ip[48];
+    static int loaded = 0;
+    char line[128];
+    FILE *f;
+
+    if (loaded)
+        return ip[0] ? ip : NULL;
+    loaded = 1;
+
+    f = fopen("proxy.cfg", "r");
+    if (!f)
+        return NULL;
+    while (fgets(line, sizeof(line), f))
+    {
+        char *p = line, *end;
+
+        while (*p == ' ' || *p == '\t')
+            p++;
+        if (strncmp(p, "bind_ip", 7) != 0)
+            continue;
+        p += 7;
+        while (*p == ' ' || *p == '\t' || *p == '=')
+            p++;
+        for (end = p; *end && *end != ' ' && *end != '\t' && *end != '\r' && *end != '\n'; end++);
+        *end = '\0';
+        if (*p && inet_addr(p) != INADDR_NONE && strlen(p) < sizeof(ip))
+        {
+            strcpy(ip, p);
+            con_printf(CON_NET_STATUS, "\033[32mSLikeNet Proxy bind IP %s (proxy.cfg)\033[0m\n", ip);
+        }
+        else
+            con_printf(CON_NET_DEALLOC, "\033[32mSLikeNet Proxy bind IP \033[31mINVALID\033[32m in proxy.cfg, binding all addresses\033[0m\n");
+        break;
+    }
+    fclose(f);
+    return ip[0] ? ip : NULL;
+}
+
 /* Describe this machine's address so that log lines read as "<host>:<port>".
  * Falls back to "*" when the local address cannot be determined. */
 static const char *udp_local_addr_string(void)
@@ -214,6 +262,8 @@ static const char *udp_local_addr_string(void)
     char hostname[256];
     int resolved = 0;
 
+    if (udp_proxy_bind_ip())
+        return udp_proxy_bind_ip();
     if (buf[0] != '\0')
         return buf;
 
@@ -251,10 +301,13 @@ void udp_close_socket(int socknum)
         if (socknum == 0)
             slikenet_shutdown();
 #endif
+        if (socknum == 0 && UDP_Socket0_shared)
+            UDP_Socket0_shared = 0; /* SLikeNet closed it */
+        else
 #ifdef _WIN32
-        closesocket(UDP_Socket[socknum]);
+            closesocket(UDP_Socket[socknum]);
 #else
-        close(UDP_Socket[socknum]);
+            close(UDP_Socket[socknum]);
 #endif
         UDP_Socket[socknum] = -1;
         con_printf(CON_NET_DEALLOC,
@@ -275,6 +328,35 @@ int udp_open_socket(int socknum, int port)
         return -1;
 
     udp_close_socket(socknum);
+#ifndef IPv6
+    /* One socket, one port: SLikeNet binds it and the game shares it, every
+     * time (host, client and observer, first start or restart after leaving a
+     * game). There is no plain UDP fallback: right after the last game closed
+     * the port can still be held for a moment, so retry before giving up. */
+    if (socknum == 0)
+    {
+        int attempt;
+
+        for (attempt = 0; attempt < 10; attempt++)
+        {
+            if (slikenet_startup((unsigned short)port, udp_proxy_bind_ip()) == 0 && slikenet_get_socket() >= 0)
+            {
+                UDP_Socket[0] = slikenet_get_socket();
+                UDP_Socket0_shared = 1;
+                con_printf(CON_NET_STATUS, "\033[32mSLikeNet Telemetry Active\033[0m\n");
+                con_printf(CON_NET_STATUS,
+                    "\033[32mSLikeNet is ACTIVE on %s:%d\033[0m\n",
+                    udp_local_addr_string(), port);
+                return 0;
+            }
+            slikenet_shutdown();
+            timer_delay(F1_0 / 20);
+        }
+        con_printf(CON_NET_DEALLOC,
+            "\033[32mSLikeNet Lane port %d \033[31mNOT STARTED\033[32m, not falling back to plain UDP\033[0m\n", port);
+        return -1;
+    }
+#endif
     UDP_Socket[socknum] = socket(AF_INET, SOCK_DGRAM, 0);
     if (UDP_Socket[socknum] < 0)
         return -1;
@@ -287,7 +369,7 @@ int udp_open_socket(int socknum, int port)
     hints.ai_socktype = SOCK_DGRAM;
     snprintf(service, sizeof(service), "%d", port);
 
-    if (getaddrinfo(NULL, service, &hints, &result) != 0 || !result ||
+    if (getaddrinfo(socknum == 2 ? NULL : udp_proxy_bind_ip(), service, &hints, &result) != 0 || !result ||
         bind(UDP_Socket[socknum], result->ai_addr, result->ai_addrlen) < 0)
     {
         if (result)
@@ -303,10 +385,6 @@ int udp_open_socket(int socknum, int port)
     con_printf(CON_NET_STATUS,
         "\033[32mSLikeNet is ACTIVE on %s:%d\033[0m\n",
         udp_local_addr_string(), port);
-#ifndef IPv6
-    if (socknum == 0)
-        slikenet_startup((unsigned short)port); // on failure the game stays on plain UDP
-#endif
     return 0;
 }
 
@@ -317,6 +395,8 @@ int udp_general_packet_ready(int socknum)
 
     if (socknum < 0 || socknum >= 3 || UDP_Socket[socknum] == -1)
         return 0;
+    if (socknum == 0 && UDP_Socket0_shared)
+        return slikenet_plain_ready();
 
     FD_ZERO(&set);
     FD_SET(UDP_Socket[socknum], &set);
@@ -332,6 +412,14 @@ int udp_receive_packet(int socknum, ubyte *text, int len, struct _sockaddr *send
 
     if (!udp_general_packet_ready(socknum))
         return 0;
+
+    if (socknum == 0 && UDP_Socket0_shared)
+    {
+        int size = slikenet_plain_receive(text, len, sender_addr, (int)sender_length);
+        if (size > 0)
+            udp_count_received(size);
+        return size;
+    }
 
     return (int)dxx_recvfrom(UDP_Socket[socknum], text, len, 0, (struct sockaddr *)sender_addr, &sender_length);
 }

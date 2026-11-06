@@ -58,6 +58,20 @@ void timer_set_high_res(void)
 	{
 		timeBeginPeriod(1);
 		done = 1;
+
+		// Windows 11 throttles a process whose window is behind another one
+		// (EcoQoS, and it ignores the 1ms timer request above). With two copies
+		// on one PC the one in the background stalls, so opt out of both.
+		// Loaded at run time: SetProcessInformation needs Windows 8 or later.
+		{
+			struct { ULONG Version, ControlMask, StateMask; } throttle = { 1, 0x1 | 0x4, 0 }; // EXECUTION_SPEED | IGNORE_TIMER_RESOLUTION, off
+			typedef BOOL (WINAPI *set_process_info_fn)(HANDLE, int, LPVOID, DWORD);
+			HMODULE k32 = GetModuleHandleA("kernel32.dll");
+			set_process_info_fn set_info = k32 ? (set_process_info_fn)GetProcAddress(k32, "SetProcessInformation") : NULL;
+
+			if (set_info)
+				set_info(GetCurrentProcess(), 4 /* ProcessPowerThrottling */, &throttle, sizeof(throttle));
+		}
 	}
 #else
 	// Other platforms already provide a suitably fine timer resolution.

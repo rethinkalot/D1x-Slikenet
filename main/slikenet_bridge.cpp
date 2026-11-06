@@ -7,6 +7,8 @@
 #include "slikenet/SocketIncludes.h"
 #include "slikenet/PacketPriority.h"
 #include "slikenet/GetTime.h"
+#include "slikenet/socket2.h"
+#include "slikenet/SimpleMutex.h"
 
 // console.h pulls in pstypes.h, whose bool typedef doesn't compile as C++.
 extern "C" void con_printf(int priority, const char *fmt, ...);
@@ -17,7 +19,7 @@ extern "C" void con_printf(int priority, const char *fmt, ...);
 #define SLIKENET_MAX_PACKET 1024 // UPID_MAX_SIZE
 #define SLIKENET_RETRY_MS 5000
 #define SLIKENET_HELLO_MS 1000 // resend an unanswered hello at most this often
-#define SLIKENET_PORT_OFFSET 1000 // far enough that copies on adjacent game ports (42424, 42425) don't collide
+#define SLIKENET_PLAIN_QUEUE 128 // plain game datagrams buffered between frames
 
 enum {
     ID_DXX_DATA = ID_USER_PACKET_ENUM, // UPID values collide with SLikeNet's own IDs, so frame them
@@ -40,11 +42,48 @@ static SLNet::SystemAddress last_hello_sender;
 static unsigned int packets_sent, packets_received, packets_fallback, peers_ready; // session totals
 static unsigned short lane_port; // 0 if the lane didn't start
 
-static unsigned short slikenet_port_for(unsigned short game_port)
+// The lane and the game's plain UDP share one socket on one port (42424 by default):
+// SLikeNet owns the socket, and datagrams that aren't SLikeNet's are queued here for the game.
+struct plain_datagram {
+    int len;
+    struct sockaddr_in from;
+    unsigned char data[SLIKENET_MAX_PACKET];
+};
+static plain_datagram plain_queue[SLIKENET_PLAIN_QUEUE];
+static int plain_head, plain_count;
+static SLNet::SimpleMutex plain_mutex;
+
+static const unsigned char OFFLINE_MAGIC[16] = {0x00,0xFF,0xFF,0x00,0xFE,0xFE,0xFE,0xFE,0xFD,0xFD,0xFD,0xFD,0x12,0x34,0x56,0x78};
+
+// SLikeNet connected datagrams have the top bit set, and its offline messages
+// carry OFFLINE_MAGIC near the start. Everything else is a game packet (UPID 1-30).
+static bool is_game_datagram(const char *data, int len)
 {
-    if (game_port > 65535 - SLIKENET_PORT_OFFSET)
-        return (unsigned short)(game_port - SLIKENET_PORT_OFFSET);
-    return (unsigned short)(game_port + SLIKENET_PORT_OFFSET);
+    if (len <= 2 || len > SLIKENET_MAX_PACKET || ((unsigned char)data[0] & 0x80))
+        return false;
+    for (int i = 1; i + (int)sizeof(OFFLINE_MAGIC) <= len && i <= 40; i++)
+        if (!memcmp(data + i, OFFLINE_MAGIC, sizeof(OFFLINE_MAGIC)))
+            return false;
+    return true;
+}
+
+// Runs on SLikeNet's receive thread. Return false to claim the datagram for the game.
+static bool datagram_filter(SLNet::RNS2RecvStruct *rs)
+{
+    if (!is_game_datagram(rs->data, rs->bytesRead) || rs->systemAddress.GetIPVersion() != 4)
+        return true;
+
+    plain_mutex.Lock();
+    if (plain_count < SLIKENET_PLAIN_QUEUE) // full: drop, like a lost UDP packet
+    {
+        plain_datagram *d = &plain_queue[(plain_head + plain_count) % SLIKENET_PLAIN_QUEUE];
+        d->len = rs->bytesRead;
+        d->from = rs->systemAddress.address.addr4;
+        memcpy(d->data, rs->data, rs->bytesRead);
+        plain_count++;
+    }
+    plain_mutex.Unlock();
+    return false;
 }
 
 static slikenet_peer *find_peer_by_addr(const void *addr, int addr_len)
@@ -91,28 +130,71 @@ static void send_control(unsigned char id, const void *data, int len, const SLNe
     peer->Send(&bs, HIGH_PRIORITY, RELIABLE, 0, system, false);
 }
 
-extern "C" int slikenet_startup(unsigned short game_port)
+extern "C" int slikenet_startup(unsigned short game_port, const char *bind_ip)
 {
-    unsigned short port = slikenet_port_for(game_port);
+    unsigned short port = game_port;
 
     slikenet_shutdown();
     packets_sent = packets_received = packets_fallback = peers_ready = 0;
+    plain_head = plain_count = 0;
     lane_port = 0;
     peer = SLNet::RakPeerInterface::GetInstance();
 
-    SLNet::SocketDescriptor sd(port, 0);
+    SLNet::SocketDescriptor sd(port, bind_ip);
     SLNet::StartupResult result = peer->Startup(SLIKENET_MAX_PEERS, &sd, 1);
     if (result != SLNet::RAKNET_STARTED)
     {
-        con_printf(SLIKENET_CON_DEALLOC, "\033[32mSLikeNet Lane port %u \033[31mNOT STARTED\033[32m (error %d), using plain UDP\033[0m\n", port, (int)result);
+        con_printf(SLIKENET_CON_DEALLOC, "\033[32mSLikeNet Lane port %u \033[31mNOT STARTED\033[32m (error %d), retrying\033[0m\n", port, (int)result);
         SLNet::RakPeerInterface::DestroyInstance(peer);
         peer = 0;
         return -1;
     }
     peer->SetMaximumIncomingConnections(SLIKENET_MAX_PEERS);
+    peer->SetIncomingDatagramEventHandler(datagram_filter);
     lane_port = port;
     con_printf(SLIKENET_CON_STATUS, "\033[32mSLikeNet Lane is ACTIVE on port %u\033[0m\n", port);
     return 0;
+}
+
+// The lane's socket, shared with the game for plain UDP sends. -1 if the lane isn't running.
+extern "C" int slikenet_get_socket(void)
+{
+    if (!peer)
+        return -1;
+    DataStructures::List<SLNet::RakNetSocket2 *> sockets;
+    peer->GetSockets(sockets);
+    if (sockets.Size() == 0 || !sockets[0]->IsBerkleySocket())
+        return -1;
+    return (int)static_cast<SLNet::RNS2_Berkley *>(sockets[0])->GetSocket();
+}
+
+extern "C" int slikenet_plain_ready(void)
+{
+    plain_mutex.Lock();
+    int n = plain_count;
+    plain_mutex.Unlock();
+    return n > 0;
+}
+
+// Returns the datagram length, or 0 if none is waiting.
+extern "C" int slikenet_plain_receive(void *buf, int maxlen, void *out_addr, int addr_len)
+{
+    int n = 0;
+
+    if (addr_len < (int)sizeof(struct sockaddr_in))
+        return 0;
+    plain_mutex.Lock();
+    if (plain_count > 0)
+    {
+        plain_datagram *d = &plain_queue[plain_head];
+        n = d->len < maxlen ? d->len : maxlen;
+        memcpy(buf, d->data, n);
+        memcpy(out_addr, &d->from, sizeof(struct sockaddr_in));
+        plain_head = (plain_head + 1) % SLIKENET_PLAIN_QUEUE;
+        plain_count--;
+    }
+    plain_mutex.Unlock();
+    return n;
 }
 
 extern "C" void slikenet_get_stats(unsigned int *port, unsigned int *ready, unsigned int *sent, unsigned int *received, unsigned int *fallback)
@@ -152,7 +234,7 @@ extern "C" void slikenet_connect_peer(const void *addr, int addr_len, const void
             return;
         char ip[INET_ADDRSTRLEN];
         snprintf(ip, sizeof(ip), "%s", inet_ntoa(p->addr.sin_addr));
-        p->system.FromStringExplicitPort(ip, slikenet_port_for(ntohs(p->addr.sin_port)));
+        p->system.FromStringExplicitPort(ip, ntohs(p->addr.sin_port));
     }
 
     SLNet::ConnectionState state = peer->GetConnectionState(p->system);

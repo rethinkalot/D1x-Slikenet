@@ -47,6 +47,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "multibot.h"
 #include "byteswap.h"
 #include "wall.h"
+#include "endlevel.h"
+#include "newdemo.h"
 
 void multi_delete_controlled_robot(int objnum);
 void multi_send_robot_position_sub(int objnum, int now);
@@ -668,6 +670,197 @@ multi_do_release_robot(const ubyte *buf)
     Objects[botnum].ctype.ai_info.REMOTE_SLOT_NUM = 0;
 }
 
+//	-----------------------------------------------------------------------------
+//	Smoothing for robots another player controls.
+//
+//	A controlling player sends a robot's pose at most 20 times a second, far fewer than
+//	frames drawn.  Instead of chasing each new pose with a made-up velocity (which
+//	overshoots and pulls back, seen as vibration), keep the last few poses and draw the
+//	robot between two that were really received, a little in the past.  The owner's
+//	acceleration, stops and turns come through as they happened.  Nothing is
+//	extrapolated: past the newest pose the robot is held there.
+
+#define ROBOT_INTERP_SAMPLES 4
+#define ROBOT_INTERP_MIN_DELAY (F1_0 / 16)
+#define ROBOT_INTERP_MAX_DELAY (F1_0 / 8)
+#define ROBOT_INTERP_MAX_AGE (F1_0 * 3 / 4)		/* newest pose older than this: stop managing the robot */
+#define ROBOT_INTERP_MAX_GAP F1_0				/* silence this long: start over */
+
+typedef struct robot_interp_sample
+{
+	fix64 local_time;
+	vms_vector pos;
+	vms_matrix orient;
+} robot_interp_sample;
+
+static robot_interp_sample robot_interp_history[MAX_OBJECTS][ROBOT_INTERP_SAMPLES];
+static int robot_interp_count[MAX_OBJECTS];
+static int robot_interp_head[MAX_OBJECTS];
+static fix64 robot_interp_interval[MAX_OBJECTS];		/* smoothed time between this robot's poses */
+
+#define ROBOT_INTERP_SAMPLE(hist, head, back) (&(hist)[((head) - 1 - (back) + 2 * ROBOT_INTERP_SAMPLES) % ROBOT_INTERP_SAMPLES])
+
+void multi_robot_interp_clear(void)
+{
+	memset(robot_interp_count, 0, sizeof(robot_interp_count));
+	memset(robot_interp_head, 0, sizeof(robot_interp_head));
+	memset(robot_interp_interval, 0, sizeof(robot_interp_interval));
+}
+
+//	Record the pose just received for a robot (its object holds that pose right now).
+static void robot_interp_push(int botnum)
+{
+	object *obj;
+	robot_interp_sample *sample;
+
+	if (botnum < 0 || botnum >= MAX_OBJECTS)
+		return;
+	obj = &Objects[botnum];
+
+	if (robot_interp_count[botnum])
+	{
+		robot_interp_sample *last = ROBOT_INTERP_SAMPLE(robot_interp_history[botnum], robot_interp_head[botnum], 0);
+		fix64 gap = GameTime64 - last->local_time;
+
+		// Time went backwards, a long silence, or a jump (teleport, reused object slot): start over
+		if (gap < 0 || gap > ROBOT_INTERP_MAX_GAP || vm_vec_dist_quick(&obj->pos, &last->pos) > F1_0 * 80)
+			robot_interp_count[botnum] = 0;
+		else if (gap == 0)
+		{
+			// Two poses read in the same frame: the newer one replaces the older
+			robot_interp_head[botnum] = (robot_interp_head[botnum] + ROBOT_INTERP_SAMPLES - 1) % ROBOT_INTERP_SAMPLES;
+			robot_interp_count[botnum]--;
+		}
+		else
+			robot_interp_interval[botnum] = robot_interp_interval[botnum] ? (robot_interp_interval[botnum] * 3 + gap) / 4 : gap;
+	}
+
+	sample = &robot_interp_history[botnum][robot_interp_head[botnum]];
+	sample->local_time = GameTime64;
+	sample->pos = obj->pos;
+	sample->orient = obj->orient;
+	robot_interp_head[botnum] = (robot_interp_head[botnum] + 1) % ROBOT_INTERP_SAMPLES;
+	if (robot_interp_count[botnum] < ROBOT_INTERP_SAMPLES)
+		robot_interp_count[botnum]++;
+}
+
+//	Once per frame, after this frame's network data has been read: put every other
+//	player's robot where it was a little while ago, between two received poses.
+void multi_interp_update_robots(void)
+{
+	fix64 now;
+	int i;
+
+	if (!(Game_mode & GM_MULTI_ROBOTS) || Endlevel_sequence || Newdemo_state != ND_STATE_NORMAL)
+		return;
+
+	now = GameTime64;
+	for (i = 0; i <= Highest_object_index && i < MAX_OBJECTS; i++)
+	{
+		object *obj = &Objects[i];
+		const robot_interp_sample *history = robot_interp_history[i];
+		const robot_interp_sample *older = NULL, *newer = NULL;
+		int count = robot_interp_count[i], head = robot_interp_head[i], k;
+		fix64 interval, delay, target, gap;
+		vms_vector pos, fvec, rvec, tmp;
+		vms_matrix orient;
+		fix fraction;
+
+		if (!count)
+			continue;
+
+		// Only another player's live robot is managed here
+		if (obj->type != OBJ_ROBOT || (obj->flags & OF_EXPLODING) || obj->ctype.ai_info.REMOTE_OWNER == Player_num)
+		{
+			robot_interp_count[i] = 0;
+			continue;
+		}
+		// The poses stopped coming (control released, robot gone quiet): leave it where it is
+		if (now - ROBOT_INTERP_SAMPLE(history, head, 0)->local_time > ROBOT_INTERP_MAX_AGE)
+		{
+			robot_interp_count[i] = 0;
+			continue;
+		}
+
+		interval = robot_interp_interval[i] ? robot_interp_interval[i] : F1_0 / 20;
+		delay = interval + interval / 4;
+		if (delay < ROBOT_INTERP_MIN_DELAY)
+			delay = ROBOT_INTERP_MIN_DELAY;
+		if (delay > ROBOT_INTERP_MAX_DELAY)
+			delay = ROBOT_INTERP_MAX_DELAY;
+		target = now - delay;
+
+		// Walk newest to oldest for the pose at or before the target; the one after it is "newer"
+		for (k = 0; k < count; k++)
+		{
+			const robot_interp_sample *sample = ROBOT_INTERP_SAMPLE(history, head, k);
+
+			if (sample->local_time <= target)
+			{
+				older = sample;
+				if (k > 0)
+					newer = ROBOT_INTERP_SAMPLE(history, head, k - 1);
+				break;
+			}
+		}
+
+		if (!older)
+		{
+			// The target is before everything received so far: hold the oldest pose
+			older = ROBOT_INTERP_SAMPLE(history, head, count - 1);
+			obj->pos = older->pos;
+			obj->orient = older->orient;
+			update_object_seg(obj);
+			continue;
+		}
+		if (!newer)
+		{
+			// The target is at or past the newest pose: hold it, never extrapolate
+			obj->pos = older->pos;
+			obj->orient = older->orient;
+			update_object_seg(obj);
+			continue;
+		}
+
+		gap = newer->local_time - older->local_time;
+		if (gap <= 0)
+		{
+			obj->pos = newer->pos;
+			obj->orient = newer->orient;
+			update_object_seg(obj);
+			continue;
+		}
+		fraction = fixdiv((fix)(target - older->local_time), (fix)gap);
+
+		vm_vec_sub(&tmp, &newer->pos, &older->pos);
+		vm_vec_scale(&tmp, fraction);
+		pos = older->pos;
+		vm_vec_add2(&pos, &tmp);
+
+		fvec = older->orient.fvec;
+		vm_vec_scale(&fvec, F1_0 - fraction);
+		tmp = newer->orient.fvec;
+		vm_vec_scale(&tmp, fraction);
+		vm_vec_add2(&fvec, &tmp);
+		if (vm_vec_normalize_quick(&fvec) > F1_0 / 256)
+		{
+			rvec = older->orient.rvec;
+			vm_vec_scale(&rvec, F1_0 - fraction);
+			tmp = newer->orient.rvec;
+			vm_vec_scale(&tmp, fraction);
+			vm_vec_add2(&rvec, &tmp);
+			vm_vec_normalize_quick(&rvec);
+			vm_vector_2_matrix(&orient, &fvec, NULL, &rvec);
+		}
+		else
+			orient = newer->orient;
+
+		obj->pos = pos;
+		obj->orient = orient;
+		update_object_seg(obj);
+	}
+}
+
 void
 multi_do_robot_position(const ubyte *buf)
 {
@@ -731,49 +924,20 @@ multi_do_robot_position(const ubyte *buf)
 
 #ifndef WORDS_BIGENDIAN
 	{
-		vms_vector client_pos = Objects[botnum].pos;
-		vms_matrix client_orient = Objects[botnum].orient;
-		
-		if (Objects[botnum].ctype.ai_info.REMOTE_OWNER != Player_num)
-		{
-			Objects[botnum].mtype.phys_info.velocity.x = 0;
-			Objects[botnum].mtype.phys_info.velocity.y = 0;
-			Objects[botnum].mtype.phys_info.velocity.z = 0;
-			Objects[botnum].mtype.phys_info.flags &= ~(PF_LEVELLING | PF_TURNROLL);
-		}
-
 		shortpos temp_sp;
 		memcpy((ubyte *)(temp_sp.bytemat), (ubyte *)(buf + loc), 9);
 		memcpy((ubyte *)&(temp_sp.xo), (ubyte *)(buf + loc + 9), 14);
 		extract_shortpos(&Objects[botnum], &temp_sp, 0);
-		
+
 		if (Objects[botnum].ctype.ai_info.REMOTE_OWNER != Player_num)
 		{
-			vms_vector pos_error;
-			vm_vec_sub(&pos_error, &Objects[botnum].pos, &client_pos);
-			
-			if (vm_vec_mag_quick(&pos_error) > F1_0 * 80) {
-				update_object_seg(&Objects[botnum]);
-			} else {
-				// Capture the fresh look-vectors extracted by the network payload
-				vms_matrix fresh_packet_orient = Objects[botnum].orient;
-				fix blend_factor = FrameTime * 4;
-				
-				Objects[botnum].pos.x += fixmul(pos_error.x, blend_factor);
-				Objects[botnum].pos.y += fixmul(pos_error.y, blend_factor);
-				Objects[botnum].pos.z += fixmul(pos_error.z, blend_factor);
-				
-				// UNIFIED CROSS-GENERATION: Rebuilds a perfectly square orthogonal matrix
-				// using true look-direction and vertical reference to kill the loopty-loop entirely
-				vm_vector_2_matrix(&Objects[botnum].orient, &fresh_packet_orient.fvec, &fresh_packet_orient.uvec, NULL);
-				
-				// Feed the tracking velocity pipeline with metrics calibrated to your rendering cadence
-				Objects[botnum].mtype.phys_info.velocity.x = fixdiv(pos_error.x, FrameTime) / 4;
-				Objects[botnum].mtype.phys_info.velocity.y = fixdiv(pos_error.y, FrameTime) / 4;
-				Objects[botnum].mtype.phys_info.velocity.z = fixdiv(pos_error.z, FrameTime) / 4;
-				
-				update_object_seg(&Objects[botnum]);
-			}
+			// Another player's robot: record this pose and let multi_interp_update_robots() draw it,
+			// blended between real packets. No velocity, so physics never moves it between packets.
+			Objects[botnum].mtype.phys_info.velocity.x = 0;
+			Objects[botnum].mtype.phys_info.velocity.y = 0;
+			Objects[botnum].mtype.phys_info.velocity.z = 0;
+			Objects[botnum].mtype.phys_info.flags &= ~(PF_LEVELLING | PF_TURNROLL);
+			robot_interp_push(botnum);
 		}
 	}
 #endif
