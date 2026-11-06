@@ -3,7 +3,8 @@
 extern "C" {
 #endif
 
-/* In-game traffic runs over SLikeNet on the game port + 1000. Peers are always
+/* In-game traffic runs over SLikeNet on the game port (42424), the same port
+ * and socket as plain UDP. Peers are always
  * named by their plain UDP player address (struct _sockaddr), and the bridge
  * keeps the mapping to the SLikeNet address, which NAT may have changed. */
 
@@ -20,8 +21,17 @@ extern "C" {
 #define SLIKENET_RELIABLE_ORDERED 2
 #define SLIKENET_RELIABLE         3
 
-int  slikenet_startup(unsigned short game_port);
+/* bind_ip is the local address to bind (NULL = all addresses). */
+int  slikenet_startup(unsigned short game_port, const char *bind_ip);
 void slikenet_shutdown(void);
+
+/* The lane's UDP socket on game_port, shared with the game: SLikeNet owns it
+ * (slikenet_shutdown() closes it) and the game sends plain UDP through it.
+ * Datagrams that aren't SLikeNet's are queued for slikenet_plain_receive().
+ * socket is -1 if the lane isn't running. */
+int  slikenet_get_socket(void);
+int  slikenet_plain_ready(void);
+int  slikenet_plain_receive(void *buf, int maxlen, void *out_addr, int addr_len);
 
 /* Connect to a peer, or re-send the hello once connected. Call periodically. */
 void slikenet_connect_peer(const void *addr, int addr_len, const void *hello, int hello_len);

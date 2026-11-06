@@ -1396,35 +1396,10 @@ void play_test_sound()
 
 #endif  //ifndef NDEBUG
 
-int ReadControls(d_event *event)
+// Place the observer camera. Run once per frame, after the frame's network and object updates and just before
+// rendering, so the camera and the observed ship are both taken from the same final position.
+void observer_camera_update(void)
 {
-    int key;
-    static ubyte exploding_flag=0;
-
-    Player_fired_laser_this_frame=-1;
-
-    if (Player_exploded) {
-        if (exploding_flag==0)  {
-            exploding_flag = 1;			// When player starts exploding, clear all input devices...
-            game_flush_inputs();
-        }
-    } else {
-        exploding_flag=0;
-    }
-    if (Player_is_dead && !( (Game_mode & GM_MULTI) && (multi_sending_message[Player_num] || multi_defining_message) ))
-        if (HandleDeathInput(event)) {
-            if( (Game_mode & GM_MULTI) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW) ) {
-                // fall through to normal key handler
-
-                // Make sure flares/shots go in direction of preview
-                ConsoleObject->orient = Dead_player_camera->orient;
-            } else {
-
-                return 1;
-            }
-        }
-
-
     if (is_observer() && Newdemo_state < ND_STATE_PLAYBACK) {
         // Force the observer to a certain camera based on whether they are freely observing or observing a specific player.
         if (is_observing_player()) {
@@ -1467,8 +1442,9 @@ int ReadControls(d_event *event)
                 }
             }
 
-            // We take a sample time of 1.5 times the packet frequency to help offset stuttering from lag.
-            fix sample_time = 1.5 * F1_0 / Netgame.PacketsPerSec;
+            // The observed ship is already interpolated every frame (multi_interp_update_remote), so the camera follows it
+            // rigidly. A lagging chase here made the ship and the camera move out of step (ghosting and jitter).
+            fix sample_time = 0;
             
             if (sample_time <= Last_real_update) {
                 // We haven't updated the real position within the sample time, so just update position and orientation as normal.
@@ -1527,6 +1503,37 @@ int ReadControls(d_event *event)
             ConsoleObject->orient = Objects[Players[Current_obs_player].objnum].orient;
         }
     }
+}
+
+int ReadControls(d_event *event)
+{
+    int key;
+    static ubyte exploding_flag=0;
+
+    Player_fired_laser_this_frame=-1;
+
+    if (Player_exploded) {
+        if (exploding_flag==0)  {
+            exploding_flag = 1;			// When player starts exploding, clear all input devices...
+            game_flush_inputs();
+        }
+    } else {
+        exploding_flag=0;
+    }
+    if (Player_is_dead && !( (Game_mode & GM_MULTI) && (multi_sending_message[Player_num] || multi_defining_message) ))
+        if (HandleDeathInput(event)) {
+            if( (Game_mode & GM_MULTI) && (Netgame.SpawnStyle == SPAWN_STYLE_PREVIEW) ) {
+                // fall through to normal key handler
+
+                // Make sure flares/shots go in direction of preview
+                ConsoleObject->orient = Dead_player_camera->orient;
+            } else {
+
+                return 1;
+            }
+        }
+
+
 
     if (Newdemo_state == ND_STATE_PLAYBACK)
         update_vcr_state();

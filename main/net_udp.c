@@ -3725,12 +3725,19 @@ static void net_udp_slikenet_frame()
     // per-peer timer (not this one) throttles actual connect attempts.
     // Netgame.PacketsPerSec is 0 after net_udp_init() clears Netgame, while Network_status can still be the old game's
     // PLAYING (manual rejoin): that divided by zero and crashed right after leaving and rejoining.
-    if (is_observer() || Netgame.PacketsPerSec <= 0 || (time >= last_time && time < last_time + F1_0/Netgame.PacketsPerSec))
+    if (Netgame.PacketsPerSec <= 0 || (time >= last_time && time < last_time + F1_0/Netgame.PacketsPerSec))
         return;
     last_time = time;
 
     PUT_INTEL_INT(hello, netgame_token);
     hello[4] = Player_num;
+    // An observer only receives from the host, so it dials the host alone
+    if (is_observer())
+    {
+        if (Netgame.players[0].protocol.udp.addr.sin_port != 0)
+            slikenet_connect_peer(&Netgame.players[0].protocol.udp.addr, sizeof(struct _sockaddr), hello, sizeof(hello));
+        return;
+    }
     for (i = 0; i < Player_num; i++)
         if (Netgame.players[i].connected && Netgame.players[i].protocol.udp.addr.sin_port != 0)
             slikenet_connect_peer(&Netgame.players[i].protocol.udp.addr, sizeof(struct _sockaddr), hello, sizeof(hello));
@@ -3743,6 +3750,19 @@ static void net_udp_slikenet_process_hello(ubyte *data, int size)
     if (size != SLIKENET_HELLO_SIZE || (uint)GET_INTEL_INT(data) != netgame_token)
         return;
     pnum = data[4];
+    // An observer's hello: the host binds it to the observer slot with the sender's address
+    if (pnum == OBSERVER_PLAYER_ID)
+    {
+        int i;
+
+        if (!multi_i_am_master() || Netgame.max_numobservers == 0)
+            return;
+        for (i = 0; i < Netgame.max_numobservers; i++)
+            if (Netgame.observers[i].protocol.udp.addr.sin_port != 0 &&
+                slikenet_accept_hello(&Netgame.observers[i].protocol.udp.addr, sizeof(struct _sockaddr)))
+                return;
+        return;
+    }
     // Players[] is the live state; Netgame.players[].connected is never updated on a client for someone who joined after it did
     if (pnum >= MAX_PLAYERS || pnum == Player_num || !Players[pnum].connected)
         return;
