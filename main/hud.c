@@ -169,10 +169,10 @@ static int HUD_init_message_literal_worth_showing(int class_flag, const char *me
 		{
 			if (!d_strnicmp(message, HUD_messages[i].message, sizeof(char)*HUD_MESSAGE_LENGTH))
 			{
-				HUD_messages[i].time = F1_0*2; // keep redundant message in list
+				HUD_messages[i].time = F1_0*3; // keep redundant message in list
 				if (i >= HUD_nmessages-HUD_MAX_NUM_DISP) // if redundant message on display, update them all
 					for (i = (HUD_nmessages-HUD_MAX_NUM_DISP<0?0:HUD_nmessages-HUD_MAX_NUM_DISP), j = 1; i < HUD_nmessages; i++, j++)
-						HUD_messages[i].time = F1_0*(j*2);
+						HUD_messages[i].time = F1_0*(j*3);
 				return 0;
 			}
 		}
@@ -192,10 +192,10 @@ static int HUD_init_message_literal_worth_showing(int class_flag, const char *me
 	}
 	snprintf(HUD_messages[HUD_nmessages-1].message, sizeof(char)*HUD_MESSAGE_LENGTH, "%s", message);
 	if (HUD_nmessages-HUD_MAX_NUM_DISP < 0)
-		HUD_messages[HUD_nmessages-1].time = F1_0*3; // one message - display 3 secs
+		HUD_messages[HUD_nmessages-1].time = F1_0*9/2; // one message - display 4.5 secs
 	else
-		for (i = HUD_nmessages-HUD_MAX_NUM_DISP, j = 1; i < HUD_nmessages; i++, j++) // multiple messages - display 2 seconds each
-			HUD_messages[i].time = F1_0*(j*2);
+		for (i = HUD_nmessages-HUD_MAX_NUM_DISP, j = 1; i < HUD_nmessages; i++, j++) // multiple messages - display 3 seconds each
+			HUD_messages[i].time = F1_0*(j*3);
 	
 
 	if (HUD_color == -1)

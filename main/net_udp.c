@@ -3909,6 +3909,8 @@ void net_udp_timeout_check(fix64 time)
 {
     if(!multi_i_am_master() && is_observer()) { return; }
 
+    return; // no-packet timeout disabled on purpose: a paused or inactive player must never be dropped
+
     int i = 0;
     static fix64 last_timeout_time = 0;
     
