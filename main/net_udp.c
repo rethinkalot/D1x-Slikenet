@@ -53,6 +53,7 @@
 #include "vers_id.h"
 #include "physfsx.h"
 #include "slikenet_bridge.h"
+#include "hudmsg.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -3769,6 +3770,51 @@ static void net_udp_slikenet_process_hello(ubyte *data, int size)
     slikenet_accept_hello(&Netgame.players[pnum].protocol.udp.addr, sizeof(struct _sockaddr));
 }
 
+// Tell the player on the HUD whether the SLikeNet lane to each other player came up, as soon as that is known.
+// A host never dials, so it has no failed attempt to go by: a lane still not up 8 s after the player appeared counts as failed.
+// A failure that later connects is followed by the success line.
+static void net_udp_slikenet_announce(void)
+{
+    static fix64 seen[MAX_PLAYERS];
+    static ubyte shown[MAX_PLAYERS]; // 1 = failure shown, 2 = success shown
+    fix64 now = timer_query();
+    int i;
+
+    if (Network_status != NETSTAT_PLAYING && Network_status != NETSTAT_ENDLEVEL)
+    {
+        memset(seen, 0, sizeof(seen));
+        memset(shown, 0, sizeof(shown));
+        return;
+    }
+    for (i = 0; i < MAX_PLAYERS; i++)
+    {
+        int link;
+
+        // An observer only has a lane to the host
+        if (i == Player_num || !Players[i].connected || (is_observer() && i != 0))
+        {
+            seen[i] = 0;
+            shown[i] = 0;
+            continue;
+        }
+        if (!seen[i])
+            seen[i] = now;
+        if (shown[i] == 2)
+            continue;
+        link = slikenet_peer_state(&Netgame.players[i].protocol.udp.addr, sizeof(struct _sockaddr));
+        if (link == SLIKENET_LINK_READY)
+        {
+            HUD_init_message(HM_MULTI, "SLikeNet Peer Link Success: %s", Players[i].callsign);
+            shown[i] = 2;
+        }
+        else if (!shown[i] && (link == SLIKENET_LINK_FAILED || now >= seen[i] + F1_0 * 8))
+        {
+            HUD_init_message(HM_MULTI, "SLikeNet Peer Link Failure: %s", Players[i].callsign);
+            shown[i] = 1;
+        }
+    }
+}
+
 static void net_udp_slikenet_listen(int process)
 {
     ubyte packet[UPID_MAX_SIZE];
@@ -3787,7 +3833,10 @@ static void net_udp_slikenet_listen(int process)
             net_udp_slikenet_process_hello(packet, size);
     }
     if (process)
+    {
         net_udp_slikenet_frame();
+        net_udp_slikenet_announce();
+    }
 }
 #endif
 
