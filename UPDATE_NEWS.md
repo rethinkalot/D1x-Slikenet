@@ -26,7 +26,7 @@
 - **Wall-aware camera.** The free-fly camera no longer passes through walls behind the ship.
 - **Steady follow.** The camera follows the observed ship rigidly, with no ghosting or jitter.
 - **Fading ships.** Ships that get close to the observer camera fade out so they don't block the view.
-- **New Misc option "Show Observer Messages".** A toggle for non-observers, under "No Player Chat Sound". Observer chat now reaches everyone, shown in blue; turn it off here.
+- **Added Misc option "Show Observer Messages".** A toggle for non-observers.
 - **Observing host chat is blue too.** A host who is observing chats in the same all-blue style, name and text.
 
 ## Demos
