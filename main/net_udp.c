@@ -690,6 +690,7 @@ void check_observers(fix64 now);
 void add_message_to_obs_buffer(ubyte *data, int data_len, int needack);
 void check_obs_buffer(fix64 now);
 void forward_to_observers_nodelay(ubyte *data, int data_len, int needack);
+void forward_obs_chat_to_players(ubyte *data, int data_len);
 void net_udp_process_obs_quit(ubyte *data, int data_len, struct _sockaddr sender_addr);
 
 void net_udp_reset_connection_statuses(); 
@@ -3058,8 +3059,9 @@ void net_udp_process_packet(ubyte *data, struct _sockaddr sender_addr, int lengt
                 break; 
 
             case UPID_OBSDATA:
-                forward_to_observers_nodelay(data, length, 0); 
-                break; 
+                forward_to_observers_nodelay(data, length, 0);
+                forward_obs_chat_to_players(data, length);
+                break;
 
             case UPID_OBSQUIT:
                 net_udp_process_obs_quit(data, length, sender_addr);
@@ -4548,9 +4550,11 @@ void net_udp_send_mdata_direct(ubyte *data, int data_len, int pnum, int needack)
     }
     memcpy(&buf[len], data, sizeof(char)*data_len);								len += data_len;
 
-    if (pnum == Player_num && multi_i_am_master())
-        forward_to_observers(buf, len, needack); 
-    else
+    if (pnum == Player_num && multi_i_am_master()) {
+        forward_to_observers(buf, len, needack);
+        if (buf[0] == UPID_OBSDATA)
+            forward_obs_chat_to_players(buf, len);
+    } else
         dxx_sendto (UDP_Socket[0], buf, len, 0, (struct sockaddr *)&Netgame.players[pnum].protocol.udp.addr, sizeof(struct _sockaddr));
 
     if (needack)
@@ -4738,10 +4742,13 @@ void net_udp_process_obs_data (ubyte *data, int data_len, struct _sockaddr sende
     if ((pnum < 0) || (data_len > sizeof(UDP_mdata_info)))
         return;
 
-    // If we are a non-master player, this is a bad packet
+    // Players only accept observer chat, either relayed by the host or (host) sent by an observer
     if (!is_observer()) {
-        drop_rx_packet(data, "received by non-observer"); 
-        return;
+        if (data_len <= dataoffset + 2 || data[dataoffset] != MULTI_OBS_MESSAGE ||
+            !(is_player_ip(sender_addr, 0) || (multi_i_am_master() && is_observer_ip(sender_addr)))) {
+            drop_rx_packet(data, "received by non-observer");
+            return;
+        }
     }
 
     // Check if it came from valid IP
@@ -4860,6 +4867,19 @@ void forward_to_observers_nodelay(ubyte *data, int data_len, int needack) {
                 pack[i] = 1;
             }
         }
+    }
+}
+
+// Relay observer chat to the players; each shows it if its "Show Observer Messages" option is on.
+// Packet layout: [0] UPID_OBSDATA, [1-4] token, [5] sender id, [6] MULTI_OBS_MESSAGE.
+void forward_obs_chat_to_players(ubyte *data, int data_len) {
+    if (!multi_i_am_master() || data_len <= 6 || data[6] != MULTI_OBS_MESSAGE)
+        return;
+
+    for (int i = 0; i < MAX_PLAYERS; i++) {
+        if (i == Player_num || Players[i].connected == CONNECT_DISCONNECTED)
+            continue;
+        dxx_sendto (UDP_Socket[0], data, data_len, 0, (struct sockaddr *)&Netgame.players[i].protocol.udp.addr, sizeof(struct _sockaddr));
     }
 }
 
