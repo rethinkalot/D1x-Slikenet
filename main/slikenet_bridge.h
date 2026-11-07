@@ -44,6 +44,12 @@ int  slikenet_accept_hello(const void *addr, int addr_len);
  * use plain UDP. mode is one of the SLIKENET_* delivery modes above. */
 int  slikenet_send_to_peer(const void *addr, int addr_len, const void *data, int len, int mode);
 
+/* Where the lane to this player address stands (one of the SLIKENET_LINK_* values). */
+#define SLIKENET_LINK_PENDING 0
+#define SLIKENET_LINK_READY   1
+#define SLIKENET_LINK_FAILED  2
+int  slikenet_peer_state(const void *addr, int addr_len);
+
 /* Totals for the current or most recent session. port is 0 if the lane didn't
  * start. Still valid after slikenet_shutdown(). */
 void slikenet_get_stats(unsigned int *port, unsigned int *ready, unsigned int *sent, unsigned int *received, unsigned int *fallback);

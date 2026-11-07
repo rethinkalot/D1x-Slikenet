@@ -30,6 +30,7 @@ enum {
 struct slikenet_peer {
     bool used;
     bool ready;
+    bool failed; // the last connect attempt got no answer
     struct sockaddr_in addr; // plain UDP player address
     SLNet::SystemAddress system;
     SLNet::TimeMS last_attempt;
@@ -53,6 +54,13 @@ static plain_datagram plain_queue[SLIKENET_PLAIN_QUEUE];
 static int plain_head, plain_count;
 static SLNet::SimpleMutex plain_mutex;
 
+// SLikeNet's own handshake datagrams (not connected traffic), counted for the status line in slikenet_receive().
+// Written on SLikeNet's receive thread and read on the game thread, both under plain_mutex.
+#define SLIKENET_HANDSHAKE_REPORT_MS 5000
+static unsigned int hs_count, hs_last_id, hs_last_len;
+static SLNet::SystemAddress hs_last_from;
+static SLNet::TimeMS hs_last_report;
+
 static const unsigned char OFFLINE_MAGIC[16] = {0x00,0xFF,0xFF,0x00,0xFE,0xFE,0xFE,0xFE,0xFD,0xFD,0xFD,0xFD,0x12,0x34,0x56,0x78};
 
 // SLikeNet connected datagrams have the top bit set, and its offline messages
@@ -71,7 +79,19 @@ static bool is_game_datagram(const char *data, int len)
 static bool datagram_filter(SLNet::RNS2RecvStruct *rs)
 {
     if (!is_game_datagram(rs->data, rs->bytesRead) || rs->systemAddress.GetIPVersion() != 4)
+    {
+        // Top bit clear means SLikeNet's connection handshake, not connected traffic
+        if (rs->bytesRead > 0 && !((unsigned char)rs->data[0] & 0x80))
+        {
+            plain_mutex.Lock();
+            hs_count++;
+            hs_last_id = (unsigned char)rs->data[0];
+            hs_last_len = (unsigned int)rs->bytesRead;
+            hs_last_from = rs->systemAddress;
+            plain_mutex.Unlock();
+        }
         return true;
+    }
 
     plain_mutex.Lock();
     if (plain_count < SLIKENET_PLAIN_QUEUE) // full: drop, like a lost UDP packet
@@ -116,6 +136,7 @@ static slikenet_peer *add_peer(const void *addr, int addr_len)
             memcpy(&peers[i].addr, addr, sizeof(struct sockaddr_in));
             peers[i].last_attempt = 0;
             peers[i].last_hello = 0;
+            peers[i].failed = false;
             return &peers[i];
         }
     return 0;
@@ -137,6 +158,8 @@ extern "C" int slikenet_startup(unsigned short game_port, const char *bind_ip)
     slikenet_shutdown();
     packets_sent = packets_received = packets_fallback = peers_ready = 0;
     plain_head = plain_count = 0;
+    hs_count = 0;
+    hs_last_report = 0;
     lane_port = 0;
     peer = SLNet::RakPeerInterface::GetInstance();
 
@@ -195,6 +218,19 @@ extern "C" int slikenet_plain_receive(void *buf, int maxlen, void *out_addr, int
     }
     plain_mutex.Unlock();
     return n;
+}
+
+// Where the lane to this player address stands: SLIKENET_LINK_READY once its handshake finished,
+// SLIKENET_LINK_FAILED after a connect attempt got no answer, otherwise SLIKENET_LINK_PENDING
+extern "C" int slikenet_peer_state(const void *addr, int addr_len)
+{
+    slikenet_peer *p = find_peer_by_addr(addr, addr_len);
+
+    if (p && p->ready)
+        return SLIKENET_LINK_READY;
+    if (p && p->failed)
+        return SLIKENET_LINK_FAILED;
+    return SLIKENET_LINK_PENDING;
 }
 
 extern "C" void slikenet_get_stats(unsigned int *port, unsigned int *ready, unsigned int *sent, unsigned int *received, unsigned int *fallback)
@@ -259,6 +295,7 @@ extern "C" void slikenet_connect_peer(const void *addr, int addr_len, const void
 
     char ip[INET_ADDRSTRLEN];
     snprintf(ip, sizeof(ip), "%s", inet_ntoa(p->addr.sin_addr));
+    con_printf(SLIKENET_CON_STATUS, "\033[32mSLikeNet Handshake OUT: connecting to %s:%u\033[0m\n", ip, (unsigned int)p->system.GetPort());
     SLNet::ConnectionAttemptResult result = peer->Connect(ip, p->system.GetPort(), 0, 0);
     if (result != SLNet::CONNECTION_ATTEMPT_STARTED)
         con_printf(SLIKENET_CON_DEALLOC, "\033[32mSLikeNet Connect to %s:%u \033[31mFAILED\033[32m (error %d), retrying\033[0m\n", ip, (unsigned int)p->system.GetPort(), (int)result);
@@ -340,6 +377,28 @@ extern "C" int slikenet_receive(void *buf, int maxlen, void *out_addr, int addr_
     if (!peer)
         return 0;
 
+    {
+        SLNet::TimeMS now = SLNet::GetTimeMS();
+        unsigned int n, id, len;
+        SLNet::SystemAddress from;
+
+        plain_mutex.Lock();
+        n = hs_count;
+        id = hs_last_id;
+        len = hs_last_len;
+        from = hs_last_from;
+        if (n && now - hs_last_report >= SLIKENET_HANDSHAKE_REPORT_MS)
+        {
+            hs_count = 0;
+            hs_last_report = now;
+        }
+        else
+            n = 0;
+        plain_mutex.Unlock();
+        if (n)
+            con_printf(SLIKENET_CON_STATUS, "\033[32mSLikeNet Handshake IN: %u packets, last id %u, %u bytes, from %s\033[0m\n", n, id, len, from.ToString(true));
+    }
+
     for (; (packet = peer->Receive()) != 0; peer->DeallocatePacket(packet))
     {
         slikenet_peer *p;
@@ -383,6 +442,9 @@ extern "C" int slikenet_receive(void *buf, int maxlen, void *out_addr, int addr_
             case ID_CONNECTION_ATTEMPT_FAILED:
             case ID_NO_FREE_INCOMING_CONNECTIONS:
             case ID_ALREADY_CONNECTED:
+                p = find_peer_by_system(packet->systemAddress);
+                if (p && packet->data[0] != ID_ALREADY_CONNECTED)
+                    p->failed = true;
                 con_printf(SLIKENET_CON_DEALLOC, "\033[32mSLikeNet Connection to %s \033[31mFAILED\033[32m (id %d)\033[0m\n", packet->systemAddress.ToString(true), (int)packet->data[0]);
                 break;
             case ID_DISCONNECTION_NOTIFICATION:
