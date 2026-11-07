@@ -6,6 +6,8 @@
 - **Up to 90 packets per second.** The Packets Per Second setting (10-90) now holds its target even when frames run late.
 - **Up to 360 FPS.** Higher frame rates are supported, with smoothing so motion stays fluid between network updates.
 - **Better NAT behavior.** Joiners connect out to the host. Observers connect to the host only.
+- **Link status on screen.** At the start of a match the HUD tells you, per player, "SLikeNet Peer Link Success" or "SLikeNet Peer Link Failure". A failure means that player's traffic is using plain UDP on the same port.
+- **Pausing is safe.** Nobody is dropped for going quiet. A host or player sitting in a menu, paused or inactive stays in the game for as long as they like.
 - **Smoother ships.** Other players' ships are drawn between two real updates, with nothing guessed. They won't glide through walls or closed doors.
 - **Smoother robots in co-op.** Robots controlled by another player move fluidly with no jitter. Robot AI also behaves more consistently between players.
 - **Anti-cheat.** Only the original Descent data files are allowed online. Unsupported files stop you hosting or joining.
@@ -37,6 +39,7 @@
 - **Speedrun timers:** RTA covers gameplay and level transitions. IGT covers gameplay only and stays visible (frozen) over the pause screen. Loading a save or using cheats turns them white. Toggle them in the Misc menu. Timer issues are fixed.
 - **"Suppress HUD Messages (SP)"** replaces "No redundant pickup messages". It hides all single-player HUD text except ammo/shield warnings and Guide-Bot.
 - **Graphics toggles.** Turn custom graphics, textures and models on or off. The texture toggle now works correctly.
+- **HUD messages stay longer.** A single message shows for 4.5 seconds, and stacked messages 3 seconds each (up from 3 and 2).
 - **Flash toggle.** Reduced flash is a client-side setting.
 - **Original D1 weapons toggle** for single-player D2.
 - **Velocity meter.** New optional readout, toggled in the Misc menu.
@@ -62,7 +65,7 @@
 - Every open path (host start, manual join, game list) goes through `udp_open_socket`, which closes the old socket first. That calls `slikenet_shutdown()`, and `slikenet_startup()` shuts down again before starting, so a stale lane cannot survive a reopen.
 - Closing happens on a clean leave (`multi_leave_game` → `net_udp_leave_game` → `net_udp_close`), on cancelling a join or host setup screen, and on a failed wait for sync.
 - Leaving waits at most 100 ms (`peer->Shutdown(100)`). The last test showed the host dropping the player in the same second.
-- The 15 s `UDP_TIMEOUT` only applies to a player who vanishes without leaving.
+- The no-packet timeout is disabled: `net_udp_timeout_check` returns early (`main/net_udp.c`), so the 15 s `UDP_TIMEOUT` no longer drops anyone. A player who vanishes without leaving (crash, unplugged) keeps their slot until the host ends the game. The 15 s unacknowledged-packet drop in `net_udp_noloss_process_queue` (players and observers) is commented out too: the packet is just discarded from the queue. One path remains: a full reliable-packet queue still dumps a player who never acknowledges, and a client then leaves with a "failed sending important packets (queue full)" message.
 - **Weak spot:** if the port stays busy through all 10 retries, host start and join return silently. Only the console shows "NOT STARTED". Worth adding a message box.
 - Not traced: being kicked, a host crash, and the end-of-level path.
 
