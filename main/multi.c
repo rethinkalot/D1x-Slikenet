@@ -2157,6 +2157,14 @@ void multi_do_message(const ubyte *cbuf)
         return;
     }
 
+    // A host that is observing is a ghost player 0 and chats as a player. Show its text like
+    // observer chat (all blue), and let players hide it with "Show Observer Messages".
+    int from_obs_host = (Netgame.host_is_obs && buf[1] == 0);
+    if (from_obs_host && !is_observer() && !PlayerCfg.ShowObsMessages) {
+        multi_sending_message[(int)buf[1]] = 0;
+        return;
+    }
+
     char *colon,mesbuf[100];
     int t;
 
@@ -2177,12 +2185,12 @@ void multi_do_message(const ubyte *cbuf)
             color = get_team((int)buf[1]);
         else
             color = Netgame.players[(int)buf[1]].color; //(int)buf[1];
-        mesbuf[1] = BM_XRGB(selected_player_rgb[color].r,selected_player_rgb[color].g,selected_player_rgb[color].b);
+        mesbuf[1] = from_obs_host ? BM_XRGB(8, 8, 32) : BM_XRGB(selected_player_rgb[color].r,selected_player_rgb[color].g,selected_player_rgb[color].b);
         strcpy(&mesbuf[2], Players[(int)buf[1]].callsign);
         t = strlen(mesbuf);
         mesbuf[t] = ':';
         mesbuf[t+1] = CC_COLOR;
-        mesbuf[t+2] = BM_XRGB(0, 31, 0);
+        mesbuf[t+2] = from_obs_host ? BM_XRGB(8, 8, 32) : BM_XRGB(0, 31, 0);
         mesbuf[t+3] = 0;
 
         if (!PlayerCfg.NoChatSound)
@@ -2199,12 +2207,12 @@ void multi_do_message(const ubyte *cbuf)
             color = get_team((int)buf[1]);
         else
             color = (int)buf[1];
-        mesbuf[1] = BM_XRGB(selected_player_rgb[color].r,selected_player_rgb[color].g,selected_player_rgb[color].b);
+        mesbuf[1] = from_obs_host ? BM_XRGB(8, 8, 32) : BM_XRGB(selected_player_rgb[color].r,selected_player_rgb[color].g,selected_player_rgb[color].b);
         strcpy(&mesbuf[2], Players[(int)buf[1]].callsign);
         t = strlen(mesbuf);
         mesbuf[t] = ':';
         mesbuf[t+1] = CC_COLOR;
-        mesbuf[t+2] = BM_XRGB(0, 31, 0);
+        mesbuf[t+2] = from_obs_host ? BM_XRGB(8, 8, 32) : BM_XRGB(0, 31, 0);
         mesbuf[t+3] = 0;
 
         if (!PlayerCfg.NoChatSound)
@@ -2216,7 +2224,8 @@ void multi_do_message(const ubyte *cbuf)
 
 void multi_do_obs_message(const ubyte *cbuf)
 {
-    if (!PlayerCfg.ObsChat[get_observer_game_mode()]) {
+    // Observers use their per-mode Observer Chat setting; players use Show Observer Messages
+    if (is_observer() ? !PlayerCfg.ObsChat[get_observer_game_mode()] : !PlayerCfg.ShowObsMessages) {
         return;
     }
     const char *buf = (const char*)cbuf;

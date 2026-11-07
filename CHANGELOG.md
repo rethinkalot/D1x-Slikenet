@@ -34,6 +34,8 @@ Everything since the clean baseline (tag `D1-SlikeNet-clean-baseline`, 2026-10-1
 - Wall-aware free-fly camera.
 - Rigid third-person follow, no ghosting or jitter.
 - Ships close to the observer camera fade out.
+- Players can see observer chat. The host relays observer messages to all players (`forward_obs_chat_to_players` in `main/net_udp.c`); each player toggles it with "Show Observer Messages" in the Misc menu, under "No Player Chat Sound" (default on, saved as `showobsmessages`). No protocol change.
+- Chat from a host that is observing shows all blue (name and text), the same blue as observer chat, and follows the same toggle.
 
 ## Demos
 
