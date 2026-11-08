@@ -2122,7 +2122,10 @@ multi_do_fire(const ubyte *buf)
     Assert (pnum < N_players);
 
     if (Objects[Players[pnum].objnum].type == OBJ_GHOST)
+    {
         multi_make_ghost_player(pnum);
+        return; // ghost's position is the death site, not where this shot was fired
+    }
 
     if (weapon >= MISSILE_ADJUST) 
         /* CED sniperpackets */
@@ -2321,6 +2324,13 @@ multi_interp_push_position(int pnum, const object *obj, ubyte sequence, int has_
         }
         multi_interp_have_seq[pnum] = 1;
         multi_interp_last_seq[pnum] = sequence;
+    }
+
+    // A ghost's samples are its death site; respawn must not draw or fire the ship from them.
+    if (obj->type != OBJ_PLAYER)
+    {
+        multi_interp_count[pnum] = 0;
+        return;
     }
 
     sample = &multi_interp_history[pnum][multi_interp_head[pnum]];

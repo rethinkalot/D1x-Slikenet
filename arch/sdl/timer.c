@@ -21,7 +21,7 @@ void timer_update(void)
 {
 	static ubyte init = 1;
 	static fix64 last_tv = 0;
-	fix64 cur_tv = SDL_GetTicks()*F1_0/1000;
+	fix64 cur_tv = (fix64)SDL_GetTicks()*F1_0/1000;
 
 	if (init)
 	{

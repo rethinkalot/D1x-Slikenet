@@ -32,10 +32,10 @@ static unsigned int UDP_pdata_tx_updates = 0, UDP_pdata_rx_updates = 0;
 /* The per packet [TX] / [RX] lines only sample one packet per interval, so
  * -debug doesn't cost a console write for every packet. The counters above
  * still count every packet. */
-#define PACKET_LOG_INTERVAL F1_0
+// #define PACKET_LOG_INTERVAL F1_0
 
-static fix64 last_packet_tx_log_time = 0, last_packet_rx_log_time = 0;
-static int packet_tx_logged = 0, packet_rx_logged = 0;
+// static fix64 last_packet_tx_log_time = 0, last_packet_rx_log_time = 0;
+// static int packet_tx_logged = 0, packet_rx_logged = 0;
 
 #ifndef IPv6
 // Whitelist of the 4 packet IDs routed over SLikeNet, pinned to this header's
@@ -89,38 +89,38 @@ ssize_t dxx_sendto(int sockfd, const void *msg, int len, unsigned int flags,
     result = sendto(sockfd, (const char*)msg, len, flags, to, tolen);
     if (result >= 0)
     {
-        fix64 now = timer_query();
+        // fix64 now = timer_query();
 
         UDP_num_sendto++;
         UDP_len_sendto += (unsigned int)result;
-        if (!packet_tx_logged || now < last_packet_tx_log_time ||
-            now - last_packet_tx_log_time >= PACKET_LOG_INTERVAL)
-        {
-            con_printf(CON_NET_TX,
-                "\033[38;5;208m[TX] SLikeNet Packet OUT: SENT %d Bytes Traffic\033[0m\n",
-                (int)result);
-            last_packet_tx_log_time = now;
-            packet_tx_logged = 1;
-        }
+        // if (!packet_tx_logged || now < last_packet_tx_log_time ||
+        //     now - last_packet_tx_log_time >= PACKET_LOG_INTERVAL)
+        // {
+        //     con_printf(CON_NET_TX,
+        //         "\033[38;5;208m[TX] SLikeNet Packet OUT: SENT %d Bytes Traffic\033[0m\n",
+        //         (int)result);
+        //     last_packet_tx_log_time = now;
+        //     packet_tx_logged = 1;
+        // }
     }
     return result;
 }
 
 void udp_count_received(int size)
 {
-    fix64 now = timer_query();
+    // fix64 now = timer_query();
 
     UDP_num_recvfrom++;
     UDP_len_recvfrom += (unsigned int)size;
-    if (!packet_rx_logged || now < last_packet_rx_log_time ||
-        now - last_packet_rx_log_time >= PACKET_LOG_INTERVAL)
-    {
-        con_printf(CON_NET_RX,
-            "\033[34m[RX] SLikeNet Packet IN: Received %d Bytes Traffic\033[0m\n",
-            size);
-        last_packet_rx_log_time = now;
-        packet_rx_logged = 1;
-    }
+    // if (!packet_rx_logged || now < last_packet_rx_log_time ||
+    //     now - last_packet_rx_log_time >= PACKET_LOG_INTERVAL)
+    // {
+    //     con_printf(CON_NET_RX,
+    //         "\033[34m[RX] SLikeNet Packet IN: Received %d Bytes Traffic\033[0m\n",
+    //         size);
+    //     last_packet_rx_log_time = now;
+    //     packet_rx_logged = 1;
+    // }
 }
 
 void udp_record_pdata_tx(void)

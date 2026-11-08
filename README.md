@@ -55,4 +55,13 @@
 - **Velocity meter.** New optional readout, toggled in the Misc menu. Velocity is recorded into demos whether or not the readout is shown.
 - **Power-ups.** Fixed orientation and rotation for 3D models. Spin speeds are retuned and Quad Fire is tilted.
 
+## BugFixes
+
+- **No ship flash before respawn.** A dead player's ship no longer shows briefly at the spot they died just before they spawn.
+- **No stray shots from the death spot.** Pressing fire to respawn no longer makes a shot appear where you died.
+- **No flares while dead.** With Preview spawn, a dead player can no longer launch a flare from where they died.
+- **Position updates go out sooner.** Ship positions are sent right away instead of waiting up to 10 ms. Positions stuck in the send queue for over 100 ms are dropped instead of arriving late in a burst.
+- **Network clock fix.** The network clock no longer loses up to one frame every 65 seconds.
+- **Quieter `-debug` console.** The per-packet `Packet OUT` and `Packet IN` lines are off. The traffic summary lines stay.
+
 

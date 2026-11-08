@@ -20,6 +20,7 @@ extern "C" void con_printf(int priority, const char *fmt, ...);
 #define SLIKENET_RETRY_MS 5000
 #define SLIKENET_HELLO_MS 1000 // resend an unanswered hello at most this often
 #define SLIKENET_PLAIN_QUEUE 128 // plain game datagrams buffered between frames
+#define SLIKENET_UNRELIABLE_TIMEOUT_MS 100 // drop queued positions this stale instead of sending them late in a burst
 
 enum {
     ID_DXX_DATA = ID_USER_PACKET_ENUM, // UPID values collide with SLikeNet's own IDs, so frame them
@@ -174,6 +175,7 @@ extern "C" int slikenet_startup(unsigned short game_port, const char *bind_ip)
     }
     peer->SetMaximumIncomingConnections(SLIKENET_MAX_PEERS);
     peer->SetIncomingDatagramEventHandler(datagram_filter);
+    peer->SetUnreliableTimeout(SLIKENET_UNRELIABLE_TIMEOUT_MS);
     lane_port = port;
     con_printf(SLIKENET_CON_STATUS, "\033[32mSLikeNet Lane is ACTIVE on port %u\033[0m\n", port);
     return 0;
@@ -360,7 +362,7 @@ extern "C" int slikenet_send_to_peer(const void *addr, int addr_len, const void 
     memcpy(frame + 1, data, len);
     // Channels only apply to ordered and sequenced packets. Ordered data gets
     // its own so a resend there can't interact with the sequenced movement stream.
-    if (!peer->Send((const char *)frame, len + 1, HIGH_PRIORITY, reliability, channel, p->system, false))
+    if (!peer->Send((const char *)frame, len + 1, mode == SLIKENET_SEQUENCED ? IMMEDIATE_PRIORITY : HIGH_PRIORITY, reliability, channel, p->system, false))
     {
         packets_fallback++;
         return -1;
