@@ -2268,9 +2268,9 @@ multi_do_position(const ubyte *buf)
 //	the newest update, the newest update is used verbatim.
 
 #define MULTI_INTERP_SAMPLES 16
-#define MULTI_INTERP_MAX_AGE (F1_0 / 4)		/* newest update older than this: leave ship alone */
-#define MULTI_INTERP_MIN_DELAY (F1_0 / 200)
-#define MULTI_INTERP_MAX_DELAY (F1_0 / 10)
+#define MULTI_INTERP_MAX_AGE (F1_0 / 3)		/* newest update older than this: leave ship alone */
+#define MULTI_INTERP_MIN_DELAY (F1_0 / 120)
+#define MULTI_INTERP_MAX_DELAY (F1_0 / 8)
 
 typedef struct multi_interp_sample
 {
@@ -2285,6 +2285,50 @@ static int multi_interp_count[MAX_PLAYERS];
 static int multi_interp_head[MAX_PLAYERS];
 static ubyte multi_interp_last_seq[MAX_PLAYERS];
 static int multi_interp_have_seq[MAX_PLAYERS];
+static fix64 multi_interp_last_arrival[MAX_PLAYERS];	/* raw GameTime64 of the last update */
+static fix64 multi_interp_jitter[MAX_PLAYERS];			/* peak deviation of arrival gap from cadence */
+
+static fix64
+multi_interp_cadence(void)
+{
+    const int pps = Netgame.PacketsPerSec > 0 ? Netgame.PacketsPerSec : 20;
+
+    return ((fix64)F1_0 + pps / 2) / pps;
+}
+
+// Diagnostic: the -interp arg (d1x.ini) writes one line per remote player per second to
+// interp.log (cwd). Not on the console, so the telemetry layout is untouched.
+typedef struct multi_interp_stats
+{
+    int pkts, same_frame, frames, hold, snap_gap, snap_seg, ok;
+    fix64 gap_min, gap_max, gap_sum, delay_sum;
+} multi_interp_stats;
+static multi_interp_stats multi_interp_st[MAX_PLAYERS];
+static fix64 multi_interp_next_log;
+
+static void
+multi_interp_log_flush(void)
+{
+    static FILE *f;
+    int pnum;
+
+    if (!f && !(f = fopen("interp.log", "a")))
+        return;
+    for (pnum = 0; pnum < MAX_PLAYERS; pnum++)
+    {
+        const multi_interp_stats *s = &multi_interp_st[pnum];
+
+        if (!s->pkts && !s->ok && !s->hold && !s->snap_gap && !s->snap_seg)
+            continue;
+        fprintf(f, "t=%.1f p%d pps=%d frames=%d pkts=%d same_frame=%d gap_ms min/avg/max=%.1f/%.1f/%.1f delay_ms=%.1f jitter_ms=%.1f ok=%d hold=%d snap_gap=%d snap_seg=%d\n",
+            f2fl(GameTime64), pnum, (int)Netgame.PacketsPerSec, s->frames, s->pkts, s->same_frame,
+            f2fl(s->gap_min) * 1000, s->pkts ? f2fl(s->gap_sum) * 1000 / s->pkts : 0.0, f2fl(s->gap_max) * 1000,
+            s->frames ? f2fl(s->delay_sum) * 1000 / s->frames : 0.0, f2fl(multi_interp_jitter[pnum]) * 1000,
+            s->ok, s->hold, s->snap_gap, s->snap_seg);
+    }
+    fflush(f);
+    memset(multi_interp_st, 0, sizeof(multi_interp_st));
+}
 
 void
 multi_interp_clear(void)
@@ -2293,6 +2337,8 @@ multi_interp_clear(void)
 
     for (pnum = 0; pnum < MAX_PLAYERS; pnum++)
     {
+        multi_interp_last_arrival[pnum] = 0;
+        multi_interp_jitter[pnum] = 0;
         multi_interp_count[pnum] = 0;
         multi_interp_head[pnum] = 0;
         multi_interp_have_seq[pnum] = 0;
@@ -2312,20 +2358,59 @@ multi_interp_push_position(int pnum, const object *obj, ubyte sequence, int has_
 
     if (has_sequence)
     {
-        if (multi_interp_have_seq[pnum])
+        // The serial wraps at MAX_LOSS_BUFFER (128, net_udp.c), not 256, so compare modulo 128.
+        // After a silence over 1/4 s accept whatever comes, so a lost run can't leave the stream stuck.
+        if (multi_interp_have_seq[pnum] && GameTime64 - multi_interp_last_arrival[pnum] < F1_0 / 4)
         {
-            const sbyte delta = (sbyte)(sequence - multi_interp_last_seq[pnum]);
+            const int delta = ((int)sequence - multi_interp_last_seq[pnum] + 128) % 128;
 
-            // A serial that did not advance is a duplicate or reordered packet.
-            if (delta <= 0)
+            // A serial that did not advance (0, or "behind" by over half the range) is a duplicate or reordered packet.
+            if (delta == 0 || delta >= 64)
                 return;
         }
         multi_interp_have_seq[pnum] = 1;
         multi_interp_last_seq[pnum] = sequence;
     }
 
+    fix64 stamp = GameTime64;
+    const fix64 cadence = multi_interp_cadence();
+
+    if (multi_interp_count[pnum])
+    {
+        // Adaptive delay input: how far this arrival gap strays from the packet cadence.
+        fix64 dev = (stamp - multi_interp_last_arrival[pnum]) - cadence;
+        const multi_interp_sample *prev = &multi_interp_history[pnum][(multi_interp_head[pnum] + MULTI_INTERP_SAMPLES - 1) % MULTI_INTERP_SAMPLES];
+
+        {
+            multi_interp_stats *s = &multi_interp_st[pnum];
+            const fix64 raw = stamp - multi_interp_last_arrival[pnum];
+
+            if (!s->pkts || raw < s->gap_min) s->gap_min = raw;
+            if (raw > s->gap_max) s->gap_max = raw;
+            s->gap_sum += raw;
+            if (raw == 0) s->same_frame++;
+        }
+        multi_interp_st[pnum].pkts++;
+        if (dev < 0)
+            dev = -dev;
+        multi_interp_jitter[pnum] -= multi_interp_jitter[pnum] / 128;
+        // A gap over 3 cadences is a pause or stream break, not jitter: don't let it inflate the delay.
+        if (stamp - multi_interp_last_arrival[pnum] <= cadence * 3 && dev > multi_interp_jitter[pnum])
+            multi_interp_jitter[pnum] = dev;
+        if (multi_interp_jitter[pnum] > cadence * 3)
+            multi_interp_jitter[pnum] = cadence * 3;
+
+        // De-burst: only packets read in the same frame share GameTime64 (less than half a
+        // cadence apart); space those one cadence apart. Real gaps are left untouched.
+        if (stamp < prev->local_time + cadence / 2)
+            stamp = prev->local_time + cadence;
+        if (stamp > GameTime64 + cadence)
+            stamp = GameTime64 + cadence;
+    }
+    multi_interp_last_arrival[pnum] = GameTime64;
+
     sample = &multi_interp_history[pnum][multi_interp_head[pnum]];
-    sample->local_time = GameTime64;
+    sample->local_time = stamp;
     sample->pos = obj->pos;
     sample->orient = obj->orient;
     sample->segnum = obj->segnum;
@@ -2348,22 +2433,23 @@ void
 multi_interp_update_remote(void)
 {
     fix64 now, cadence, delay;
-    int pnum, pps;
+    int pnum;
 
+    if (!GameArg.SmoothShips)	// default: raw ships, drawn where the last packet put them
+        return;
     if (!(Game_mode & GM_MULTI) || !(Game_mode & GM_NETWORK))
         return;
     if (Endlevel_sequence || Newdemo_state != ND_STATE_NORMAL)
         return;
 
-    pps = Netgame.PacketsPerSec > 0 ? Netgame.PacketsPerSec : 20;
-    cadence = ((fix64)F1_0 + pps / 2) / pps;
-    delay = cadence * 3 / 2;
-    if (delay < MULTI_INTERP_MIN_DELAY)
-        delay = MULTI_INTERP_MIN_DELAY;
-    if (delay > MULTI_INTERP_MAX_DELAY)
-        delay = MULTI_INTERP_MAX_DELAY;
-
+    cadence = multi_interp_cadence();
     now = GameTime64;
+    if (GameArg.InterpLog && now >= multi_interp_next_log)
+    {
+        if (multi_interp_next_log)
+            multi_interp_log_flush();
+        multi_interp_next_log = now + F1_0;
+    }
     // SLikeNet: Handle asynchronous timeline tracking across split ship (90Hz) and robot layers
     for (pnum = 0; pnum < MAX_PLAYERS; pnum++)
     {
@@ -2384,9 +2470,18 @@ multi_interp_update_remote(void)
         obj = &Objects[objnum];
         
         // Dynamically compute historical timeline boundaries based on entity layers
+        // Fixed 1.5 packet intervals (16.7 ms at 90 PPS, ~CS2's 15.6 ms): always one packet pair to blend.
+        delay = cadence * 3 / 2;
+        if (delay < MULTI_INTERP_MIN_DELAY)
+            delay = MULTI_INTERP_MIN_DELAY;
+        if (delay > MULTI_INTERP_MAX_DELAY)
+            delay = MULTI_INTERP_MAX_DELAY;
+
         fix64 layer_cadence = cadence;
         fix64 layer_delay = delay;
-        
+        multi_interp_st[pnum].frames++;
+        multi_interp_st[pnum].delay_sum += delay;
+
         if (obj->type == OBJ_ROBOT) {
             // Stepped-down layer tracking parameters for robots to stop history cache dropouts
             layer_cadence = F1_0 / 20; // Calibrated for 20Hz robot tick step downs
@@ -2427,6 +2522,7 @@ multi_interp_update_remote(void)
         {
             // Render time precedes the whole history: hold the oldest update.
             const multi_interp_sample *sample = MULTI_INTERP_SAMPLE(count - 1);
+            multi_interp_st[pnum].hold++;
             obj->pos = sample->pos;
             obj->orient = sample->orient;
             continue;
@@ -2434,6 +2530,7 @@ multi_interp_update_remote(void)
         if (!newer)
         {
             // Render time is at or past the newest update: never extrapolate.
+            multi_interp_st[pnum].hold++;
             obj->pos = older->pos;
             obj->orient = older->orient;
             continue;
@@ -2441,8 +2538,9 @@ multi_interp_update_remote(void)
 
         gap = newer->local_time - older->local_time;
         max_gap = cadence * 3;
-        if (gap <= 0 || gap > max_gap) 
+        if (gap <= 0 || gap > max_gap)
         {
+            multi_interp_st[pnum].snap_gap++;
             obj->pos = newer->pos;
             obj->orient = newer->orient;
             continue;
@@ -2455,14 +2553,8 @@ multi_interp_update_remote(void)
         pos = older->pos;
         vm_vec_add2(&pos, &tmp);
 
-        // Slikenet: Safeguard look-vectors against matrix collapse during steep multi-axial turning
-        fix rotational_dot = vm_vec_dot(&older->orient.fvec, &newer->orient.fvec);
-        fix visual_fraction = fraction;
-        
-        if (rotational_dot < 0) {
-            // Accelerate convergence on cross-quadrant inversions to stop orthographic matrix snaps
-            visual_fraction = (fraction < F1_0 / 2) ? (fraction >> 1) : (fraction + ((F1_0 - fraction) >> 1));
-        }
+        // Plain lerp, then renormalize below (the matrix is rebuilt, so it can't corrupt).
+        const fix visual_fraction = fraction;
 
         fvec = older->orient.fvec;
         vm_vec_scale(&fvec, F1_0 - visual_fraction);
@@ -2482,15 +2574,10 @@ multi_interp_update_remote(void)
         else
             orient = newer->orient;
 
-        // The interpolated point must still be inside the segment both updates
-        // were in, otherwise a wall or a closed door is being cut through.
-        if (find_point_seg(&pos, older->segnum) != older->segnum)
-        {
-            obj->pos = newer->pos;
-            obj->orient = newer->orient;
-            continue;
-        }
+        // No segment check: the two samples are ~11 ms apart, so the blend stays within a
+        // hair of a real position, and snapping to newer->pos at segment borders popped the ship.
 
+        multi_interp_st[pnum].ok++;
         obj->pos = pos;
         obj->orient = orient;
 #undef MULTI_INTERP_SAMPLE

@@ -596,7 +596,7 @@ void netgame_set_defaults(void)
     Netgame.PlayTimeAllowed=0;
     Netgame.RefusePlayers=0;
     Netgame.difficulty=PlayerCfg.DefaultDifficulty;
-    Netgame.PacketsPerSec=20;
+    Netgame.PacketsPerSec=90;
     Netgame.ShortPackets=0;
     Netgame.ShowEnemyNames = 0;
     Netgame.BrightPlayers = 1;

@@ -129,6 +129,28 @@ void timer_delay_ms(int ms)
 		SDL_Delay((Uint32)ms);
 }
 
+// True when the OS sleep is too coarse for frame pacing (SDL_Delay(1) takes over 3ms, e.g. a
+// window behind another one on Windows 11). The pacer then busy-waits instead of rounding every
+// frame up to the ~15.6ms tick, which dropped such a window to ~47fps. Re-measured every 5s.
+int timer_sleep_is_coarse(void)
+{
+#ifdef WIN32
+	static fix64 next_check;
+	static int coarse;
+	fix64 now = timer_query_perf();
+
+	if (now >= next_check)
+	{
+		SDL_Delay(1);
+		coarse = (timer_query_perf() - now) > (F1_0 * 3 / 1000);
+		next_check = timer_query_perf() + F1_0 * 5;
+	}
+	return coarse;
+#else
+	return 0;
+#endif
+}
+
 void timer_delay(fix seconds)
 {
 	SDL_Delay(f2i(fixmul(seconds, i2f(1000))));

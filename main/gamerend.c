@@ -598,7 +598,7 @@ void game_draw_hud_stuff()
 
 	render_countdown_gauge();
 
-	if (!is_observer() && GameCfg.FPSIndicator && PlayerCfg.CurrentCockpitMode != CM_REAR_VIEW)
+	if (GameCfg.FPSIndicator && PlayerCfg.CurrentCockpitMode != CM_REAR_VIEW)
 		show_framerate();
 
 	// Keep both timer readouts independent from the FPS indicator. RTA remains
@@ -659,7 +659,11 @@ void toggle_cockpit()
 	int new_mode=CM_FULL_SCREEN;
 
 	if (Rear_view || Player_is_dead)
+	{
+		// TEMP diagnostic: why F3 does nothing in observer demo playback
+		HUD_init_message(HM_MULTI, "F3 blocked: Rear_view=%d Player_is_dead=%d", (int)Rear_view, (int)Player_is_dead);
 		return;
+	}
 
 	switch (PlayerCfg.PreferredCockpitMode)
 	{

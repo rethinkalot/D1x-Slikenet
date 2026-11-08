@@ -4010,7 +4010,8 @@ void net_udp_do_frame(int force, int listen)
         WaitForRefuseAnswer=0;
 
     // Send positional update either in the regular PPS interval OR if forced AND at least every 66.6ms (nice for firing)
-    if ((force && time >= (last_pdata_time+(F1_0/15))) || (time >= (last_pdata_time+(F1_0/Netgame.PacketsPerSec))))
+    // -sendeveryframe: one position per rendered frame (rate = FPS, not PacketsPerSec), so the other side gets a new pose every frame
+    if (GameArg.SendEveryFrame || (force && time >= (last_pdata_time+(F1_0/15))) || (time >= (last_pdata_time+(F1_0/Netgame.PacketsPerSec))))
     {
         // Step by the exact interval so time past the mark carries over and the average holds PacketsPerSec
         if (!force && time < last_pdata_time+(2*(F1_0/Netgame.PacketsPerSec)))

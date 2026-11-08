@@ -537,7 +537,7 @@ void calc_frame_time()
 			if (remaining <= 0)
 				break;
 
-			if (GameArg.SysUseNiceFPS)
+			if (GameArg.SysUseNiceFPS && !timer_sleep_is_coarse())
 			{
 				// Work in unscaled units to decide how long to sleep.
 				fix64 remaining_fix = remaining >> FPS_PERIOD_EXTRA_BITS;
