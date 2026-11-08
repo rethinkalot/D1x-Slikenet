@@ -403,13 +403,6 @@ void fix_illegal_wall_intersection(object *obj, vms_vector *origin)
 //Simulate a physics object for this frame
 void do_physics_sim(object *obj)
 {
-    // Bypasses local extrapolation for remote entities to completely kill packet tug-of-wars
-    if (Game_mode & GM_MULTI) {
-        if (obj->type == OBJ_ROBOT && obj->ctype.ai_info.REMOTE_OWNER != Player_num && obj->ctype.ai_info.REMOTE_OWNER != -1) {
-            return;
-        }
-    }
-
     int ignore_obj_list[MAX_IGNORE_OBJS],n_ignore_objs;
     int iseg;
     int try_again;
@@ -905,14 +898,6 @@ void do_physics_sim(object *obj)
         && ((fate == HIT_WALL) || (fate == HIT_OBJECT) || (fate == HIT_BAD_P0))
         )
     {
-        // Network authority safety gate: Do not locally overwrite or freeze velocity for remote-owned robots
-        if ((Game_mode & GM_MULTI) && obj->type == OBJ_ROBOT) {
-            if (obj->ctype.ai_info.REMOTE_OWNER != Player_num && obj->ctype.ai_info.REMOTE_OWNER != -1) {
-                // Safely return to let incoming network packets dictate velocity tracking maps
-                return;
-            }
-        }
-        
         // Retain native velocity generation calculations for local players and owned objects to stop erratic jumping
         vms_vector moved_vec;
         vm_vec_sub(&moved_vec, &obj->pos, &start_pos);

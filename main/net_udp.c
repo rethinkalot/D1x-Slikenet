@@ -3967,7 +3967,7 @@ void net_udp_player_spawned(int player_num)
 void net_udp_do_frame(int force, int listen)
 {
     fix64 time = 0;
-    static fix64 last_pdata_time = 0, last_mdata_time = 16, last_endlevel_time = 32, last_bcast_time = 48, last_resync_time = 64;
+    static fix64 last_pdata_time = 0, last_mdata_time = 16, last_endlevel_time = 32, last_bcast_time = 48, last_resync_time = 64, last_robot_time = 80;
 
     if (!(Game_mode&GM_NETWORK) || UDP_Socket[0] == -1)
         return;
@@ -4010,8 +4010,7 @@ void net_udp_do_frame(int force, int listen)
         WaitForRefuseAnswer=0;
 
     // Send positional update either in the regular PPS interval OR if forced AND at least every 66.6ms (nice for firing)
-    // -sendeveryframe: one position per rendered frame (rate = FPS, not PacketsPerSec), so the other side gets a new pose every frame
-    if (GameArg.SendEveryFrame || (force && time >= (last_pdata_time+(F1_0/15))) || (time >= (last_pdata_time+(F1_0/Netgame.PacketsPerSec))))
+    if ((force && time >= (last_pdata_time+(F1_0/(Netgame.PacketsPerSec > 0 ? Netgame.PacketsPerSec : 90)))) || (time >= (last_pdata_time+(F1_0/Netgame.PacketsPerSec))))
     {
         // Step by the exact interval so time past the mark carries over and the average holds PacketsPerSec
         if (!force && time < last_pdata_time+(2*(F1_0/Netgame.PacketsPerSec)))
@@ -4021,11 +4020,16 @@ void net_udp_do_frame(int force, int listen)
         net_udp_send_pdata();
     }
     
-    // enemy positions get a faster cadence (20Hz) so blends are short and changes show up sooner
-    if (force || (time >= (last_mdata_time+(F1_0/20))))
+    // Robot positions go out at 20Hz; the shared message buffer keeps its 60Hz flush
+    if (force || (time >= (last_robot_time+(F1_0/20))))
+    {
+        last_robot_time = time;
+        multi_send_robot_frame(0);
+    }
+
+    if (force || (time >= (last_mdata_time+(F1_0/60))))
     {
         last_mdata_time = time;
-        multi_send_robot_frame(0);
         net_udp_send_mdata(0, time);
     }
 

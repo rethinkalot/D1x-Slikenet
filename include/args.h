@@ -96,9 +96,7 @@ typedef struct Arg
 	int LogNetTraffic; 
 	int GameLogTimeStamp;
 	int GameLogSplit;
-	int InterpLog;
-	int SmoothShips;
-	int SendEveryFrame;
+	int DemoLog;
 	int MemLogTimeStamp;
 	int MemLogSplit;
 } __pack__ Arg;

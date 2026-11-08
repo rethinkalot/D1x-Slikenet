@@ -270,7 +270,7 @@ menu:
         nm_messagebox(TXT_ERROR, 1, TXT_OK, "Packet value out of range\nSetting value to 10");
         Netgame.PacketsPerSec=10;
     }
-    Netgame.ShortPackets=m[opt_shortpack].value;
+    Netgame.ShortPackets=1; // always on: the observer does not link over SLikeNet without it (the menu item is commented out)
 
     if ((atoi(UDP_MyPort)) <= 0 ||(atoi(UDP_MyPort)) > 65535)
     {
@@ -757,6 +757,7 @@ int net_udp_setup_game()
     netgame_set_defaults();
 
     read_netgame_profile(&Netgame);
+    Netgame.ShortPackets = 1;	// a saved profile can hold 0, and there is no menu item to change it
 
     if (Netgame.gamemode == NETGAME_COOPERATIVE) // did we restore Coop as default? then fix max players right now!
         Netgame.max_numplayers = 4;

@@ -70,6 +70,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "vecmat.h"
 #include "menu.h"
 #include "args.h"
+#include "timer.h"
 #include "palette.h"
 #include "multi.h"
 #include "text.h"
@@ -138,7 +139,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define INTERPOL_FACTOR				(F1_0 + (F1_0/5))
 
 #define DEMO_VERSION_SHAREWARE		5
-#define DEMO_VERSION				13
+#define DEMO_VERSION				14	// 14: the viewer record carries its exact position and orientation
 
 #define DEMO_FILENAME				DEMO_DIR "tmpdemo.dem"
 
@@ -206,6 +207,7 @@ static short nd_record_v_framebytes_written = 0;
 static int nd_record_v_recordframe = 1;
 static fix64 nd_record_v_recordframe_last_time = 0;
 static sbyte nd_record_v_no_space;
+static sbyte nd_record_v_objs[MAX_OBJECTS];	// objects already recorded this frame (as in D2)
 static int nd_record_v_player_energy = -1;
 static int nd_record_v_player_shields = -1;
 static uint nd_record_v_player_flags = -1;
@@ -955,6 +957,7 @@ void newdemo_record_start_frame(fix frame_time )
         nd_record_v_recordframe=1;
 
         stop_time();
+        memset(nd_record_v_objs, 0, sizeof(nd_record_v_objs));
         nd_record_v_frame_number -= nd_record_v_start_frame;
 
         nd_write_byte(ND_EVENT_START_FRAME);
@@ -976,9 +979,12 @@ void newdemo_record_render_object(object * obj)
 {
     if (!nd_record_v_recordframe)
         return;
+    if (nd_record_v_objs[obj-Objects])
+        return;
     stop_time();
     nd_write_byte(ND_EVENT_RENDER_OBJECT);
     nd_write_object(obj);
+    nd_record_v_objs[obj-Objects] = 1;
     start_time();
 }
 
@@ -994,6 +1000,13 @@ void newdemo_record_viewer_object(object * obj)
     obj->render_type = RT_POLYOBJ;
     nd_write_object(obj);
     obj->render_type = render_type;
+
+    // The object record rounds the orientation to 1/128 (about 0.6 degrees), so a smooth live camera
+    // played back in steps. Append the exact pose; playback applies it over the rounded one.
+    nd_write_vector(&obj->pos);
+    nd_write_vector(&obj->orient.rvec);
+    nd_write_vector(&obj->orient.uvec);
+    nd_write_vector(&obj->orient.fvec);
 
     start_time();
 }
@@ -1731,11 +1744,27 @@ int newdemo_read_frame_information(int rewrite)
 
         case ND_EVENT_VIEWER_OBJECT:        // Followed by an object structure
             nd_read_object(Viewer);
-            if (nd_playback_v_bad_read) { done = -1; break; }
-            if (rewrite)
             {
-                nd_write_object(Viewer);
-                break;
+                vms_vector exact_pos, exact_r, exact_u, exact_f;
+
+                nd_read_vector(&exact_pos);
+                nd_read_vector(&exact_r);
+                nd_read_vector(&exact_u);
+                nd_read_vector(&exact_f);
+                if (nd_playback_v_bad_read) { done = -1; break; }
+                if (rewrite)
+                {
+                    nd_write_object(Viewer);
+                    nd_write_vector(&exact_pos);
+                    nd_write_vector(&exact_r);
+                    nd_write_vector(&exact_u);
+                    nd_write_vector(&exact_f);
+                    break;
+                }
+                Viewer->pos = exact_pos;
+                Viewer->orient.rvec = exact_r;
+                Viewer->orient.uvec = exact_u;
+                Viewer->orient.fvec = exact_f;
             }
             if (is_observer())
                 Viewer->render_type = RT_NONE;
@@ -2879,9 +2908,30 @@ void newdemo_back_frames(int frames)
  *  at.
 */
 
+// -demolog: one line per played frame to demo.log (cwd), to find what makes playback step.
+static int nd_log_catchup;	// recorded frames read ahead since the last log line
+
+static void nd_demo_log(fix factor, fix d_play, fix d_recorded, int matched, int total, int viewer_matched, fix viewer_step)
+{
+    static FILE *f;
+    static fix64 last;
+    const fix64 now = timer_query();
+
+    if (!f && !(f = fopen("demo.log", "a")))
+        return;
+    fprintf(f, "t=%.4f dt_ms=%.2f factor=%.3f d_play_ms=%.2f d_rec_ms=%.2f catchup=%d matched=%d/%d viewer=%d vstep=%.4f\n",
+        f2fl(now), last ? f2fl(now - last) * 1000 : 0.0, f2fl(factor), f2fl(d_play) * 1000, f2fl(d_recorded) * 1000,
+        nd_log_catchup, matched, total, viewer_matched, f2fl(viewer_step));
+    fflush(f);	// readable while the game is still running
+    last = now;
+    nd_log_catchup = 0;
+}
+
 void interpolate_frame(fix d_play, fix d_recorded)
 {
     int i, j, num_cur_objs;
+    int log_matched = 0, log_viewer = 0;
+    fix log_vstep = 0;
     fix factor;
     object *cur_objs;
 
@@ -2955,10 +3005,23 @@ void interpolate_frame(fix d_play, fix d_recorded)
                     cur_objs[i].pos.x += delta_x;
                     cur_objs[i].pos.y += delta_y;
                     cur_objs[i].pos.z += delta_z;
+
+                    log_matched++;
+                    if (Viewer && i == Viewer - Objects)
+                    {
+                        vms_vector dv;
+
+                        dv.x = delta_x; dv.y = delta_y; dv.z = delta_z;
+                        log_viewer = 1;
+                        log_vstep = vm_vec_mag(&dv);
+                    }
                 }
             }
         }
     }
+
+    if (GameArg.DemoLog)
+        nd_demo_log(factor, d_play, d_recorded, log_matched, num_cur_objs + 1, log_viewer, log_vstep);
 
     // get back to original position in the demo file.  Reread the current
     // frame information again to reset all of the object stuff not covered
@@ -3151,6 +3214,7 @@ void newdemo_playback_one_frame()
                     }
                     d_free(cur_objs);
                     d_recorded += nd_recorded_time;
+                    nd_log_catchup++;
                     base_interpol_time = nd_playback_total - FrameTime;
                 }
             }
@@ -3528,11 +3592,13 @@ int newdemo_get_recorded_fps(char *filename)
         if (delta < 65 || delta >= MAX_DELTA_BINS)
             continue;
 
-        hist[delta]++;
-        if (hist[delta] > best_count)
+        // Coarse bins (16 ticks, ~0.25 ms): real intervals jitter by a few ticks, so exact
+        // values never form a spike. The bin centre is the estimate.
+        hist[delta >> 4]++;
+        if (hist[delta >> 4] > best_count)
         {
-            best_count = hist[delta];
-            best_delta = delta;
+            best_count = hist[delta >> 4];
+            best_delta = ((delta >> 4) << 4) + 8;
         }
     }
 
@@ -3585,27 +3651,24 @@ static void nd_pb_note_delta(int delta)
     if (nd_pb_filled < ND_PB_WINDOW)
         nd_pb_filled++;
 
-    // Dominant interval within the recent window. The window is tiny (48), so a
-    // straightforward count is cheap and needs no allocation.
-    for (i = 0; i < nd_pb_filled; i++)
+    // Median of the recent window. Recorded intervals are real elapsed times, so they differ
+    // by a few ticks and never repeat exactly; an exact-match mode never found a majority.
+    // The median ignores stray values and hitches and follows a real rate change.
+    if (nd_pb_filled >= 8)
     {
-        int j, count = 0;
+        int sorted[ND_PB_WINDOW], j;
 
-        for (j = 0; j < nd_pb_filled; j++)
-            if (nd_pb_ring[j] == nd_pb_ring[i])
-                count++;
-
-        if (count > best_count)
+        for (i = 0; i < nd_pb_filled; i++)
         {
-            best_count = count;
-            best = nd_pb_ring[i];
+            for (j = i; j > 0 && sorted[j - 1] > nd_pb_ring[i]; j--)
+                sorted[j] = sorted[j - 1];
+            sorted[j] = nd_pb_ring[i];
         }
+        best = sorted[nd_pb_filled / 2];
+        best_count = nd_pb_filled;
     }
 
-    // Require a clear majority of the window before moving the readout, so a
-    // transition does not make it flicker, and so a handful of stray intervals
-    // cannot flip the displayed rate.
-    if (best && nd_pb_filled >= 8 && best_count * 2 >= nd_pb_filled)
+    if (best && best_count)
         Newdemo_recorded_fps = (int)(((fix64)F1_0) / best);
 }
 

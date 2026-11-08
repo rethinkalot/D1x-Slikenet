@@ -537,7 +537,7 @@ void calc_frame_time()
 			if (remaining <= 0)
 				break;
 
-			if (GameArg.SysUseNiceFPS && !timer_sleep_is_coarse())
+			if (GameArg.SysUseNiceFPS)
 			{
 				// Work in unscaled units to decide how long to sleep.
 				fix64 remaining_fix = remaining >> FPS_PERIOD_EXTRA_BITS;
@@ -1349,6 +1349,11 @@ void GameProcessFrame(void)
 		Players[Player_num].homing_object_dist = -1;		//	Assume not being tracked.  Laser_do_weapon_sequence modifies this.
 
 		object_move_all();
+#ifdef NETWORK
+		// Physics just moved remote ships on by their last packet's velocity; put them back on the smoothed position
+		if (Game_mode & GM_MULTI)
+			multi_interp_update_remote();
+#endif
 		powerup_grab_cheat_all();
 
 		if (Endlevel_sequence)	//might have been started during move

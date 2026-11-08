@@ -659,11 +659,7 @@ void toggle_cockpit()
 	int new_mode=CM_FULL_SCREEN;
 
 	if (Rear_view || Player_is_dead)
-	{
-		// TEMP diagnostic: why F3 does nothing in observer demo playback
-		HUD_init_message(HM_MULTI, "F3 blocked: Rear_view=%d Player_is_dead=%d", (int)Rear_view, (int)Player_is_dead);
 		return;
-	}
 
 	switch (PlayerCfg.PreferredCockpitMode)
 	{

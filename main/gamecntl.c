@@ -1497,10 +1497,23 @@ void observer_camera_update(void)
             // The camera moved, so its segment must follow or the view renders from the wrong place.
             if (Obs_at_distance == 1)
                 update_object_seg(ConsoleObject);
+            else {
+                // First person: the camera sits on the ship, so it takes the ship's segment.
+                const int ship_seg = Objects[Players[Current_obs_player].objnum].segnum;
+
+                if (ship_seg >= 0 && ConsoleObject->segnum != ship_seg)
+                    obj_relink(ConsoleObject - Objects, ship_seg);
+            }
         } else {
             // If we're freely observing, just update position and orientation as normal.
             ConsoleObject->pos = Objects[Players[Current_obs_player].objnum].pos;
             ConsoleObject->orient = Objects[Players[Current_obs_player].objnum].orient;
+            {
+                const int ship_seg = Objects[Players[Current_obs_player].objnum].segnum;
+
+                if (ship_seg >= 0 && ConsoleObject->segnum != ship_seg)
+                    obj_relink(ConsoleObject - Objects, ship_seg);
+            }
         }
     }
 }

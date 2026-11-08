@@ -230,9 +230,7 @@ void ReadCmdArgs(void)
 
 	GameArg.GameLogTimeStamp	= FindArg("-gamelog_timestamp");
 	GameArg.GameLogSplit		= FindArg("-gamelog_split");
-	GameArg.InterpLog		= FindArg("-interp");
-	GameArg.SmoothShips		= !FindArg("-rawships");	// smoothing on by default
-	GameArg.SendEveryFrame	= FindArg("-sendeveryframe");
+	GameArg.DemoLog		= FindArg("-demolog");
 	GameArg.MemLogTimeStamp	= FindArg("-memlog_timestamp");
 	GameArg.MemLogSplit		= FindArg("-memlog_split");
 }

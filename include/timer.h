@@ -30,7 +30,6 @@ void timer_delay(fix seconds);
 void timer_delay2(int fps);
 fix64 timer_query_perf(void);
 void timer_delay_ms(int ms);
-int timer_sleep_is_coarse(void);
 void timer_set_high_res(void);
 
 #endif

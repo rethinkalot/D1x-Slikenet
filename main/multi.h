@@ -273,6 +273,7 @@ int multi_endlevel_poll2( newmenu *menu, d_event *event, void *userdata );
 void multi_send_endlevel_packet();
 // Smoothed remote ship rendering.  Remote ship history used to draw a ship
 // between two updates that were actually received; see multi.c.
+#define MULTI_PDATA_SEQUENCE_MODULO 128
 void multi_interp_clear(void);
 void multi_interp_push_position(int pnum, const object *obj, ubyte sequence, int has_sequence);
 void multi_interp_update_remote(void);
