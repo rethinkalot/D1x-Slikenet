@@ -965,7 +965,7 @@ void show_newdemo_help()
 	newmenu_item *m;
 	int nitems = 0;
 
-	MALLOC(m, newmenu_item, 15);
+	MALLOC(m, newmenu_item, 16);
 	if (!m)
 		return;
 
@@ -973,6 +973,7 @@ void show_newdemo_help()
 	m[nitems].type = NM_TYPE_TEXT; m[nitems++].text = "F1\t  THIS SCREEN";
 	m[nitems].type = NM_TYPE_TEXT; m[nitems++].text = TXT_HELP_F2;
 	m[nitems].type = NM_TYPE_TEXT; m[nitems++].text = "F3\t  SWITCH COCKPIT MODES";
+	m[nitems].type = NM_TYPE_TEXT; m[nitems++].text = "ALT-F7\t  SWITCH HUD MODES";
 	m[nitems].type = NM_TYPE_TEXT; m[nitems++].text = "F4\t  TOGGLE PERCENTAGE DISPLAY";
 	m[nitems].type = NM_TYPE_TEXT; m[nitems++].text = "UP\t  PLAY";
 	m[nitems].type = NM_TYPE_TEXT; m[nitems++].text = "DOWN\t  PAUSE";

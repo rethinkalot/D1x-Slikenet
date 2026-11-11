@@ -4220,7 +4220,8 @@ void hud_show_vel()
     }
     int w, h, aw;
     gr_get_string_size(vel_str, &w, &h, &aw );
-    int sb_top = Screen_3d_window.cv_bitmap.bm_h;
+    // Bottom edge of the 3D view: letterbox (death camera) offsets it by the top bar, so the height alone lands on the FPS line
+    int sb_top = Screen_3d_window.cv_bitmap.bm_y + Screen_3d_window.cv_bitmap.bm_h;
     int y;
     if (sb_top > 0 && sb_top < SHEIGHT)
         y = sb_top + (PlayerCfg.CurrentCockpitMode == CM_STATUS_BAR ? 0 : LINE_SPACING);

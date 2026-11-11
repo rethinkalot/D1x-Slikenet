@@ -113,7 +113,8 @@ int new_player_config()
     PlayerCfg.AlphaEffects = 0;
     PlayerCfg.DynLightColor = 0;
     PlayerCfg.DisableCockpit = 0;  /* DisableCockpit */ 
-    PlayerCfg.StickyRearview = 0; /* StickyRearview */ 
+    PlayerCfg.StickyRearview = 0; /* StickyRearview */
+    PlayerCfg.LastInputWins = 0;
     PlayerCfg.SelectAfterFire = 1;  /* SelectAfterFire */
     PlayerCfg.AutoselectOnlyOnce = 0;
     PlayerCfg.VulcanAmmoWarnings = 1; 
@@ -439,7 +440,9 @@ int read_player_d1x(char *filename)
                 if(!strcmp(word,"DISABLECOCKPIT"))
                     PlayerCfg.DisableCockpit = atoi(line); /* DisableCockpit */ 
                 if(!strcmp(word,"STICKYREARVIEW"))
-                    PlayerCfg.StickyRearview = atoi(line); /* StickyRearview */ 
+                    PlayerCfg.StickyRearview = atoi(line); /* StickyRearview */
+                if(!strcmp(word,"LASTINPUTWINS"))
+                    PlayerCfg.LastInputWins = atoi(line);
                 if(!strcmp(word,"SELECTAFTERFIRE"))
                     PlayerCfg.SelectAfterFire = atoi(line); /* SelectAfterFire */ 										
                 if(!strcmp(word,"NOFIREAUTOSELECT"))
@@ -958,7 +961,8 @@ int write_player_d1x(char *filename)
         PHYSFSX_printf(fout,"bombgauge=%i\n",PlayerCfg.BombGauge);
         PHYSFSX_printf(fout,"automapfreeflight=%i\n",PlayerCfg.AutomapFreeFlight);
         PHYSFSX_printf(fout,"disablecockpit=%i\n",PlayerCfg.DisableCockpit); /* DisableCockpit */ 
-        PHYSFSX_printf(fout,"stickyrearview=%i\n",PlayerCfg.StickyRearview); /* StickyRearview */ 
+        PHYSFSX_printf(fout,"stickyrearview=%i\n",PlayerCfg.StickyRearview); /* StickyRearview */
+        PHYSFSX_printf(fout,"lastinputwins=%i\n",PlayerCfg.LastInputWins);
         PHYSFSX_printf(fout,"selectafterfire=%i\n",PlayerCfg.SelectAfterFire); /* SelectAfterFire */ 		
         PHYSFSX_printf(fout,"nofireautoselect=%i\n",PlayerCfg.NoFireAutoselect);
         PHYSFSX_printf(fout,"cycleautoselectonly=%i\n",PlayerCfg.CycleAutoselectOnly);

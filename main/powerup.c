@@ -112,7 +112,8 @@ void draw_powerup(object *obj)
 
         if (obj->id == POW_EXTRA_LIFE || obj->id == POW_ENERGY || obj->id == POW_SHIELD_BOOST ||
             obj->id == POW_CLOAK || obj->id == POW_INVULNERABILITY) {
-            angles.p = 0;
+            // Shield rides at a fixed 44-degree vertical tilt (same as D2) while it yaws; the rest of this group stays level.
+            angles.p = (obj->id == POW_SHIELD_BOOST) ? F1_0 * 44 / 360 : 0;
         } else if (obj->id == POW_QUAD_FIRE) {
             angles.p = F1_0 / 12;
         } else { 

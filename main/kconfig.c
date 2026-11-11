@@ -1317,6 +1317,37 @@ int is_key_rotate_event(d_event *event) {
     return 0; 
 }
 
+// Last Input Wins (Controls menu): with both opposite slide/bank directions held, the one pressed last
+// moves the ship instead of the two cancelling out. The older side is masked only while its axis is summed.
+static ubyte liw_last[3], liw_held[3][2], liw_saved[4];
+
+static void liw_begin(int pair, ubyte *a_key, ubyte *a_btn, ubyte *b_key, ubyte *b_btn)
+{
+    int a = *a_key || *a_btn, b = *b_key || *b_btn;
+
+    if (a && !liw_held[pair][0])
+        liw_last[pair] = 0;
+    if (b && !liw_held[pair][1])
+        liw_last[pair] = 1;
+    liw_held[pair][0] = a;
+    liw_held[pair][1] = b;
+
+    liw_saved[0] = *a_key; liw_saved[1] = *a_btn; liw_saved[2] = *b_key; liw_saved[3] = *b_btn;
+    if (PlayerCfg.LastInputWins && a && b)
+    {
+        if (liw_last[pair])
+            *a_key = *a_btn = 0;
+        else
+            *b_key = *b_btn = 0;
+    }
+}
+
+// Put the held states back: they are set and cleared by input events, not by this function
+static void liw_end(ubyte *a_key, ubyte *a_btn, ubyte *b_key, ubyte *b_btn)
+{
+    *a_key = liw_saved[0]; *a_btn = liw_saved[1]; *b_key = liw_saved[2]; *b_btn = liw_saved[3];
+}
+
 void kconfig_read_controls(d_event *event, int automap_flag)
 {
     // Don't read from the controls if we are locked into observing a specific player.
@@ -1574,6 +1605,7 @@ void kconfig_read_controls(d_event *event, int automap_flag)
                 Controls.vertical_thrust_time += (Controls.mouse_axis[kc_mouse[13].value]*PlayerCfg.MouseSens[3])/8;
         }
     }
+    liw_begin(0, &Controls.key_slide_up_state, &Controls.btn_slide_up_state, &Controls.key_slide_down_state, &Controls.btn_slide_down_state);
     // From keyboard...
     if ( Controls.key_slide_up_state ) 
     {
@@ -1594,6 +1626,7 @@ void kconfig_read_controls(d_event *event, int automap_flag)
     // From buttons...
     if ( Controls.btn_slide_up_state ) Controls.vertical_thrust_time += speed_factor*FrameTime;
     if ( Controls.btn_slide_down_state ) Controls.vertical_thrust_time -= speed_factor*FrameTime;
+    liw_end(&Controls.key_slide_up_state, &Controls.btn_slide_up_state, &Controls.key_slide_down_state, &Controls.btn_slide_down_state);
     // From joystick...
     if ( !kc_joystick[20].value )		// If not inverted...
         Controls.vertical_thrust_time += (Controls.joy_axis[kc_joystick[19].value]*PlayerCfg.JoystickSens[3]*undercalibrate_scale(PlayerCfg.JoystickUndercalibrate[3]))/8;
@@ -1675,6 +1708,7 @@ void kconfig_read_controls(d_event *event, int automap_flag)
                 Controls.sideways_thrust_time -= (Controls.mouse_axis[kc_mouse[15].value]*PlayerCfg.MouseSens[2])/8;
         }
     }
+    liw_begin(1, &Controls.key_slide_left_state, &Controls.btn_slide_left_state, &Controls.key_slide_right_state, &Controls.btn_slide_right_state);
     // From keyboard...
     if ( Controls.key_slide_right_state ) 
     {
@@ -1695,6 +1729,7 @@ void kconfig_read_controls(d_event *event, int automap_flag)
     // From buttons...
     if ( Controls.btn_slide_left_state ) Controls.sideways_thrust_time -= speed_factor*FrameTime;
     if ( Controls.btn_slide_right_state ) Controls.sideways_thrust_time += speed_factor*FrameTime;
+    liw_end(&Controls.key_slide_left_state, &Controls.btn_slide_left_state, &Controls.key_slide_right_state, &Controls.btn_slide_right_state);
     // From joystick...
     if ( !kc_joystick[18].value )		// If not inverted...
         Controls.sideways_thrust_time += (Controls.joy_axis[kc_joystick[17].value]*PlayerCfg.JoystickSens[2]*undercalibrate_scale(PlayerCfg.JoystickUndercalibrate[2]))/8;
@@ -1741,6 +1776,7 @@ void kconfig_read_controls(d_event *event, int automap_flag)
                 Controls.bank_time -= (Controls.mouse_axis[kc_mouse[15].value]*PlayerCfg.MouseSens[4])/8;
         }
     }
+    liw_begin(2, &Controls.key_bank_left_state, &Controls.btn_bank_left_state, &Controls.key_bank_right_state, &Controls.btn_bank_right_state);
     // From keyboard...
     if ( Controls.key_bank_left_state )
     {
@@ -1761,6 +1797,7 @@ void kconfig_read_controls(d_event *event, int automap_flag)
     // From buttons...
     if ( Controls.btn_bank_left_state ) Controls.bank_time += speed_factor*FrameTime;
     if ( Controls.btn_bank_right_state ) Controls.bank_time -= speed_factor*FrameTime;
+    liw_end(&Controls.key_bank_left_state, &Controls.btn_bank_left_state, &Controls.key_bank_right_state, &Controls.btn_bank_right_state);
     // From joystick...
     if ( !kc_joystick[22].value )		// If not inverted...
         Controls.bank_time -= (Controls.joy_axis[kc_joystick[21].value]*PlayerCfg.JoystickSens[4]*undercalibrate_scale(PlayerCfg.JoystickUndercalibrate[4]))/8;

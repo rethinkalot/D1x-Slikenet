@@ -372,6 +372,20 @@ int HandleDeathInput(d_event *event)
     return 0;
 }
 
+// Alt+F7: Standard HUD -> Alternative #1 -> Alternative #2 -> No HUD (gameplay and demo playback)
+static void cycle_hud_mode(void)
+{
+    PlayerCfg.HudMode=(PlayerCfg.HudMode+1)%GAUGE_HUD_NUMMODES;
+    write_player_file();
+    switch (PlayerCfg.HudMode)
+    {
+        case 0: HUD_init_message_literal(HM_DEFAULT, "Standard HUD"); break;
+        case 1: HUD_init_message_literal(HM_DEFAULT, "Alternative HUD #1"); break;
+        case 2: HUD_init_message_literal(HM_DEFAULT, "Alternative HUD #2"); break;
+        case 3: HUD_init_message_literal(HM_DEFAULT, "No HUD"); break;
+    }
+}
+
 int HandleDemoKey(int key)
 {
     switch (key) {
@@ -381,6 +395,9 @@ int HandleDemoKey(int key)
         case KEY_F2:	do_options_menu();	break;
         KEY_MAC(case KEY_COMMAND+KEY_3:)
         case KEY_F3:	toggle_cockpit();	break;
+        case KEY_ALTED+KEY_F7:
+        KEY_MAC(case KEY_COMMAND+KEY_ALTED+KEY_7:)
+            cycle_hud_mode();	break;
         KEY_MAC(case KEY_COMMAND+KEY_4:)
         case KEY_F4:	Newdemo_show_percentage = !Newdemo_show_percentage; break;
 
@@ -790,15 +807,7 @@ int HandleGameKey(int key)
     switch (key) {
         case KEY_ALTED+KEY_F7:
         KEY_MAC(case KEY_COMMAND+KEY_ALTED+KEY_7:)
-            PlayerCfg.HudMode=(PlayerCfg.HudMode+1)%GAUGE_HUD_NUMMODES;
-            write_player_file();
-            switch (PlayerCfg.HudMode)
-            {
-                case 0: HUD_init_message_literal(HM_DEFAULT, "Standard HUD"); break;
-                case 1: HUD_init_message_literal(HM_DEFAULT, "Alternative HUD #1"); break;
-                case 2: HUD_init_message_literal(HM_DEFAULT, "Alternative HUD #2"); break;
-                case 3: HUD_init_message_literal(HM_DEFAULT, "No HUD"); break;
-            }
+            cycle_hud_mode();
             break;
 
 #ifdef NETWORK
@@ -1130,6 +1139,25 @@ cheat_code cheat_codes[NUM_CHEATS] = {
     { "ahimsa", &cheats.robotfiringsuspended },
     { "bittersweet", &cheats.acid },
 };
+
+// Typing "frametime" toggles the FPS counter (the Graphics menu "FPS Counter" option). Not a cheat: no cheat
+// flag, score kept, and it works in single player, multiplayer and demo playback.
+static int frametime_code(void)
+{
+    static const char code[] = "frametime";
+    enum { len = sizeof(code) - 1 };
+    static char buf[len];
+
+    memmove(buf, buf + 1, len - 1);
+    buf[len - 1] = key_ascii();
+    if (d_strnicmp(buf, code, len) != 0)
+        return 0;
+
+    memset(buf, 0, len);
+    GameCfg.FPSIndicator = !GameCfg.FPSIndicator;
+    HUD_init_message(HM_DEFAULT, "FPS Counter %s", GameCfg.FPSIndicator ? TXT_ON : TXT_OFF);
+    return 1;
+}
 
 int FinalCheats(int key)
 {
@@ -1578,11 +1606,13 @@ int ReadControls(d_event *event)
         }
         else if (Newdemo_state == ND_STATE_PLAYBACK )
         {
+            if (frametime_code()) return 1;
             if (HandleDemoKey(key))
                 return 1;
         }
         else
         {
+            if (frametime_code()) return 1;
             if (FinalCheats(key)) return 1;
             if (HandleSystemKey(key)) return 1;
             if (HandleGameKey(key)) return 1;
