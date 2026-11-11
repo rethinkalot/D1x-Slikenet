@@ -1,0 +1,13 @@
+name: Zip notify
+on:
+  push:
+    branches: [D1-SlikeNet-WorkBranch]
+    paths: ['download/*.zip']
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - run: >
+          curl -sf -H "Content-Type: application/json"
+          -d '{"content":"New D1x-Redux-SLikeNet build: https://github.com/${{ github.repository }}/raw/${{ github.ref_name }}/download/D1x-Redux-SLikeNet.zip"}'
+          "${{ secrets.DISCORD_WEBHOOK }}"
