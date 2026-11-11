@@ -27,15 +27,6 @@
       }
     },
     {
-      "name": "windows-mingw-debug",
-      "displayName": "Windows MinGW Debug",
-      "description": "Windows Debug build using MSYS2 MinGW64.",
-      "inherits": "windows-mingw-base",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
-    },
-    {
       "name": "windows-mingw-release",
       "displayName": "Windows MinGW Release",
       "description": "Windows Release build using MSYS2 MinGW64.",
@@ -46,11 +37,6 @@
     }
   ],
   "buildPresets": [
-    {
-      "name": "windows-mingw-debug",
-      "configurePreset": "windows-mingw-debug",
-      "jobs": 10
-    },
     {
       "name": "windows-mingw-release",
       "configurePreset": "windows-mingw-release",

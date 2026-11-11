@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.24)
 project(d1x-redux VERSION 1.1)
 
+# Always Release: other build types compile in the developer cheat menu and Delete+key test keys (#ifndef RELEASE)
+set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type (Release only)" FORCE)
+
 option(OPENGL "Build with OpenGL support [default: ON]" ON)
 option(SDLMIXER "Build with SDL_Mixer support for sound and music (includes external music support) [default: ON]" ON)
 option(ASM "Build with ASSEMBLER code (only with OpenGL OFF, requires NASM and x86) [default: OFF]" OFF)
