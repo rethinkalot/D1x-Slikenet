@@ -220,7 +220,7 @@ void show_speedrun_timers(void)
 
 void show_framerate()
 {
-	static int fps_count = 0, fps_rate = 0;
+	static int fps_count = 0, fps_rate = 0, demo_rate = 0;
 	int y;
 	static fix64 fps_time = 0;
 
@@ -234,6 +234,7 @@ void show_framerate()
 	fps_count++;
 	if (timer_query() >= fps_time + F1_0)
 	{
+		demo_rate = Newdemo_recorded_fps; // the DEMO line steps once a second, like FPS
 		fps_rate = fps_count;
 		fps_count = 0;
 		fps_time = timer_query();
@@ -253,7 +254,9 @@ void show_framerate()
 
 		if (Newdemo_state == ND_STATE_PLAYBACK && Newdemo_recorded_fps > 0)
 		{
-			snprintf(buf, sizeof(buf), "DEMO: %i", Newdemo_recorded_fps);
+			if (!demo_rate)
+				demo_rate = Newdemo_recorded_fps;
+			snprintf(buf, sizeof(buf), "DEMO: %i", demo_rate);
 			gr_get_string_size(buf, &sw, &sh, &aw);
 			x = SWIDTH - FSPACX(4) - sw;
 			gr_printf(x, y + LINE_SPACING, "%s", buf);

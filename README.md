@@ -34,6 +34,8 @@
 - **FPS counter.** The Graphics menu FPS Counter now works for observers and in observer demos.
 - **Show Observer Messages.** A new Misc option, on by default, lets non-observers see or hide observer chat. The host relays observer chat to all players.
 - **Observing host chat is blue too.** A host who is observing chats in the same all-blue style, name and text, and follows the same toggle.
+- **Centered gun sounds.** Following a ship in first person, its guns sound centered, the same as your own.
+- **Respawn sound in place.** The observed ship's respawn sound plays where it respawns, not from where it died.
 
 ## Demos
 
@@ -41,7 +43,7 @@
 - **Played at your frame rate.** Playback runs in real time at whatever frame rate you are running, so speed is always correct, and blends between recorded frames.
 - **Exact camera.** Demos store the camera's exact position and orientation, and ship smoothing runs while recording, so an observer demo plays back the way it looked live.
 - **New demo format.** Demo version 14. Demos recorded by older builds no longer play.
-- **Playback HUD.** `FPS` shows your live frame rate and `DEMO` shows the rate the demo was recorded at, so you can compare. The `DEMO` readout no longer jumps around during playback.
+- **Playback HUD.** `FPS` shows your live frame rate and `DEMO` shows the rate the demo was recorded at, so you can compare. The `DEMO` readout no longer jumps around during playback and, like `FPS`, updates once a second.
 - **No seam at segment borders.** The playback view no longer pops when the camera crosses a segment.
 - **Fixes.** The HUD no longer goes blank when fast-forwarding demos as an observer. Fast-forward and rewind steps scale with your FPS cap.
 
