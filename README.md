@@ -65,5 +65,11 @@
 - **Position updates go out sooner.** Ship positions are sent right away instead of waiting up to 10 ms. Positions stuck in the send queue for over 100 ms are dropped instead of arriving late in a burst.
 - **Network clock fix.** The network clock no longer loses up to one frame every 65 seconds.
 - **Quieter `-debug` console.** The per-packet `Packet OUT` and `Packet IN` lines are off. The traffic summary lines stay.
+- **Velocity meter clear of FPS.** In the death camera's letterbox view the velocity meter sits in the bottom bar instead of on top of the FPS line.
+- **HUD modes in demos.** Alt+F7 now cycles the HUD modes during demo playback too, and the demo F1 screen lists it.
+- **Cruise survives respawn.** Die with cruise control on and you respawn with it still on, at the same speed.
+- **Last Input Wins.** New Controls option under Sticky Rearview, off by default. With both opposite slide or bank directions held, the one pressed last moves the ship instead of the two cancelling out.
+- **`frametime` toggles the FPS counter.** Type it in game or during demo playback. It is not a cheat: no cheat flag, and your score is kept.
+- **Shield orb tilt.** The 3D shield orb now spins at a 44-degree tilt.
 
 
