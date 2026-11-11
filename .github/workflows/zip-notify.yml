@@ -7,7 +7,21 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - run: >
-          curl -sf -H "Content-Type: application/json"
-          -d '{"content":"New D1x-Redux-SLikeNet build: https://github.com/${{ github.repository }}/raw/${{ github.ref_name }}/download/D1x-Redux-SLikeNet.zip"}'
-          "${{ secrets.DISCORD_WEBHOOK }}"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          ZIP: download/D1x-Redux-SLikeNet.zip
+          URL: https://github.com/${{ github.repository }}/raw/${{ github.ref_name }}/download/D1x-Redux-SLikeNet.zip
+        run: |
+          # README entries added or changed since the previous zip, e.g. "- **Title.** Sentence."
+          prev=$(git log -n 2 --format=%H -- "$ZIP" | sed -n 2p)
+          notes=""
+          if [ -n "$prev" ]; then
+            notes=$(git diff "$prev" HEAD -- README.md | { grep '^+- ' || true; } | sed 's/^+//' |
+              awk '{ if (n + length($0) + 1 > 1800) { print "- ...and more in the README"; exit } print; n += length($0) + 1 }')
+          fi
+          msg="New D1x-Redux-SLikeNet build: $URL"
+          if [ -n "$notes" ]; then msg="$msg"$'\n'"$notes"; fi
+          jq -n --arg c "$msg" '{content: $c}' | curl -sf -H "Content-Type: application/json" -d @- "$WEBHOOK"
