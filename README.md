@@ -56,6 +56,8 @@
 - **Flash toggle.** Reduced Flash is your own Graphics menu setting. Off is off everywhere. On in multiplayer also needs the host's Reduced Flash option.
 - **Velocity meter.** New optional readout, toggled in the Misc menu. Velocity is recorded into demos whether or not the readout is shown.
 - **Power-ups.** Fixed orientation and rotation for 3D models. Spin speeds are retuned and Quad Fire is tilted.
+- **3D Prox Bomb**
+A live proximity bomb now draws with when custom models are on.
 
 ## BugFixes
 
@@ -71,5 +73,7 @@
 - **Last Input Wins.** New Controls option under Sticky Rearview, off by default. With both opposite slide or bank directions held, the one pressed last moves the ship instead of the two cancelling out.
 - **`frametime` toggles the FPS counter.** Type it in game or during demo playback. It is not a cheat: no cheat flag, and your score is kept.
 - **Shield orb tilt.** The 3D shield orb now spins at a 44-degree tilt.
+- **JinX Mode Options Keep Toggles**
+Toggles changed with in Observer Options save with Esc.
 
 
