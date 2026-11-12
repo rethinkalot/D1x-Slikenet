@@ -17,6 +17,7 @@ extern "C" {
 #undef FILENAME_LEN
 #include "polyobj.h"
 #include "texmap.h"
+#include "laser.h"
 }
 
 struct CGameFolders gameFolders;
@@ -310,6 +311,8 @@ static int xmodel_xlate(enum xmodel_type mt, int modelnum) {
 		return xmodel_polyobj_xlate[modelnum];
 	if (mt == XM_POWERUP && modelnum >= 0 && modelnum < SDL_arraysize(xmodel_powerup_xlate))
 		return xmodel_powerup_xlate[modelnum];
+	if (mt == XM_WEAPON && modelnum == PROXIMITY_ID)
+		return model_weapon_proxmine;
 	return -1;
 }
 

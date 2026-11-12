@@ -6,7 +6,8 @@ extern "C" {
 
 enum xmodel_type {
     XM_POLYOBJ,
-    XM_POWERUP
+    XM_POWERUP,
+    XM_WEAPON
 };
 
 void *xmodel_load(const char *filename);

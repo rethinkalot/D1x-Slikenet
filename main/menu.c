@@ -2546,11 +2546,6 @@ void do_obs_menu(void)
 
 		i = newmenu_do1(NULL, "JinX Mode Options", SDL_arraysize(m), m, menu_obs_options_handler, &obs_menu_data, i);
 
-		// ESC (-1) leaves the menu. -2 (mode switched) and -3 (overwrite modes) must fall through so the loop continues.
-		if (i == -1) {
-			break;
-		}
-
 		PlayerCfg.ObsShareSettings = m[2].value;
 		PlayerCfg.ObsTurbo[cmode] = m[4].value;
 		PlayerCfg.ObsShowCockpit[cmode] = m[5].value;

@@ -22,6 +22,10 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "inferno.h"
 #include "vclip.h"
 #include "weapon.h"
+#include "game.h"
+#include "multi.h"
+#include "config.h"
+#include "xmodel.h"
 
 //----------------- Variables for video clips -------------------
 int 					Num_vclips = 0;
@@ -59,6 +63,22 @@ void draw_weapon_vclip(object *obj)
 	fix	modtime;
 
 	vclip_num = Weapon_info[obj->id].weapon_vclip;
+
+#ifdef OGL
+	if (GameCfg.UseCustomModels && (!(Game_mode & GM_MULTI) || Netgame.AllowCustomModelsTextures) &&
+		xmodel_exists(XM_WEAPON, obj->id)) {
+		vms_matrix orient;
+		vms_angvec angles = { 0, 0, 0 };
+		g3s_lrgb lrgb = { F1_0, F1_0, F1_0 };
+		fix64 rotation_duration = (Vclip[vclip_num].play_time > 0 ? Vclip[vclip_num].play_time : F1_0) * 3; // 1/3 speed
+
+		angles.h = (fixang)(GameTime64 * F1_0 / rotation_duration);
+		vm_angles_2_matrix(&orient, &angles);
+		if (xmodel_show_if_loaded(XM_WEAPON, obj->id, &obj->pos, &orient, -1, &lrgb))
+			return;
+	}
+#endif
+
 	modtime = obj->lifeleft;
 	while (modtime > Vclip[vclip_num].play_time)
 		modtime -= Vclip[vclip_num].play_time;

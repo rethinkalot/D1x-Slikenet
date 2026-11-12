@@ -23,6 +23,6 @@ jobs:
               sed -E 's/^\+- \*\*([^*]+)\*\*.*/\1/; s/[.:]+$//; s/^/- **/; s/$/**/' | awk '!seen[$0]++' |
               awk '{ if (n + length($0) + 1 > 1800) { print "- ...and more in the README"; exit } print; n += length($0) + 1 }')
           fi
-          msg="- **New D1x-SLikeNet Build**"$'\n'"- $URL"
+          msg="- New **D1x-SLikeNet** Build"$'\n'"- $URL"
           if [ -n "$notes" ]; then msg="$msg"$'\n'"$notes"; fi
           jq -n --arg c "$msg" '{content: $c}' | curl -sf -H "Content-Type: application/json" -d @- "$WEBHOOK"
