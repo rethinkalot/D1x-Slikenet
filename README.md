@@ -39,7 +39,7 @@
 - **Observer List Above FPS**
 The OBSERVERS list and streaks sit above the FPS line in every view, live and in observer demo playback, instead of at the bottom right over the weapon rows.
 - **Observer Ping**
-Following a player with F6 network stats and the kill list on, the kill list shows ping from that player's point of view.
+Observers now get the host's ping table, so with F6 network stats and the kill list on, the kill list shows real pings instead of 0. In a normal game they are from the followed player's point of view; with Retro Protocol they are the host's ping to each player.
 
 ## Demos
 
