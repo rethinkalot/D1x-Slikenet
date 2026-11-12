@@ -36,6 +36,10 @@
 - **Observing host chat is blue too.** A host who is observing chats in the same all-blue style, name and text, and follows the same toggle.
 - **Centered gun sounds.** Following a ship in first person, its guns sound centered, the same as your own.
 - **Respawn sound in place.** The observed ship's respawn sound plays where it respawns, not from where it died.
+- **Observer List Above FPS**
+The OBSERVERS list and streaks sit above the FPS line in every view, live and in observer demo playback, instead of at the bottom right over the weapon rows.
+- **Observer Ping**
+Following a player with F6 network stats and the kill list on, the kill list shows ping from that player's point of view.
 
 ## Demos
 
@@ -46,6 +50,8 @@
 - **Playback HUD.** `FPS` shows your live frame rate and `DEMO` shows the rate the demo was recorded at, so you can compare. The `DEMO` readout no longer jumps around during playback and, like `FPS`, updates once a second.
 - **No seam at segment borders.** The playback view no longer pops when the camera crosses a segment.
 - **Fixes.** The HUD no longer goes blank when fast-forwarding demos as an observer. Fast-forward and rewind steps scale with your FPS cap.
+- **Bomb Count In Demos**
+Prox bombs picked up or dropped while another secondary is selected now show in playback, rewind included. Older demos still play.
 
 ## HUD and options
 
@@ -58,6 +64,8 @@
 - **Power-ups.** Fixed orientation and rotation for 3D models. Spin speeds are retuned and Quad Fire is tilted.
 - **3D Prox Bomb**
 A live proximity bomb now draws with when custom models are on.
+- **Fixed HUD Rows**
+Full screen keeps FPS, DEMO, RTA, IGT and velocity stacked above the weapon rows, so nothing overlaps and nothing moves when you switch HUD modes. Multiplayer and multiplayer demo playback use the same layout, and Alt HUD #1 now shows the bomb count.
 
 ## BugFixes
 
@@ -75,5 +83,7 @@ A live proximity bomb now draws with when custom models are on.
 - **Shield orb tilt.** The 3D shield orb now spins at a 44-degree tilt.
 - **JinX Mode Options Keep Toggles**
 Toggles changed with in Observer Options save with Esc.
-
-
+- **Autoselect Once Switches When Dry**
+With Autoselect only once on, picking up a missile while sitting on prox bombs with no missiles left switches to it again.
+- **Cheat Codes Work Again**
+Typed single-player cheat codes work again. The frametime check was eating every typed letter before the cheat check saw it.
