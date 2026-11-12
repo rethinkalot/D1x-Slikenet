@@ -15,14 +15,17 @@ jobs:
           ZIP: download/D1x-Redux-SLikeNet.zip
           URL: https://github.com/${{ github.repository }}/raw/${{ github.ref_name }}/download/D1x-Redux-SLikeNet.zip
         run: |
-          # Bold titles of README entries added or changed since the previous zip, one "- **Title**" per line
-          prev=$(git log -n 2 --format=%H -- "$ZIP" | sed -n 2p)
+          # Bold titles of README entries added or changed since the previous zip, one "- **Title**" per line.
+          # No new titles since then: walk back to the last build that had some, so every post lists titles.
           notes=""
-          if [ -n "$prev" ]; then
-            notes=$(git diff "$prev" HEAD -- README.md | { grep '^+- \*\*' || true; } |
+          cur=HEAD
+          for prev in $(git log -n 10 --format=%H -- "$ZIP" | tail -n +2); do
+            notes=$(git diff "$prev" "$cur" -- README.md | { grep '^+- \*\*' || true; } |
               sed -E 's/^\+- \*\*([^*]+)\*\*.*/\1/; s/[.:]+$//; s/^/- **/; s/$/**/' | awk '!seen[$0]++' |
               awk '{ if (n + length($0) + 1 > 1800) { print "- ...and more in the README"; exit } print; n += length($0) + 1 }')
-          fi
+            [ -n "$notes" ] && break
+            cur=$prev
+          done
           msg="- New **D1x-SLikeNet** Build"$'\n'"- $URL"
           if [ -n "$notes" ]; then msg="$msg"$'\n'"$notes"; fi
           jq -n --arg c "$msg" '{content: $c}' | curl -sf -H "Content-Type: application/json" -d @- "$WEBHOOK"
