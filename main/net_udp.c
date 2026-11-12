@@ -4094,7 +4094,9 @@ void net_udp_do_frame(int force, int listen)
     
 
     if(Netgame.RetroProtocol) {
-        net_udp_p2p_ping_frame(time); 
+        net_udp_p2p_ping_frame(time);
+        if (multi_i_am_master())
+            net_udp_ping_frame(time); // Retro: players ping each other; this only relays the host's ping table to observers
     } else {
         net_udp_ping_frame(time);
     }
@@ -5711,12 +5713,17 @@ void net_udp_ping_frame(fix64 time)
             PUT_INTEL_INT(buf + len, Netgame.players[i].ping);		len += 4;
         }
         
-        for (i = 1; i < MAX_PLAYERS; i++)
-        {
-            if (Players[i].connected == CONNECT_DISCONNECTED)
-                continue;
-            dxx_sendto (UDP_Socket[0], buf, sizeof(buf), 0, (struct sockaddr *)&Netgame.players[i].protocol.udp.addr, sizeof(struct _sockaddr));
-        }
+        if (!Netgame.RetroProtocol) // Retro players ping each other; the table would overwrite their own pings
+            for (i = 1; i < MAX_PLAYERS; i++)
+            {
+                if (Players[i].connected == CONNECT_DISCONNECTED)
+                    continue;
+                dxx_sendto (UDP_Socket[0], buf, sizeof(buf), 0, (struct sockaddr *)&Netgame.players[i].protocol.udp.addr, sizeof(struct _sockaddr));
+            }
+        // Observers aren't in player slots; send them the ping table too so their kill list shows pings.
+        for (i = 0; i < Netgame.max_numobservers; i++)
+            if (Netgame.observers[i].connected)
+                dxx_sendto (UDP_Socket[0], buf, sizeof(buf), 0, (struct sockaddr *)&Netgame.observers[i].protocol.udp.addr, sizeof(struct _sockaddr));
         PingTime = time;
     }
 }
@@ -5728,7 +5735,7 @@ void net_udp_process_ping(ubyte *data, int data_len, struct _sockaddr sender_add
     ubyte buf[UPID_PONG_SIZE];
     int i, len = 0;
 // 
-    if (memcmp((struct _sockaddr *)&Netgame.players[0].protocol.udp.addr, (struct _sockaddr *)&sender_addr, sizeof(struct _sockaddr)))
+    if (!is_master_ip(sender_addr)) // IP + port, like valid_ip(); a raw memcmp also compared struct padding and dropped observers' pings
         return;
 
                                         len++; // Skip UPID byte;
@@ -5742,7 +5749,10 @@ void net_udp_process_ping(ubyte *data, int data_len, struct _sockaddr sender_add
     if (Netgame.host_is_obs) {
         Netgame.players[0].LastPacketTime = timer_query();
     }
-    
+
+    if (is_observer())
+        return; // observers only need the table; a pong from slot 7 would be dropped by the host
+
     buf[0] = UPID_PONG;
     buf[1] = Player_num;
     memcpy(&buf[2], &host_ping_time, 8);
