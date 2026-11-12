@@ -158,9 +158,9 @@ int hud_stack_y(void)
 	// kept to stop the readout crowding the bottom of the screen.
 	if (PlayerCfg.CurrentCockpitMode == CM_FULL_SCREEN) {
 		if ((Game_mode & GM_MULTI) || (Newdemo_state == ND_STATE_PLAYBACK && Newdemo_game_mode & GM_MULTI))
-			y -= LINE_SPACING * 11;
+			y -= LINE_SPACING * 15;
 		else
-			y -= LINE_SPACING * 14;
+			y -= LINE_SPACING * 11;
 	} else if (PlayerCfg.CurrentCockpitMode == CM_STATUS_BAR)
 		y -= LINE_SPACING * 7;
 	else

@@ -2000,6 +2000,7 @@ void object_move_all()
             newdemo_record_player_flags(Players[r_pnum].flags);
             newdemo_record_primary_ammo(Players[r_pnum].primary_ammo[Players[r_pnum].primary_weapon]);
             newdemo_record_secondary_ammo(Players[r_pnum].secondary_ammo[Players[r_pnum].secondary_weapon]);
+            newdemo_record_bomb_ammo(PROXIMITY_INDEX);
         }
     }
 }

@@ -1139,12 +1139,14 @@ void hud_show_weapons(void)
 
     y = grd_curcanv->cv_bitmap.bm_h;
 
-    if (Game_mode & GM_MULTI)
+    if ((Game_mode & GM_MULTI) || (Newdemo_state == ND_STATE_PLAYBACK && Newdemo_game_mode & GM_MULTI))
         y -= LINE_SPACING*4;
 
     if (PlayerCfg.HudMode==1){
-        hud_show_weapons_mode(0,0,grd_curcanv->cv_bitmap.bm_w,y-(LINE_SPACING*2));
-        hud_show_weapons_mode(1,0,grd_curcanv->cv_bitmap.bm_w,y-LINE_SPACING);
+        // same rows as D2's Alt HUD #1 (primary 4, secondary 2, bombs 6)
+        hud_show_weapons_mode(0,0,grd_curcanv->cv_bitmap.bm_w,y-(LINE_SPACING*4));
+        hud_show_weapons_mode(1,0,grd_curcanv->cv_bitmap.bm_w,y-(LINE_SPACING*2));
+        show_bomb_count(grd_curcanv->cv_bitmap.bm_w-FSPACY(3), y-(LINE_SPACING*6),-1,1, 1);
     }
     else if (PlayerCfg.HudMode==2){
         int x1,x2;
@@ -2434,18 +2436,20 @@ void hud_show_kill_list()
         }
 
 
-        if((Show_network_stats && !is_observer()) && player_num != Player_num && Players[player_num].connected && Show_kill_list != 3) {
+        // Observers watching a player see ping from that player's point of view (upstream dxx-redux 5a11ce9)
+        int my_player_num = is_observing_player() ? Current_obs_player : Player_num;
+        if((Show_network_stats && (!is_observer() || is_observing_player())) && player_num != my_player_num && Players[player_num].connected && Show_kill_list != 3) {
             int lag = -1;
 
             if(Netgame.RetroProtocol) {
                 lag = Netgame.players[player_num].ping;
             } else {
-                if(multi_i_am_master()) {
+                if (my_player_num == multi_who_is_master()) {
                     lag = Netgame.players[player_num].ping;
                 } else if (player_num == multi_who_is_master()) {
-                    lag = Netgame.players[Player_num].ping;
+                    lag = Netgame.players[my_player_num].ping;
                 } else {
-                    lag = Netgame.players[Player_num].ping + Netgame.players[player_num].ping;
+                    lag = Netgame.players[my_player_num].ping + Netgame.players[player_num].ping;
                 }
             }
 
@@ -3861,7 +3865,7 @@ void observer_show_kill_list()
     // Show the kill graph, which is a line graph of kills over time for each pilot, and kill summaries, which is each pilot's most damaging weapon(s).
     observer_maybe_show_kill_graph();
 
-    int y = grd_curcanv->cv_bitmap.bm_h - 5;
+    int y = hud_stack_y(); // start above the FPS line
 
     if (PlayerCfg.ObsShowObs[get_observer_game_mode()]) {
         y = maybe_show_observers(y);
@@ -4285,6 +4289,9 @@ void draw_hud()
             //	Velocity readout, shown in every cockpit mode (not rear view).
             if (PlayerCfg.ShowVelocityMeter)
                 hud_show_vel();
+
+            if (Show_network_stats && Show_kill_list)
+                hud_show_kill_list();
         }
 
         return;
@@ -4374,7 +4381,7 @@ void draw_hud()
 
             if (PlayerCfg.CurrentCockpitMode == CM_FULL_SCREEN || (is_observer() && !can_draw_observer_cockpit())) {
                 if ((Game_mode & GM_MULTI) || (Newdemo_state == ND_STATE_PLAYBACK && Newdemo_game_mode & GM_MULTI))
-                    startY -= LINE_SPACING * 12;
+                    startY -= LINE_SPACING * 15; // above the FPS line (row 15)
                 else
                     startY -= LINE_SPACING * 6;
             } else if (PlayerCfg.CurrentCockpitMode == CM_STATUS_BAR) {

@@ -129,7 +129,7 @@ extern void newdemo_strip_frames(char *, int);
 extern void toggle_cockpit(void);
 extern void dump_used_textures_all();
 
-int FinalCheats(int key);
+int FinalCheats(unsigned char ch);
 
 #ifndef RELEASE
 void do_cheat_menu(void);
@@ -1142,14 +1142,14 @@ cheat_code cheat_codes[NUM_CHEATS] = {
 
 // Typing "frametime" toggles the FPS counter (the Graphics menu "FPS Counter" option). Not a cheat: no cheat
 // flag, score kept, and it works in single player, multiplayer and demo playback.
-static int frametime_code(void)
+static int frametime_code(unsigned char ch)
 {
     static const char code[] = "frametime";
     enum { len = sizeof(code) - 1 };
     static char buf[len];
 
     memmove(buf, buf + 1, len - 1);
-    buf[len - 1] = key_ascii();
+    buf[len - 1] = ch;
     if (d_strnicmp(buf, code, len) != 0)
         return 0;
 
@@ -1159,7 +1159,7 @@ static int frametime_code(void)
     return 1;
 }
 
-int FinalCheats(int key)
+int FinalCheats(unsigned char ch)
 {
     static char cheat_buffer[CHEAT_MAX_LEN] = "AAAAAAAAAAAAAAA";
     int i = 0, gotcha = 0;
@@ -1169,7 +1169,7 @@ int FinalCheats(int key)
 
     for (i = 1; i < CHEAT_MAX_LEN; i++)
         cheat_buffer[i-1] = cheat_buffer[i];
-    cheat_buffer[CHEAT_MAX_LEN-1] = key_ascii();
+    cheat_buffer[CHEAT_MAX_LEN-1] = ch;
     for (i = 0; i < NUM_CHEATS; i++)
     {
         int cheatlen = strlen(cheat_codes[i].string);
@@ -1606,14 +1606,15 @@ int ReadControls(d_event *event)
         }
         else if (Newdemo_state == ND_STATE_PLAYBACK )
         {
-            if (frametime_code()) return 1;
+            if (frametime_code(key_ascii())) return 1;
             if (HandleDemoKey(key))
                 return 1;
         }
         else
         {
-            if (frametime_code()) return 1;
-            if (FinalCheats(key)) return 1;
+            unsigned char ch = key_ascii(); // read once: key_ascii() consumes the char, so a second read starved the cheat codes
+            if (frametime_code(ch)) return 1;
+            if (FinalCheats(ch)) return 1;
             if (HandleSystemKey(key)) return 1;
             if (HandleGameKey(key)) return 1;
             if (is_observer() && handle_observer_control_event(event)) return 1;

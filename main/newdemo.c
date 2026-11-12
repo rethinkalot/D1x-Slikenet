@@ -216,6 +216,7 @@ static int nd_record_v_weapon_num = -1;
 static fix nd_record_v_homing_distance = -1;
 static int nd_record_v_primary_ammo = -1;
 static int nd_record_v_secondary_ammo = -1;
+static int nd_record_v_bomb_ammo[MAX_SECONDARY_WEAPONS]; // last recorded count per bomb, -1 = not yet
 
 void newdemo_record_oneframeevent_update(int wallupdate);
 extern int digi_link_sound_to_object3( int org_soundnum, short objnum, int forever, fix max_volume, fix  max_distance, int loop_start, int loop_end );
@@ -896,6 +897,8 @@ void newdemo_record_start_demo()
     nd_record_v_homing_distance = -1;
     nd_record_v_primary_ammo = -1;
     nd_record_v_secondary_ammo = -1;
+    for (i = 0; i < MAX_SECONDARY_WEAPONS; i++)
+        nd_record_v_bomb_ammo[i] = -1;
 
     for (i = 0; i < MAX_PRIMARY_WEAPONS; i++)
         nd_write_short((short)Players[Player_num].primary_ammo[i]);
@@ -1348,6 +1351,23 @@ void newdemo_record_primary_ammo(int new_ammo)
         nd_write_short((short)nd_record_v_primary_ammo);
     nd_write_short((short)new_ammo);
     nd_record_v_primary_ammo = new_ammo;
+    start_time();
+}
+
+// Unselected bomb ammo: switch to it, ammo event, switch back -- existing events only, so old builds and old demos still work.
+void newdemo_record_bomb_ammo(int bomb)
+{
+    int cur = Players[Player_num].secondary_weapon;
+    int ammo = Players[Player_num].secondary_ammo[bomb];
+    int old = nd_record_v_bomb_ammo[bomb];
+
+    nd_record_v_bomb_ammo[bomb] = ammo;
+    if (old < 0 || old == ammo || bomb == cur) // start table or the selected-ammo event already has it
+        return;
+    stop_time();
+    nd_write_byte(ND_EVENT_PLAYER_WEAPON); nd_write_byte(1); nd_write_byte((sbyte)bomb); nd_write_byte((sbyte)cur);
+    nd_write_byte(ND_EVENT_SECONDARY_AMMO); nd_write_short((short)old); nd_write_short((short)ammo);
+    nd_write_byte(ND_EVENT_PLAYER_WEAPON); nd_write_byte(1); nd_write_byte((sbyte)cur); nd_write_byte((sbyte)bomb);
     start_time();
 }
 

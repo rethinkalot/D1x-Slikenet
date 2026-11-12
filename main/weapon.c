@@ -519,9 +519,12 @@ int pick_up_secondary(int weapon_index,int count)
     int max;
     int	num_picked_up;
     int cutpoint;
+    const int cur_secondary = Players[Player_num].secondary_weapon;
+    // Sitting on prox bombs counts as out of missiles, so a missile pickup still switches.
     const int suppress_autoselect = PlayerCfg.AutoselectOnlyOnce &&
         SecondaryWeaponPickedUp &&
-        Players[Player_num].secondary_ammo[Players[Player_num].secondary_weapon];
+        Players[Player_num].secondary_ammo[cur_secondary] &&
+        cur_secondary != PROXIMITY_INDEX;
 
     max = Secondary_ammo_max[weapon_index];
 
