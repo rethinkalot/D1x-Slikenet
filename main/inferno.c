@@ -138,8 +138,10 @@ void print_commandline_help()
 #if defined(USE_UDP)
 	printf( "\n Multiplayer:\n\n");
 	printf( "  -udp_hostaddr <s>             Use IP address/Hostname <s> for manual game joining\n\t\t\t\t(default: %s)\n", UDP_MANUAL_ADDR_DEFAULT);
-	printf( "  -udp_hostport <n>             Use UDP port <n> for manual game joining (default: %i)\n", UDP_PORT_DEFAULT);
-	printf( "  -udp_myport <n>               Set my own UDP port to <n> (default: %i)\n", UDP_PORT_DEFAULT);
+	printf( "  -udp_gameport <n>             Search for games on UDP port <n>; Join Manually's game port\n\t\t\t\t(default: %i; a port typed in Join Manually is kept)\n", UDP_PORT_DEFAULT);
+	printf( "  -udp_hostport <n>             Host games on UDP port <n> (default: %i)\n", UDP_PORT_DEFAULT);
+	printf( "  -udp_myport <n>               Join games from UDP port <n> (default: %i)\n", UDP_PORT_DEFAULT);
+	printf( "  -slikenet_nolink              Test switch: refuse every SLikeNet peer link, so the\n\t\t\t\tother players report Link Failure (game still runs on plain UDP)\n");
 #ifdef USE_TRACKER
 	printf( "  -tracker_hostaddr <n>         Address of Tracker server to register/query games to/from\n\t\t\t\t(default: %s)\n", TRACKER_ADDR_DEFAULT);
 	printf( "  -tracker_hostport <n>         Port of Tracker server to register/query games to/from\n\t\t\t\t(default: %i)\n", TRACKER_PORT_DEFAULT);

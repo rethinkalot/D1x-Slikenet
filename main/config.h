@@ -71,6 +71,7 @@ int VSync;
 	int Grabinput;
 	int ClassicDepth;
 	int BorderlessWindow;
+	int GamePort; // Join Manually GAME PORT: the port games are searched on; 0 = use -udp_gameport or the default
 } __pack__ Cfg;
 
 extern struct Cfg GameCfg;

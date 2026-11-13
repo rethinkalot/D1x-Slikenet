@@ -32,6 +32,7 @@ struct slikenet_peer {
     bool used;
     bool ready;
     bool failed; // the last connect attempt got no answer
+    unsigned char fail_id; // the SLikeNet message id of that failure
     struct sockaddr_in addr; // plain UDP player address
     SLNet::SystemAddress system;
     SLNet::TimeMS last_attempt;
@@ -233,6 +234,35 @@ extern "C" int slikenet_peer_state(const void *addr, int addr_len)
     if (p && p->failed)
         return SLIKENET_LINK_FAILED;
     return SLIKENET_LINK_PENDING;
+}
+
+// Why the lane to this player address isn't up, in at most 8 characters for the chat line
+extern "C" const char *slikenet_peer_reason(const void *addr, int addr_len)
+{
+    slikenet_peer *p;
+    SLNet::SystemAddress system;
+
+    if (!peer || addr_len != (int)sizeof(struct sockaddr_in))
+        return "no lane";
+    p = find_peer_by_addr(addr, addr_len);
+    if (p)
+        system = p->system;
+    else
+    {
+        struct sockaddr_in in;
+        char ip[INET_ADDRSTRLEN];
+
+        memcpy(&in, addr, sizeof(in));
+        snprintf(ip, sizeof(ip), "%s", inet_ntoa(in.sin_addr));
+        system.FromStringExplicitPort(ip, ntohs(in.sin_port));
+    }
+    if (peer->GetConnectionState(system) == SLNet::IS_CONNECTED)
+        return "no hello"; // connected, but the game handshake never finished
+    if (p && p->failed && p->fail_id == ID_NO_FREE_INCOMING_CONNECTIONS)
+        return "full";
+    if (p)
+        return "no reply"; // we dialed and got no answer
+    return "no dial"; // no connection from or to that player at all
 }
 
 extern "C" void slikenet_get_stats(unsigned int *port, unsigned int *ready, unsigned int *sent, unsigned int *received, unsigned int *fallback)
@@ -446,7 +476,10 @@ extern "C" int slikenet_receive(void *buf, int maxlen, void *out_addr, int addr_
             case ID_ALREADY_CONNECTED:
                 p = find_peer_by_system(packet->systemAddress);
                 if (p && packet->data[0] != ID_ALREADY_CONNECTED)
+                {
                     p->failed = true;
+                    p->fail_id = packet->data[0];
+                }
                 con_printf(SLIKENET_CON_DEALLOC, "\033[32mSLikeNet Connection to %s \033[31mFAILED\033[32m (id %d)\033[0m\n", packet->systemAddress.ToString(true), (int)packet->data[0]);
                 break;
             case ID_DISCONNECTION_NOTIFICATION:

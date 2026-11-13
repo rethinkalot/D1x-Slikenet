@@ -49,6 +49,8 @@ int  slikenet_send_to_peer(const void *addr, int addr_len, const void *data, int
 #define SLIKENET_LINK_READY   1
 #define SLIKENET_LINK_FAILED  2
 int  slikenet_peer_state(const void *addr, int addr_len);
+/* Short reason (at most 8 characters) the lane to this player address isn't up. */
+const char *slikenet_peer_reason(const void *addr, int addr_len);
 
 /* Totals for the current or most recent session. port is 0 if the lane didn't
  * start. Still valid after slikenet_shutdown(). */

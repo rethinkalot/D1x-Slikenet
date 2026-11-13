@@ -721,6 +721,8 @@ UDP_netgame_info_lite Active_udp_games[UDP_MAX_NETGAMES];
 int num_active_udp_games = 0;
 int num_active_udp_changed = 0;
 extern char UDP_MyPort[6];
+extern char UDP_HostPort[6]; // port this copy hosts on
+int net_udp_game_port(void); // port games are searched on
 struct _sockaddr GBcast; // global Broadcast address clients and hosts will use for lite_info exchange over LAN
 #ifdef IPv6
 struct _sockaddr GMcast_v6; // same for IPv6-only
@@ -835,7 +837,7 @@ int udp_tracker_register()
     pBuf[2] = 0x01;
     
     // Write the port we're running on
-    PUT_INTEL_SHORT( pBuf+3, atoi( UDP_MyPort ) );
+    PUT_INTEL_SHORT( pBuf+3, atoi( UDP_HostPort ) );
     
     // Put the GameID
     PUT_INTEL_INT( pBuf+5, Netgame.protocol.udp.GameID );
@@ -3590,23 +3592,23 @@ int net_udp_start_game(void)
     net_udp_leave_snapshot_valid = 0;
     net_udp_telemetry_reset();
 
-    i = udp_open_socket(0, atoi(UDP_MyPort));
+    i = udp_open_socket(0, atoi(UDP_HostPort));
 
     if (i != 0)
         return 0;
     
-    if (atoi(UDP_MyPort) != UDP_PORT_DEFAULT)
-        i = udp_open_socket(1, UDP_PORT_DEFAULT); // Default port open for Broadcasts
+    if (atoi(UDP_HostPort) != net_udp_game_port())
+        i = udp_open_socket(1, net_udp_game_port()); // Game port open for searches (broadcasts)
 
     if (i != 0)
         return 0;
 
-    // prepare broadcast address to announce our game
+    // prepare broadcast address to announce our game on the game port
     memset(&GBcast, '\0', sizeof(struct _sockaddr));
-    udp_dns_filladdr(UDP_BCAST_ADDR, UDP_PORT_DEFAULT, &GBcast);
+    udp_dns_filladdr(UDP_BCAST_ADDR, net_udp_game_port(), &GBcast);
 #ifdef IPv6
     memset(&GMcast_v6, '\0', sizeof(struct _sockaddr));
-    udp_dns_filladdr(UDP_MCASTv6_ADDR, UDP_PORT_DEFAULT, &GMcast_v6);
+    udp_dns_filladdr(UDP_MCASTv6_ADDR, net_udp_game_port(), &GMcast_v6);
 #endif
     d_srand( (fix)timer_query() );
     Netgame.protocol.udp.GameID=d_rand();
@@ -3732,6 +3734,18 @@ static void net_udp_slikenet_frame()
         return;
     last_time = time;
 
+    // -slikenet_nolink test switch: never dial (and process_hello never answers), so every lane to this copy fails
+    if (GameArg.MplSlikenetNoLink)
+    {
+        static int told;
+        if (!told)
+        {
+            told = 1;
+            con_printf(CON_NET_STATUS, "\033[32mSLikeNet Peer Links \033[31mDISABLED\033[32m (-slikenet_nolink test switch)\033[0m\n");
+        }
+        return;
+    }
+
     PUT_INTEL_INT(hello, netgame_token);
     hello[4] = Player_num;
     // An observer only receives from the host, so it dials the host alone
@@ -3741,8 +3755,9 @@ static void net_udp_slikenet_frame()
             slikenet_connect_peer(&Netgame.players[0].protocol.udp.addr, sizeof(struct _sockaddr), hello, sizeof(hello));
         return;
     }
+    // Players[] is the live state, as in process_hello: a player who rejoins a lower slot must still be dialed
     for (i = 0; i < Player_num; i++)
-        if (Netgame.players[i].connected && Netgame.players[i].protocol.udp.addr.sin_port != 0)
+        if (Players[i].connected && Netgame.players[i].protocol.udp.addr.sin_port != 0)
             slikenet_connect_peer(&Netgame.players[i].protocol.udp.addr, sizeof(struct _sockaddr), hello, sizeof(hello));
 }
 
@@ -3750,7 +3765,7 @@ static void net_udp_slikenet_process_hello(ubyte *data, int size)
 {
     int pnum;
 
-    if (size != SLIKENET_HELLO_SIZE || (uint)GET_INTEL_INT(data) != netgame_token)
+    if (GameArg.MplSlikenetNoLink || size != SLIKENET_HELLO_SIZE || (uint)GET_INTEL_INT(data) != netgame_token)
         return;
     pnum = data[4];
     // An observer's hello: the host binds it to the observer slot with the sender's address
@@ -3772,13 +3787,46 @@ static void net_udp_slikenet_process_hello(ubyte *data, int size)
     slikenet_accept_hello(&Netgame.players[pnum].protocol.udp.addr, sizeof(struct _sockaddr));
 }
 
-// Tell the player on the HUD whether the SLikeNet lane to each other player came up, as soon as that is known.
+// Put a link line in every player's chat, like multi_send_system_message() but without its local echo:
+// the caller's own HUD line is shown separately. An observer can't send player chat, so its lines stay local.
+static void net_udp_slikenet_chat(const char *msg)
+{
+    int loc = 0;
+
+    if (is_observer())
+        return;
+    multibuf[loc++] = (char)MULTI_MESSAGE;
+    multibuf[loc++] = (char)Player_num;
+    strncpy((char *)multibuf + loc, msg, MAX_MESSAGE_LEN);
+    loc += MAX_MESSAGE_LEN;
+    multibuf[loc - 1] = '\0';
+    multi_send_data(multibuf, loc, 2);
+}
+
+// "<prefix><word>:<name>[ <reason>]" with the word in red, on this HUD and in everyone's chat.
+// "Link Failure:<name> <reason>" is the longest: 34 chat characters with an 8-letter name and 8-letter reason.
+static void net_udp_slikenet_report(const char *prefix, const char *word, int pnum, const char *reason)
+{
+    char msg[MAX_MESSAGE_LEN];
+    char red = (char)BM_XRGB(31, 0, 0);
+
+    snprintf(msg, sizeof(msg), "%s%c%c%s%c%c:%s%s%s", prefix, CC_COLOR, red, word, CC_COLOR, (char)BM_XRGB(0, 28, 0),
+        Players[pnum].callsign, reason ? " " : "", reason ? reason : "");
+    HUD_init_message_literal(HM_MULTI, msg);
+    snprintf(msg, sizeof(msg), "%s%c%c%s%c%c:%s%s%s", prefix, CC_COLOR, red, word, CC_COLOR, (char)BM_XRGB(0, 31, 0),
+        Players[pnum].callsign, reason ? " " : "", reason ? reason : "");
+    net_udp_slikenet_chat(msg);
+}
+
+// Tell the player on the HUD, and everyone in chat, whether the SLikeNet lane to each other player came up, as soon as that is known.
 // A host never dials, so it has no failed attempt to go by: a lane still not up 8 s after the player appeared counts as failed.
 // A failure that later connects is followed by the success line.
+// A lane that was up and stays down for 1 s while the player is still in the game is reported as dropped
+// (the grace keeps a player who quits from being reported); if it comes back, the success line follows.
 static void net_udp_slikenet_announce(void)
 {
-    static fix64 seen[MAX_PLAYERS];
-    static ubyte shown[MAX_PLAYERS]; // 1 = failure shown, 2 = success shown
+    static fix64 seen[MAX_PLAYERS], lost_at[MAX_PLAYERS];
+    static ubyte shown[MAX_PLAYERS]; // 1 = failure or drop shown, 2 = success shown
     fix64 now = timer_query();
     int i;
 
@@ -3786,32 +3834,52 @@ static void net_udp_slikenet_announce(void)
     {
         memset(seen, 0, sizeof(seen));
         memset(shown, 0, sizeof(shown));
+        memset(lost_at, 0, sizeof(lost_at));
         return;
     }
     for (i = 0; i < MAX_PLAYERS; i++)
     {
         int link;
 
-        // An observer only has a lane to the host
-        if (i == Player_num || !Players[i].connected || (is_observer() && i != 0))
+        // An observer only has a lane to the host. A slot with no name yet is skipped until the name arrives,
+        // so no nameless link line is shown or sent
+        if (i == Player_num || !Players[i].connected || !Players[i].callsign[0] || (is_observer() && i != 0))
         {
             seen[i] = 0;
             shown[i] = 0;
+            lost_at[i] = 0;
             continue;
         }
         if (!seen[i])
             seen[i] = now;
-        if (shown[i] == 2)
-            continue;
         link = slikenet_peer_state(&Netgame.players[i].protocol.udp.addr, sizeof(struct _sockaddr));
+        if (shown[i] == 2)
+        {
+            if (link == SLIKENET_LINK_READY)
+                lost_at[i] = 0;
+            else if (!lost_at[i])
+                lost_at[i] = now;
+            else if (now >= lost_at[i] + F1_0)
+            {
+                net_udp_slikenet_report("Peer Link ", "Dropped", i, NULL);
+                shown[i] = 1;
+                lost_at[i] = 0;
+            }
+            continue;
+        }
         if (link == SLIKENET_LINK_READY)
         {
+            char msg[MAX_MESSAGE_LEN];
+
             HUD_init_message(HM_MULTI, "SLikeNet Peer Link Success: %s", Players[i].callsign);
+            snprintf(msg, sizeof(msg), "SLikeNet Link Success: %s", Players[i].callsign);
+            net_udp_slikenet_chat(msg);
             shown[i] = 2;
         }
         else if (!shown[i] && (link == SLIKENET_LINK_FAILED || now >= seen[i] + F1_0 * 8))
         {
-            HUD_init_message(HM_MULTI, "SLikeNet Peer Link Failure: %s", Players[i].callsign);
+            net_udp_slikenet_report("Link ", "Failure", i,
+                slikenet_peer_reason(&Netgame.players[i].protocol.udp.addr, sizeof(struct _sockaddr)));
             shown[i] = 1;
         }
     }
@@ -4086,7 +4154,7 @@ void net_udp_do_frame(int force, int listen)
             iAttempts = 0;
             
             // Warn
-            nm_messagebox( TXT_WARNING, 1, TXT_OK, "No response from tracker!\nPossible causes:\nTracker is down\nYour port is likely not open!\n\nTracker: %s\nGame port: %s", GameArg.MplTrackerAddr, UDP_MyPort );
+            nm_messagebox( TXT_WARNING, 1, TXT_OK, "No response from tracker!\nPossible causes:\nTracker is down\nYour port is likely not open!\n\nTracker: %s\nGame port: %s", GameArg.MplTrackerAddr, UDP_HostPort );
         }
     }
 #endif

@@ -49,6 +49,32 @@ static void net_udp_my_port_init(void)
         net_udp_my_port_default();
 }
 
+/* Port this copy hosts on: the host menu's "Network port", seeded from
+ * -udp_hostport. UDP_MyPort is the port this copy joins from. */
+char UDP_HostPort[6] = "";
+
+static void net_udp_host_port_default(void)
+{
+    snprintf(UDP_HostPort, sizeof(UDP_HostPort), "%d", GameArg.MplUdpHostPort != 0 ? GameArg.MplUdpHostPort : UDP_PORT_DEFAULT);
+}
+
+static void net_udp_host_port_init(void)
+{
+    if (UDP_HostPort[0] == '\0')
+        net_udp_host_port_default();
+}
+
+/* Port games are searched on (LAN list) and Join Manually's game port: the one
+ * last typed in Join Manually (descent.cfg GamePort), else -udp_gameport, else the default. */
+int net_udp_game_port(void)
+{
+    if (GameCfg.GamePort > 0 && GameCfg.GamePort <= 65535)
+        return GameCfg.GamePort;
+    if (GameArg.MplUdpGamePort > 0 && GameArg.MplUdpGamePort <= 65535)
+        return GameArg.MplUdpGamePort;
+    return UDP_PORT_DEFAULT;
+}
+
 int load_preset(newmenu *menu_settings);
 void save_preset(void);
 
@@ -198,7 +224,7 @@ void net_udp_more_game_options ()
 
     m[opt].type = NM_TYPE_TEXT; m[opt].text = "Network port"; opt++;
     opt_port = opt;
-    m[opt].type = NM_TYPE_INPUT; m[opt].text = UDP_MyPort; m[opt].text_len=5; opt++;
+    m[opt].type = NM_TYPE_INPUT; m[opt].text = UDP_HostPort; m[opt].text_len=5; opt++;
 
 #ifdef USE_TRACKER
     opt_tracker = opt;
@@ -272,9 +298,9 @@ menu:
     }
     Netgame.ShortPackets=1; // always on: the observer does not link over SLikeNet without it (the menu item is commented out)
 
-    if ((atoi(UDP_MyPort)) <= 0 ||(atoi(UDP_MyPort)) > 65535)
+    if ((atoi(UDP_HostPort)) <= 0 ||(atoi(UDP_HostPort)) > 65535)
     {
-        net_udp_my_port_default();
+        net_udp_host_port_default();
         nm_messagebox(TXT_ERROR, 1, TXT_OK, "Illegal port");
     }
 
@@ -752,7 +778,7 @@ int net_udp_setup_game()
             Players[i].callsign[0]=0;
 
     sprintf( Netgame.game_name, "%s%s", Players[Player_num].callsign, TXT_S_GAME );
-    net_udp_my_port_init();
+    net_udp_host_port_init();
 
     netgame_set_defaults();
 
@@ -911,6 +937,12 @@ static int manual_join_game_handler(newmenu *menu, d_event *event, direct_join *
             }
             else
             {
+                // Keep the typed game port: it is also the port the LAN game list searches on
+                if (atoi(dj->portbuf) > 0 && atoi(dj->portbuf) <= 65535 && atoi(dj->portbuf) != net_udp_game_port())
+                {
+                    GameCfg.GamePort = atoi(dj->portbuf);
+                    WriteConfigFile();
+                }
                 multi_new_game();
                 net_udp_reset_connection_statuses();
                 N_players = 0;
@@ -959,10 +991,7 @@ void net_udp_manual_join_game()
     memset(&dj->addrbuf,'\0', sizeof(char)*128);
     snprintf(dj->addrbuf, sizeof(dj->addrbuf), "%s", GameArg.MplUdpHostAddr);
 
-    if (GameArg.MplUdpHostPort != 0)
-        snprintf(dj->portbuf, sizeof(dj->portbuf), "%d", GameArg.MplUdpHostPort);
-    else
-        snprintf(dj->portbuf, sizeof(dj->portbuf), "%d", UDP_PORT_DEFAULT);
+    snprintf(dj->portbuf, sizeof(dj->portbuf), "%d", net_udp_game_port());
 
     net_udp_my_port_init();
 
@@ -1015,8 +1044,8 @@ int net_udp_list_join_poll( newmenu *menu, d_event *event, direct_join *dj )
                 if (net_udp_game_connect(dj))
                     return -2;	// Success!
             }
-            // Off the default port this copy can't hear a host's broadcasts, so keep asking
-            else if (GameArg.MplUdpMyPort != 0 && GameArg.MplUdpMyPort != UDP_PORT_DEFAULT &&
+            // Off the game port this copy can't hear a host's broadcasts, so keep asking
+            else if (atoi(UDP_MyPort) != net_udp_game_port() &&
                 timer_query() >= last_list_request + (F1_0*5))
             {
                 last_list_request = timer_query();
@@ -1255,18 +1284,19 @@ void net_udp_list_join_game()
     dj->portbuf[0] = '\0';
 
     net_udp_init();
-    if (udp_open_socket(0, GameArg.MplUdpMyPort != 0?GameArg.MplUdpMyPort:UDP_PORT_DEFAULT) < 0)
+    net_udp_my_port_init();
+    if (udp_open_socket(0, atoi(UDP_MyPort)) < 0)
         return;
 
-    // Don't also listen on the default port here: on one PC that socket catches
+    // Don't also listen on the game port here: on one PC that socket catches
     // this copy's own broadcast before a host on that port can hear it.
 
-    // prepare broadcast address to discover games
+    // prepare broadcast address to discover games on the game port
     memset(&GBcast, '\0', sizeof(struct _sockaddr));
-    udp_dns_filladdr(UDP_BCAST_ADDR, UDP_PORT_DEFAULT, &GBcast);
+    udp_dns_filladdr(UDP_BCAST_ADDR, net_udp_game_port(), &GBcast);
 #ifdef IPv6
     memset(&GMcast_v6, '\0', sizeof(struct _sockaddr));
-    udp_dns_filladdr(UDP_MCASTv6_ADDR, UDP_PORT_DEFAULT, &GMcast_v6);
+    udp_dns_filladdr(UDP_MCASTv6_ADDR, net_udp_game_port(), &GMcast_v6);
 #endif
 
     change_playernum_to(1);
