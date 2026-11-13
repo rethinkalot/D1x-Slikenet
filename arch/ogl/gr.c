@@ -845,10 +845,8 @@ void gr_close()
 		d_free(grd_curscreen);
 	}
 	ogl_close_pixel_buffers();
-#ifdef _WIN32
-	if (ogl_rt_loaded)
-		OpenGL_LoadLibrary(false);
-#endif
+	// opengl32.dll is not unloaded here: SDL still has its OpenGL window open until SDL_Quit(),
+	// and pulling the library out from under it crashed in OPENGL32.dll on exit. Windows frees it with the process.
 
 #ifdef OGLES
 	ogles_destroy();

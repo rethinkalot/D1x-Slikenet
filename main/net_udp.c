@@ -193,8 +193,11 @@ static unsigned long long net_udp_fire_history_total;
 static unsigned long long net_udp_fire_history_tx_total;
 static unsigned long long net_udp_fire_history_rx_total;
 
+static int net_udp_leave_logged; // this game's leave summary is written (closing the window calls leave again)
+
 void net_udp_telemetry_reset(void)
 {
+    net_udp_leave_logged = 0;
     memset(net_udp_position_history, 0, sizeof(net_udp_position_history));
     memset(net_udp_position_history_head, 0, sizeof(net_udp_position_history_head));
     memset(net_udp_position_history_count, 0, sizeof(net_udp_position_history_count));
@@ -722,6 +725,7 @@ int num_active_udp_games = 0;
 int num_active_udp_changed = 0;
 extern char UDP_MyPort[6];
 extern char UDP_HostPort[6]; // port this copy hosts on
+static fix64 net_udp_verify_join_time; // when the joiner got its sync, see net_udp_do_frame
 int net_udp_game_port(void); // port games are searched on
 struct _sockaddr GBcast; // global Broadcast address clients and hosts will use for lite_info exchange over LAN
 #ifdef IPv6
@@ -2003,6 +2007,7 @@ void net_udp_send_objects(void)
 
             Network_sending_extras=3; // start to send extras
             VerifyPlayerJoined = Player_joining_extras = player_num;
+            net_udp_verify_join_time = timer_query();
 
             if(UDP_sync_player.player.observer) {
                 VerifyPlayerJoined = -1; 
@@ -3650,7 +3655,8 @@ void net_udp_leave_game()
     int nsave, i;
 
     net_udp_do_frame(1, 1);
-    net_udp_capture_leave_snapshot();
+    if (!net_udp_leave_logged)
+        net_udp_capture_leave_snapshot();
 
     if ((multi_i_am_master()))
     {
@@ -3686,7 +3692,12 @@ void net_udp_leave_game()
     change_playernum_to(0);
     net_udp_flush();
     net_udp_close();
-    net_udp_telemetry_log_summary(); // also prints the host-start settings, to the console and memlog.txt
+    // Once per game: a second leave (closing the window) would list your own name in slot 0
+    if (!net_udp_leave_logged)
+    {
+        net_udp_telemetry_log_summary(); // also prints the host-start settings, to the console and memlog.txt
+        net_udp_leave_logged = 1;
+    }
     net_udp_host_start_snapshot_valid = 0;
     net_udp_leave_snapshot_valid = 0;
 }
@@ -4103,6 +4114,22 @@ void net_udp_do_frame(int force, int listen)
 
     net_udp_noloss_process_queue(time);
 
+    // A joiner that never sends its first ship update (backed out, crashed, wrong level file) is
+    // removed for everyone after 20 s, so it doesn't stay listed or block the next joiner.
+    // Players who finished joining are never dropped here.
+    if (VerifyPlayerJoined != -1 && time >= net_udp_verify_join_time + F1_0*20)
+    {
+        int pnum = VerifyPlayerJoined;
+
+        VerifyPlayerJoined = -1;
+        Network_sending_extras = 0;
+        Player_joining_extras = -1;
+        multibuf[0] = (char)MULTI_QUIT; // same message multi_send_quit() sends
+        multibuf[1] = (char)pnum;
+        multi_send_data(multibuf, 2, 2);
+        multi_disconnect_player(pnum);
+    }
+
     if (VerifyPlayerJoined!=-1 && time >= last_resync_time+F1_0)
     {
         last_resync_time = time;
@@ -4319,20 +4346,6 @@ int net_udp_noloss_validate_mdata(uint32_t pkt_num, ubyte sender_pnum, struct _s
     ubyte buf[7];
     int i = 0, len = 0;
 
-    // Check if this comes from a valid IP
-    /*
-    if (multi_i_am_master())
-    {
-        if (memcmp((struct _sockaddr *)&sender_addr, (struct _sockaddr *)&Netgame.players[sender_pnum].protocol.udp.addr, sizeof(struct _sockaddr)))
-            return 0;
-    }
-    else
-    {
-        if (memcmp((struct _sockaddr *)&sender_addr, (struct _sockaddr *)&Netgame.players[0].protocol.udp.addr, sizeof(struct _sockaddr)))
-            return 0;
-    }
-    */
-    
     memset(&buf,0,sizeof(buf));
     buf[len] = UPID_MDATA_ACK;													len++;
     buf[len] = Player_num;														len++;
@@ -4366,6 +4379,8 @@ void net_udp_noloss_got_ack(ubyte *data, int data_len, struct _sockaddr sender_a
     sender_pnum = data[len];													len++;
     dest_pnum = data[len];														len++;
     pkt_num = GET_INTEL_INT(&data[len]);										len += 4;
+    if (sender_pnum >= MAX_PLAYERS) // bogus sender number: player_ack[] has MAX_PLAYERS slots
+        return;
     if (Netgame.max_numobservers > 0 && sender_pnum == OBSERVER_PLAYER_ID) {
         for (i = 0; i < UDP_MDATA_STOR_QUEUE_SIZE; i++)
         {
@@ -4721,7 +4736,7 @@ void net_udp_process_mdata (ubyte *data, int data_len, struct _sockaddr sender_a
     int pnum = data[5], dataoffset = (needack?10:6);
 
     // Check if packet might be bogus
-    if ((pnum < 0) || (data_len > sizeof(UDP_mdata_info)))
+    if ((pnum >= MAX_PLAYERS) || (data_len > sizeof(UDP_mdata_info)))
         return;
 
     // Check if it came from valid IP
@@ -4814,7 +4829,7 @@ void net_udp_process_obs_data (ubyte *data, int data_len, struct _sockaddr sende
     int pnum = data[5], dataoffset = 6;
 
     // Check if packet might be bogus
-    if ((pnum < 0) || (data_len > sizeof(UDP_mdata_info)))
+    if ((pnum >= MAX_PLAYERS) || (data_len > sizeof(UDP_mdata_info)))
         return;
 
     // Players only accept observer chat, either relayed by the host or (host) sent by an observer
