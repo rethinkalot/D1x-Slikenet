@@ -100,3 +100,11 @@ Toggles changed with in Observer Options save with Esc.
 With Autoselect only once on, picking up a missile while sitting on prox bombs with no missiles left switches to it again.
 - **Cheat Codes Work Again**
 Typed single-player cheat codes work again. The frametime check was eating every typed letter before the cheat check saw it.
+- **Bad Packets Can't Corrupt Memory**
+Network messages with an impossible player number are ignored instead of writing outside the game's player lists.
+- **Failed Joins Clear Themselves**
+A player who starts joining but never arrives (wrong level file, crash, closed game) is removed for everyone after 20 seconds, so they don't stay listed and the next player can join.
+- **No Crash On Exit**
+Closing the game no longer crashes in OpenGL, so the last gamelog lines are kept.
+- **Right Names In The Memlog**
+Closing the game window after leaving no longer writes a second memlog with your own name in place of the host's.
