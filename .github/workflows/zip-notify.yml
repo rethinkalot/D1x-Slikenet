@@ -26,6 +26,6 @@ jobs:
             [ -n "$notes" ] && break
             cur=$prev
           done
-          msg="- New **D1x-SLikeNet** Build"$'\n'"- $URL"
+          msg="## New **D1x-SLikeNet**"$'\n'"- $URL"
           if [ -n "$notes" ]; then msg="$msg"$'\n'"$notes"; fi
           jq -n --arg c "$msg" '{content: $c}' | curl -sf -H "Content-Type: application/json" -d @- "$WEBHOOK"
