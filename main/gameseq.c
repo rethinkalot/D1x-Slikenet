@@ -178,6 +178,7 @@ void
 gameseq_init_network_players()
 {
     int i,k,j;
+    int spare[MAX_PLAYERS*2], nspare = 0; // co-op: unused player starts, kept as fallback starts
 
     // Initialize network player start locations and object numbers
 
@@ -203,6 +204,8 @@ gameseq_init_network_players()
                 k++;
 #ifndef SHAREWARE
             }
+            else if ((Game_mode & GM_MULTI_COOP) && Objects[i].type != OBJ_COOP && nspare < (int)(sizeof(spare)/sizeof(spare[0])))
+                spare[nspare++] = i;
             else
                 obj_delete(i);
             j++;
@@ -210,14 +213,34 @@ gameseq_init_network_players()
         }
     }
 
+    // Co-op keeps only the first player start plus the co-op starts. A level without enough co-op starts
+    // would put several players on one spot, so its other player starts are used until there are 8
+    for (i = 0; i < nspare; i++)
+    {
+        int o = spare[i];
+
+        if (k < MAX_PLAYERS)
+        {
+            Objects[o].type = OBJ_PLAYER;
+            Player_init[k].pos = Objects[o].pos;
+            Player_init[k].orient = Objects[o].orient;
+            Player_init[k].segnum = Objects[o].segnum;
+            Players[k].objnum = o;
+            Objects[o].id = k;
+            k++;
+        }
+        else
+            obj_delete(o);
+    }
+
     NumNetPlayerPositions = k;
 
     if (Game_mode & GM_MULTI) {
         // Ensure we have 8 starting locations, even if there aren't 8 in the file.  This makes observer mode work in all levels.
         for (; k < MAX_PLAYERS; k++) {
-            Player_init[k].pos = Objects[k % NumNetPlayerPositions].pos;
-            Player_init[k].orient = Objects[k % NumNetPlayerPositions].orient;
-            Player_init[k].segnum = Objects[k % NumNetPlayerPositions].segnum;
+            Player_init[k].pos = Player_init[k % NumNetPlayerPositions].pos;
+            Player_init[k].orient = Player_init[k % NumNetPlayerPositions].orient;
+            Player_init[k].segnum = Player_init[k % NumNetPlayerPositions].segnum;
 
             i = obj_create(OBJ_PLAYER, k, Player_init[k].segnum, &Player_init[k].pos,
                 &Player_init[k].orient, Polygon_models[Player_ship->model_num].rad,
@@ -1680,6 +1703,9 @@ int previewed_spawn_point = 0;
 void InitPlayerPosition(int random)
 {
     int NewPlayer=0;
+
+    // Our own ship: it may still point at object 0 (the host's ship) from the level setup
+    ConsoleObject = &Objects[Players[Player_num].objnum];
 
     if (is_observer())
         NewPlayer = 0;

@@ -126,6 +126,7 @@ void game(void);
 void close_game(void);
 void init_cockpit(void);
 void calc_frame_time(void);
+void menu_frame_delay(void);
 void calc_game_time(void);
 void calc_d_tick();
 int do_flythrough(struct object *obj,int first_time);

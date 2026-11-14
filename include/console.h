@@ -49,5 +49,6 @@ void con_init(void);
 void con_printf(int level, const char *fmt, ...);
 void con_showup(void);
 void con_switch_log(const char* filename);
+void con_flush_log(void);
 
 #endif /* _CONSOLE_H_ */

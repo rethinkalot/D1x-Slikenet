@@ -381,7 +381,7 @@ int scores_handler(window *wind, d_event *event, scores_menu *menu)
 			break;
 
 		case EVENT_IDLE:
-			timer_delay2(50);
+			menu_frame_delay();
 			break;
 
 		case EVENT_WINDOW_DRAW:

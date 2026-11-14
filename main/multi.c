@@ -23,6 +23,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #include "game.h"
 #include "multi.h"
+#include "mission.h"
 #include "gameseg.h"
 #include "object.h"
 #include "laser.h"
@@ -844,6 +845,7 @@ int get_team_size(int team_num)
 void
 multi_new_game(void)
 {
+    multi_change_map_reset();	// no Change Map ids from an earlier game
     int i;
 
     // Reset variables for a new net game
@@ -5235,6 +5237,197 @@ void multi_new_bounty_target( int pnum )
     digi_play_sample( SOUND_CONTROL_CENTER_WARNING_SIREN, F1_0 * 3 );
 }
 
+// ---- Host "Change Map" (in-game Esc menu) ------------------------------------------------------------
+// The host picks a mission and a level and everyone goes straight to "Prepare for Descent", the way the
+// multiplayer Load Game does (multi_restore_game): no score screen. The new map starts like a new game
+// (scores, kills and ships reset) with the same hosted settings.
+
+static int Multi_change_map_id = -1;		// host: id of the last change sent; clients: id of the last one taken
+static int Multi_change_map_busy;			// a change is loading right now (StartNewLevel and its level sync)
+static int Multi_change_map_pending;		// client: a received change waiting for the start of the next game frame
+static char Multi_change_map_pending_mission[9];
+static int Multi_change_map_pending_level;
+
+int multi_change_map_busy(void)
+{
+	return Multi_change_map_busy;
+}
+
+// New game (hosting or joining): forget the ids of an earlier game
+void multi_change_map_reset(void)
+{
+	Multi_change_map_id = -1;
+	Multi_change_map_pending = 0;
+}
+
+// Start the chosen mission and level on this copy (host from the menu, clients at the start of a game frame)
+static void multi_change_map_go(const char *mission, int level)
+{
+	char name[9];
+	int i;
+
+	if (Endlevel_sequence || Multi_change_map_busy)
+		return;
+	Multi_change_map_busy = 1;
+
+	memset(name, 0, sizeof(name));
+	strncpy(name, mission, sizeof(name) - 1);
+
+	for (i = 0; i < N_players; i++)
+		multi_strip_robots(i);
+	if (multi_i_am_master()) // put all players to wait-state again so we can sync up properly (as multi_restore_game)
+		for (i = 0; i < MAX_PLAYERS; i++)
+			if (Players[i].connected == CONNECT_PLAYING && i != Player_num) {
+				Players[i].connected = CONNECT_WAITING;
+				if (Current_obs_player == i)
+					reset_obs();
+			}
+
+	if (d_stricmp(name, Current_mission_filename) && !load_mission_by_name(name))
+	{
+		Multi_change_map_busy = 0;
+		con_printf(CON_NORMAL, "Change Map: mission '%s' not found, leaving the game\n", name);
+		nm_messagebox(NULL, 1, TXT_OK, "Mission '%s' not found.\nYou left the game.", name);
+		multi_leave_game();
+		if (Game_wind)
+			window_close(Game_wind);
+		return;
+	}
+	if (level < 1)
+		level = 1;
+	if (level > Last_level)
+		level = Last_level;
+
+	memset(Netgame.mission_name, 0, sizeof(Netgame.mission_name));
+	strncpy(Netgame.mission_name, Current_mission_filename, sizeof(Netgame.mission_name) - 1);
+	memset(Netgame.mission_title, 0, sizeof(Netgame.mission_title));
+	strncpy(Netgame.mission_title, Current_mission_longname, sizeof(Netgame.mission_title) - 1);
+	Netgame.levelnum = level;
+
+	// Fresh scores, like multi_new_game, without touching connections or robot control
+	for (i = 0; i < MAX_PLAYERS; i++)
+	{
+		init_player_stats_game(i);
+		sorted_kills[i] = i;
+	}
+	memset(kill_matrix, 0, MAX_PLAYERS*MAX_PLAYERS*2);
+	team_kills[0] = team_kills[1] = 0;
+	Netgame.TeamKillGoalCount[0] = Netgame.TeamKillGoalCount[1] = 0;
+	for (i = 0; i < MAX_POWERUP_TYPES; i++)
+	{
+		MaxPowerupsAllowed[i] = 0;
+		PowerupsInMine[i] = 0;
+	}
+	reset_observatory_stats();
+	for (i = 0; i < MAX_PLAYERS; i++)
+		add_observatory_stat(i, OBSEV_NONE);
+	imulti_new_game = 1;	// StartNewLevelSub gives everyone a fresh ship
+
+	Control_center_destroyed = 0;
+	// Hide the game window while loading, as the level warp cheat does: otherwise game frames keep running
+	// behind the level sync's waiting box on a level whose ships aren't placed yet, and crash
+	if (Game_wind)
+		window_set_visible(Game_wind, 0);
+	StartNewLevel(level);	// "Prepare for Descent", then the level sync with the host
+	if (Game_wind)
+		window_set_visible(Game_wind, 1);
+	Multi_change_map_busy = 0;
+	if (Network_status != NETSTAT_PLAYING)
+		con_printf(CON_NORMAL, "Change Map: level sync failed\n");
+}
+
+static void multi_send_change_map(const char *mission, int level)
+{
+	if (!multi_i_am_master())
+		return;
+	Multi_change_map_id = (Multi_change_map_id + 1) & 0xff;
+	multibuf[0] = MULTI_CHANGE_MAP;
+	multibuf[1] = Player_num;
+	memset(multibuf + 2, 0, 9);
+	strncpy((char *)multibuf + 2, mission, 8);
+	multibuf[11] = (ubyte)level;
+	multibuf[12] = (ubyte)Multi_change_map_id;
+	multi_send_data(multibuf, 13, 2);
+	con_printf(CON_NORMAL, "Change Map: mission '%s', level %d (id %d) sent\n", mission, level, Multi_change_map_id);
+}
+
+// A change from the host: only stored here, it starts at the beginning of the next game frame
+// (multi_change_map_frame). The id makes a resent copy harmless, even after the level sync has cleared
+// the packet filter.
+void multi_do_change_map(const ubyte *buf)
+{
+	if (buf[1] != multi_who_is_master() || buf[11] < 1)	// only the host changes the map
+		return;
+	if (buf[12] == Multi_change_map_id || Multi_change_map_busy || Multi_change_map_pending)
+		return;
+	Multi_change_map_id = buf[12];
+	memcpy(Multi_change_map_pending_mission, buf + 2, 8);
+	Multi_change_map_pending_mission[8] = 0;
+	Multi_change_map_pending_level = buf[11];
+	Multi_change_map_pending = 1;
+	con_printf(CON_NORMAL, "Change Map: mission '%s', level %d (id %d) received\n", Multi_change_map_pending_mission, Multi_change_map_pending_level, Multi_change_map_id);
+}
+
+// Start of GameProcessFrame: run a received change. Returns 1 if it ran, and the frame must stop there.
+int multi_change_map_frame(void)
+{
+	if (!Multi_change_map_pending || Multi_change_map_busy)
+		return 0;
+	Multi_change_map_pending = 0;
+	multi_change_map_go(Multi_change_map_pending_mission, Multi_change_map_pending_level);
+	return 1;
+}
+
+// Mission picked in the Change Map list: the same "Select starting level" box as New Game, then go
+static void multi_change_map_picked(const char *filename, int num_levels)
+{
+	newmenu_item m[2];
+	char info_text[80], num_text[10];
+	int choice, level;
+
+	for (;;)
+	{
+		memset(m, 0, sizeof(m));
+		if (num_levels > 0)
+			sprintf(info_text, "%s %d", TXT_START_ANY_LEVEL, num_levels);
+		else
+			strcpy(info_text, TXT_SELECT_START_LEV);
+		strcpy(num_text, "1");
+		m[0].type = NM_TYPE_TEXT; m[0].text = info_text;
+		m[1].type = NM_TYPE_INPUT; m[1].text_len = 10; m[1].text = num_text;
+
+		choice = newmenu_do(NULL, TXT_SELECT_START_LEV, 2, m, NULL, NULL);
+		if (choice == -1 || num_text[0] == 0)
+			return;
+		level = atoi(num_text);
+		if (level > 0 && (num_levels <= 0 || level <= num_levels) && level <= MAX_LEVELS_PER_MISSION)
+			break;
+		nm_messagebox(NULL, 1, TXT_OK, TXT_INVALID_LEVEL);
+	}
+
+	if (Endlevel_sequence || Network_status != NETSTAT_PLAYING || !multi_i_am_master())
+		return;
+	{
+		char mission[9];
+
+		memset(mission, 0, sizeof(mission));
+		strncpy(mission, filename, sizeof(mission) - 1);	// the mission list is freed when this menu closes
+		multi_send_change_map(mission, level);
+		Multi_change_map_busy = 1;	// while flushing, a client's early join request is ignored, not refused
+		multi_do_frame();	// get the message out before loading, as Load Game does
+		Multi_change_map_busy = 0;
+		multi_change_map_go(mission, level);
+	}
+}
+
+// Esc menu "Change Map" (host only): the same mission list as starting a multiplayer game
+void multi_change_map_start(void)
+{
+	if (!(Game_mode & GM_MULTI) || !multi_i_am_master())
+		return;
+	select_mission_for_change_map(TXT_MULTI_MISSION, multi_change_map_picked);
+}
+
 void multi_do_save_game(const ubyte *buf)
 {
     int count = 1;
@@ -5609,6 +5802,8 @@ multi_process_data(const ubyte *buf, int len)
             multi_do_ship_status(buf); break;
         case MULTI_CREATE_EXPLOSION2:
             multi_do_create_explosion2(buf); break;
+        case MULTI_CHANGE_MAP:
+            multi_do_change_map(buf); break;
         default:
             Int3();
     }

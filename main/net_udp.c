@@ -1612,6 +1612,9 @@ void net_udp_welcome_player(UDP_sequence_packet *their)
 
     if (their->player.connected != Current_level_num)
     {
+        // During the host's Change Map a player may already be on the new level: ignore, they ask again
+        if (multi_change_map_busy())
+            return;
         net_log_comment("new player dumped due to wrong level number");
         net_udp_dump_player(their->player.protocol.udp.addr, their->token, DUMP_LEVEL);
         return;
@@ -1758,6 +1761,18 @@ void net_udp_welcome_player(UDP_sequence_packet *their)
         multi_send_score();
 
         net_udp_noloss_clear_mdata_got(player_num);
+    }
+
+    // The same game coming in as a player gives up any observer slot it held, or it stays listed as observing
+    {
+        int obsnum = net_udp_observer_slot(&their->player.protocol.udp.addr);
+
+        if (obsnum >= 0)
+        {
+            memset(&Netgame.observers[obsnum], 0, sizeof(netplayer_info));
+            net_udp_recount_observers();
+            multi_send_obs_update(1, 0);
+        }
     }
 
     Players[player_num].KillGoalCount=0;
@@ -1907,6 +1922,38 @@ void net_udp_stop_resync(UDP_sequence_packet *their)
         Network_rejoined=0;
         Player_joining_extras=-1;
         Network_send_objnum = -1;
+    }
+}
+
+// A joiner backed out of the "waiting to enter" box. Stop everything for it at once and, if it was
+// already added, take it out for everyone, so nobody keeps sending to a game that is sitting in the menus
+static void net_udp_quit_joining(UDP_sequence_packet *their)
+{
+    int i;
+
+    net_udp_stop_resync(their);
+    if (!multi_i_am_master())
+        return;
+
+    i = net_udp_observer_slot(&their->player.protocol.udp.addr);
+    if (i >= 0)
+    {
+        memset(&Netgame.observers[i], 0, sizeof(netplayer_info));
+        net_udp_recount_observers();
+        multi_send_obs_update(1, 0);
+    }
+
+    for (i = 1; i < N_players; i++)
+    {
+        if (Players[i].connected == CONNECT_DISCONNECTED || d_stricmp(Players[i].callsign, their->player.callsign) ||
+            !is_same_addr(&Netgame.players[i].protocol.udp.addr, &their->player.protocol.udp.addr))
+            continue;
+        if (VerifyPlayerJoined == i)
+            VerifyPlayerJoined = -1;
+        multibuf[0] = (char)MULTI_QUIT; // same message multi_send_quit() sends
+        multibuf[1] = (char)i;
+        multi_send_data(multibuf, 2, 2);
+        multi_disconnect_player(i);
     }
 }
 
@@ -2192,6 +2239,12 @@ void net_udp_send_rejoin_sync(int player_num)
         {
             if ((i != player_num) && (i != Player_num) && (Players[i].connected))
                 net_udp_send_sequence_packet( UDP_sync_player, Netgame.players[i].protocol.udp.addr);
+        }
+        // Observers must hear about joins too, or they keep the player as gone and never draw them
+        for (i = 0; i < Netgame.max_numobservers; i++)
+        {
+            if (Netgame.observers[i].connected == 1 && !is_same_addr(&Netgame.observers[i].protocol.udp.addr, &UDP_sync_player.player.protocol.udp.addr))
+                net_udp_send_sequence_packet( UDP_sync_player, Netgame.observers[i].protocol.udp.addr);
         }
     }
 
@@ -3170,8 +3223,8 @@ void net_udp_process_packet(ubyte *data, struct _sockaddr sender_addr, int lengt
             net_udp_receive_sequence_packet(data, &their, sender_addr);
             if (Network_status == NETSTAT_STARTING)
                 net_udp_remove_player( &their );
-            else if ((Network_status == NETSTAT_PLAYING) && (Network_send_objects))
-                net_udp_stop_resync( &their );
+            else if (Network_status == NETSTAT_PLAYING)
+                net_udp_quit_joining( &their );
             break;
 
         case UPID_SYNC:
@@ -3899,6 +3952,15 @@ static void net_udp_slikenet_announce(void)
                 net_udp_slikenet_report("Peer Link ", "Dropped", i, NULL);
                 shown[i] = 1;
                 lost_at[i] = 0;
+                // Link gone and nothing heard for 5 s: their game is gone (crash, closed). The host removes
+                // them for everyone. An idle or paused player keeps the link, so is never dropped here.
+                if (multi_i_am_master() && now - Netgame.players[i].LastPacketTime >= F1_0*5)
+                {
+                    multibuf[0] = (char)MULTI_QUIT; // same message multi_send_quit() sends
+                    multibuf[1] = (char)i;
+                    multi_send_data(multibuf, 2, 2);
+                    multi_disconnect_player(i);
+                }
             }
             continue;
         }
@@ -5196,8 +5258,18 @@ void check_observers(fix64 now) {
                 memset(&Netgame.observers[i], 0, sizeof(netplayer_info));
                 net_udp_recount_observers();
 
-                changed_something = 1; 
+                changed_something = 1;
             }
+        }
+        // A slot whose observer never finished joining (backed out, crashed) is freed after 10 s,
+        // unless its objects are still being sent
+        else if (Netgame.observers[i].protocol.udp.addr.sin_port != 0 &&
+                 !(Network_send_objects && UDP_sync_obsnum == i && UDP_sync_player.player.connected == OBSERVER_PLAYER_ID) &&
+                 now - Netgame.observers[i].LastPacketTime > F1_0*10) {
+            memset(&Netgame.observers[i], 0, sizeof(netplayer_info));
+            net_udp_recount_observers();
+
+            changed_something = 1;
         }
     }
 

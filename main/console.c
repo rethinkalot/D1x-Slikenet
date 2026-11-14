@@ -19,6 +19,7 @@
 #include "key.h"
 #include "vers_id.h"
 #include "timer.h"
+void menu_frame_delay(void); // game.c
 
 static PHYSFS_file *gamelog_fp=NULL;
 static struct console_buffer con_buffer[CON_LINES_MAX];
@@ -259,7 +260,7 @@ static int con_handler(window *wind, d_event *event)
 			return 1;
 
 		case EVENT_WINDOW_DRAW:
-			timer_delay2(50);
+			menu_frame_delay();
 			if (con_state == CON_STATE_OPENING)
 			{
 				if (con_size < CON_LINES_ONSCREEN && timer_query() >= last_scroll_time+(F1_0/30))
@@ -315,6 +316,13 @@ static void con_close(void)
 		PHYSFS_close(gamelog_fp);
 	
 	gamelog_fp = NULL;
+}
+
+// Used by the crash handler: put buffered gamelog lines on disk before the game dies
+void con_flush_log(void)
+{
+	if (gamelog_fp)
+		PHYSFS_flush(gamelog_fp);
 }
 
 void con_init(void)

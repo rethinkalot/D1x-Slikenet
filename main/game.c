@@ -450,6 +450,16 @@ void reset_time()
 	prev_perf_start = 0;
 }
 
+// Frame cap for menus and in-game screens. Over a running multiplayer game they add no cap of their own:
+// the game window behind them paces itself (-maxfps), so the host keeps relaying packets at its normal
+// rate and observers keep smooth timing
+void menu_frame_delay(void)
+{
+	if ((Game_mode & GM_MULTI) && Game_wind && window_is_visible(Game_wind) && Network_status == NETSTAT_PLAYING)
+		return;
+	timer_delay2(100);
+}
+
 void calc_frame_time()
 {
 	fix last_frametime = FrameTime;
@@ -1282,6 +1292,13 @@ void GameProcessFrame(void)
 {
 	fix player_shields = Players[Player_num].shields;
 	int player_was_dead = Player_is_dead;
+
+#ifdef NETWORK
+	// The host's Change Map, received from the network: start the new level here, at the top of a frame,
+	// and end this frame so nothing in it touches the old or half-loaded level
+	if ((Game_mode & GM_MULTI) && multi_change_map_frame())
+		return;
+#endif
 
 	// Advance the speedrun clocks (IGT / RTA). Driven from FrameTime, so they
 	// track wall-clock play and are unaffected by the framerate cap.

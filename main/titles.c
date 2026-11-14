@@ -52,6 +52,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #ifdef OGL
 #include "ogl_init.h"
+void menu_frame_delay(void); // game.c
 #endif
 
 extern void show_speedrun_timers(void);
@@ -102,7 +103,7 @@ static int title_handler(window *wind, d_event *event, title_screen *ts)
 			return 1;
 
 		case EVENT_IDLE:
-			timer_delay2(50);
+			menu_frame_delay();
 
 			if (timer_query() > ts->timer)
 			{
@@ -1070,7 +1071,7 @@ static int briefing_handler(window *wind, d_event *event, briefing *br)
 		case EVENT_WINDOW_DRAW:
 			gr_set_current_canvas(NULL);
 
-			timer_delay2(50);
+			menu_frame_delay();
 
 			if (!(br->new_screen || br->new_page))
 				while (!briefing_process_char(br) && !br->delay_count)

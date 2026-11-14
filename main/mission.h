@@ -93,6 +93,7 @@ int load_mission_by_name (char *mission_name);
 //Handles creating and selecting from the mission list.
 //Returns 1 if a mission was loaded.
 int select_mission (int anarchy_mode, char *message, int (*when_selected)(void));
+int select_mission_for_change_map(char *message, void (*when_picked)(const char *filename, int num_levels));
 
 void free_mission(void);
 

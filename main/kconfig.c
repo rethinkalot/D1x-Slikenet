@@ -915,7 +915,7 @@ int kconfig_handler(window *wind, d_event *event, kc_menu *menu)
             if (menu->changing)
                 timer_delay(f0_1/10);
             else
-                timer_delay2(50);
+                menu_frame_delay();
             kconfig_draw(menu);
             break;
             

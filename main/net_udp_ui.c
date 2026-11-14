@@ -23,6 +23,7 @@
 #include "effects.h"
 #include "rbaudio.h"
 #include "vers_id.h"
+void menu_frame_delay(void); // game.c
 
 #define PRESET_EXT ".ngs"
 #define GAME_PARAM_CHOICE_SHOW_AGAIN -3
@@ -1530,7 +1531,7 @@ static int show_game_rules_handler(window *wind, d_event *event, netgame_info *n
             break;
             
         case EVENT_WINDOW_DRAW:
-            timer_delay2(50);
+            menu_frame_delay();
 
             gr_set_current_canvas(NULL);
             nm_draw_background(((SWIDTH-w)/2)-BORDERX,((SHEIGHT-h)/2)-BORDERY,((SWIDTH-w)/2)+w+BORDERX,((SHEIGHT-h)/2)+h+BORDERY);

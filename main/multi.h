@@ -64,7 +64,7 @@ extern int multi_protocol; // set and determinate used protocol
 #define MULTI_PROTO_UDP 1 // UDP protocol
 
 // What version of the multiplayer protocol is this? Increment each time something drastic changes in Multiplayer without the version number changes. Can be reset to 0 each time the version of the game changes
-#define MULTI_PROTO_VERSION 30008 // Redux 1.2 + PIG hash in UDP join request + SLikeNet in-game transport
+#define MULTI_PROTO_VERSION 30006 // Redux 1.2 + PIG hash in UDP join request + SLikeNet in-game transport + host Change Map message
 
 // PROTOCOL VARIABLES AND DEFINES - END
 
@@ -125,6 +125,7 @@ extern int multi_protocol; // set and determinate used protocol
 	VALUE(MULTI_REPAIR               , 11)  \
 	VALUE(MULTI_SHIP_STATUS          , 29)  \
 	VALUE(MULTI_CREATE_EXPLOSION2    , 24)  \
+	VALUE(MULTI_CHANGE_MAP           , 13)  /* host's Change Map: pnum, mission file name (9), level, change id */ \
 	AFTER
 for_each_multiplayer_command(enum {, define_multiplayer_command, });
 
@@ -384,6 +385,12 @@ extern char *RankStrings[];
 
 int multi_i_am_master(void);
 int multi_who_is_master(void);
+// Host "Change Map" from the in-game Esc menu
+void multi_change_map_start(void);
+void multi_do_change_map(const ubyte *buf);
+int multi_change_map_frame(void);
+int multi_change_map_busy(void);
+void multi_change_map_reset(void);
 void change_playernum_to(int new_pnum);
 
 // Multiplayer powerup capping

@@ -745,6 +745,112 @@ int load_mission_by_name(char *mission_name)
 	return found;
 }
 
+//	Number of levels in a mission, read from its mission file without loading it (same rules as
+//	load_mission). 0 = couldn't tell.
+static int mission_level_count(mle *mission)
+{
+	char buf[PATH_MAX], *v;
+	PHYSFS_file *mfile;
+	int count = 0;
+
+	if (mission->builtin_hogsize) {		// D1's built-in mission has no mission file
+		switch (mission->builtin_hogsize) {
+			case D1_SHAREWARE_MISSION_HOGSIZE:
+			case D1_SHAREWARE_10_MISSION_HOGSIZE:	return 7;
+			case D1_MAC_SHARE_MISSION_HOGSIZE:		return 3;
+			case D1_OEM_MISSION_HOGSIZE:
+			case D1_OEM_10_MISSION_HOGSIZE:			return 15;
+			default:								return BIMD1_LAST_LEVEL;
+		}
+	}
+
+	strcpy(buf, mission->location == ML_MISSIONDIR ? MISSION_DIR : "");
+	strcat(buf, mission->path);
+	strcat(buf, ".msn");
+	PHYSFSEXT_locateCorrectCase(buf);
+	mfile = PHYSFSX_openReadBuffered(buf);
+	if (mfile == NULL)
+		return 0;
+	while (PHYSFSX_fgets(buf, sizeof(buf), mfile)) {
+		if (istok(buf, "num_levels")) {
+			if ((v = get_value(buf)) != NULL) {
+				int n_levels = min(atoi(v), MAX_LEVELS_PER_MISSION), i;
+
+				for (i = 0; i < n_levels; i++) {
+					if (!PHYSFSX_fgets(buf, sizeof(buf), mfile))
+						break;
+					add_term(buf);
+					if (strlen(buf) > 12)
+						break;
+					count++;
+				}
+			}
+			break;
+		}
+	}
+	PHYSFS_close(mfile);
+	return count;
+}
+
+//	Host's Change Map: the same mission list as starting a multiplayer game, but nothing is loaded here.
+//	when_picked gets the mission's file name and level count while the list is still open.
+typedef struct change_map_menu
+{
+	mle *mission_list;
+	void (*when_picked)(const char *filename, int num_levels);
+} change_map_menu;
+
+static int change_map_menu_handler(listbox *lb, d_event *event, change_map_menu *cm)
+{
+	char **list = listbox_get_items(lb);
+	int citem = listbox_get_citem(lb);
+
+	switch (event->type)
+	{
+		case EVENT_NEWMENU_SELECTED:
+			if (citem >= 0)
+				(*cm->when_picked)(cm->mission_list[citem].filename, mission_level_count(&cm->mission_list[citem]));
+			return 0;	// close the list
+		case EVENT_WINDOW_CLOSE:
+			free_mission_list(cm->mission_list);
+			d_free(list);
+			d_free(cm);
+			break;
+		default:
+			break;
+	}
+	return 0;
+}
+
+int select_mission_for_change_map(char *message, void (*when_picked)(const char *filename, int num_levels))
+{
+	mle *mission_list = build_mission_list(1);
+	change_map_menu *cm;
+	int i, default_mission = 0;
+	char **m;
+
+	MALLOC(m, char *, num_missions);
+	MALLOC(cm, change_map_menu, 1);
+	if (!m || !cm)
+	{
+		if (m) d_free(m);
+		if (cm) d_free(cm);
+		free_mission_list(mission_list);
+		return 0;
+	}
+	cm->mission_list = mission_list;
+	cm->when_picked = when_picked;
+
+	for (i = 0; i < num_missions; i++) {
+		m[i] = mission_list[i].mission_name;
+		if (Current_mission && !d_stricmp(mission_list[i].filename, Current_mission_filename))
+			default_mission = i;	// start on the mission being played
+	}
+
+	newmenu_listbox1(message, num_missions, m, 1, default_mission, (int (*)(listbox *, d_event *, void *))change_map_menu_handler, cm);
+	return 1;
+}
+
 typedef struct mission_menu
 {
 	mle *mission_list;

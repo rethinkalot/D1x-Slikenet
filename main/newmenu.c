@@ -1549,7 +1549,7 @@ int newmenu_handler(window *wind, d_event *event, newmenu *menu)
 			break;
 
 		case EVENT_IDLE:
-			timer_delay2(50);
+			menu_frame_delay();
 
 			return newmenu_mouse(wind, event, menu, -1);
 			break;
@@ -2144,7 +2144,7 @@ int listbox_handler(window *wind, d_event *event, listbox *lb)
 			break;
 
 		case EVENT_IDLE:
-			timer_delay2(50);
+			menu_frame_delay();
 
 			return listbox_mouse(wind, event, lb, -1);
 			break;

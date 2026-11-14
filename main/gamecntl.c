@@ -264,7 +264,7 @@ int pause_handler(window *wind, d_event *event, char *msg)
             break;
 
         case EVENT_IDLE:
-            timer_delay2(50);
+            menu_frame_delay();
             break;
 
         case EVENT_WINDOW_DRAW:
@@ -528,9 +528,21 @@ int HandleSystemKey(int key)
             {
                 int choice;
                 int allow_loadsave = !(Game_mode & GM_MULTI) || (Game_mode & GM_MULTI_COOP);
-                choice = allow_loadsave ?
-                    nm_messagebox(NULL, 4, "Abort Game", TXT_OPTIONS_, "Save Game...", TXT_LOAD_GAME, "Game Menu") :
-                    nm_messagebox(NULL, 2, "Abort Game", TXT_OPTIONS_, "Game Menu");
+                // The host of a multiplayer game also gets "Change Map" (pick a mission and level)
+                int allow_change_map = (Game_mode & GM_MULTI) && multi_i_am_master() && !Endlevel_sequence;
+                if (allow_change_map)
+                    choice = allow_loadsave ?
+                        nm_messagebox(NULL, 5, "Abort Game", TXT_OPTIONS_, "Save Game...", TXT_LOAD_GAME, "Change Map", "Game Menu") :
+                        nm_messagebox(NULL, 3, "Abort Game", TXT_OPTIONS_, "Change Map", "Game Menu");
+                else
+                    choice = allow_loadsave ?
+                        nm_messagebox(NULL, 4, "Abort Game", TXT_OPTIONS_, "Save Game...", TXT_LOAD_GAME, "Game Menu") :
+                        nm_messagebox(NULL, 2, "Abort Game", TXT_OPTIONS_, "Game Menu");
+                if (allow_change_map && choice == (allow_loadsave ? 4 : 2))
+                {
+                    multi_change_map_start();
+                    return 1;
+                }
                 switch(choice)
                 {
                     case 0: // Abort Game

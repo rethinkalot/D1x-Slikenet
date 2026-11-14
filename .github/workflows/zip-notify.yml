@@ -17,15 +17,22 @@ jobs:
         run: |
           # Bold titles of README entries added or changed since the previous zip, one "- **Title**" per line.
           # No new titles since then: walk back to the last build that had some, so every post lists titles.
+          # A download/discord-notes.md changed since the previous zip replaces that list for this post:
+          # its lines are posted as written, and an empty file posts only the header and link.
           notes=""
-          cur=HEAD
-          for prev in $(git log -n 10 --format=%H -- "$ZIP" | tail -n +2); do
-            notes=$(git diff "$prev" "$cur" -- README.md | { grep '^+- \*\*' || true; } |
-              sed -E 's/^\+- \*\*([^*]+)\*\*.*/\1/; s/[.:]+$//; s/^/- **/; s/$/**/' | awk '!seen[$0]++' |
-              awk '{ if (n + length($0) + 1 > 1800) { print "- ...and more in the README"; exit } print; n += length($0) + 1 }')
-            [ -n "$notes" ] && break
-            cur=$prev
-          done
+          last=$(git log -n 2 --format=%H -- "$ZIP" | tail -n +2)
+          if [ -n "$last" ] && [ -f download/discord-notes.md ] && [ -n "$(git diff --name-only "$last" HEAD -- download/discord-notes.md)" ]; then
+            notes=$(sed '/^[[:space:]]*$/d' download/discord-notes.md)
+          else
+            cur=HEAD
+            for prev in $(git log -n 10 --format=%H -- "$ZIP" | tail -n +2); do
+              notes=$(git diff "$prev" "$cur" -- README.md | { grep '^+- \*\*' || true; } |
+                sed -E 's/^\+- \*\*([^*]+)\*\*.*/\1/; s/[.:]+$//; s/^/- **/; s/$/**/' | awk '!seen[$0]++' |
+                awk '{ if (n + length($0) + 1 > 1800) { print "- ...and more in the README"; exit } print; n += length($0) + 1 }')
+              [ -n "$notes" ] && break
+              cur=$prev
+            done
+          fi
           msg="## New **D1x-SLikeNet**"$'\n'"- $URL"
           if [ -n "$notes" ]; then msg="$msg"$'\n'"$notes"; fi
           jq -n --arg c "$msg" '{content: $c}' | curl -sf -H "Content-Type: application/json" -d @- "$WEBHOOK"

@@ -939,6 +939,7 @@ void ogl_urect(int left,int top,int right,int bot)
 	glColorPointer(4, GL_FLOAT, 0, color_array);
 	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);//replaced GL_QUADS
 	glDisableClientState(GL_VERTEX_ARRAY);
+	glDisableClientState(GL_COLOR_ARRAY);
 }
 
 void ogl_ulinec(int left,int top,int right,int bot,int c)

@@ -319,6 +319,13 @@ int main(int argc, char *argv[])
 	PHYSFSX_init(argc, argv);
 
 	con_init();  // Initialise the console
+#if defined(_WIN32) && !(defined(_MSC_VER) || (defined(__clang__) && !defined(__i386__)))
+	{
+		// MinGW has no __try: catch crashes this way, so they're written to the gamelog (arch/win32/crashdump.c)
+		LONG WINAPI win32_exception_handler(EXCEPTION_POINTERS* exceptionPointers);
+		SetUnhandledExceptionFilter(win32_exception_handler);
+	}
+#endif
 
 	setbuf(stdout, NULL); // unbuffered output via printf
 
