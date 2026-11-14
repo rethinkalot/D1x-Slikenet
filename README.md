@@ -34,6 +34,10 @@ The host can press Esc, pick Change Map, then a mission and starting level. Ever
 In a multiplayer game the Esc menu and other screens no longer slow the game down, so the host keeps sending and relaying updates at full rate and observers see smooth movement.
 - **Co-op Start Points**
 In co-op every player starts on their own spot. Levels without co-op starts use their other player starts, so ships no longer stack on the first start.
+- **No Plain UDP Fallback**
+Ship positions and game messages only travel over SLikeNet. A player whose link to the host fails or drops is removed after 5 seconds. Joining, game lists and observers still use plain UDP.
+- **Click To Join**
+In Enter Game Address, a left click works like Enter.
 
 ## Running several copies on one PC
 
