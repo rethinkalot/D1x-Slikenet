@@ -100,7 +100,7 @@ object *object_create_explosion_sub(object *objp, short segnum, vms_vector * pos
 				if ((Objects[parent].type != OBJ_ROBOT) || (Objects[parent].id != obj0p->id))
 					parent_check = 1;
 
-			if ( (obj0p->type == OBJ_CNTRLCEN) || (obj0p->type==OBJ_PLAYER) || ((obj0p->type==OBJ_ROBOT) && parent_check)) {
+			if ( (obj0p->type == OBJ_CNTRLCEN) || ((obj0p->type==OBJ_PLAYER) && !(is_observer() && obj0p == ConsoleObject)) || ((obj0p->type==OBJ_ROBOT) && parent_check)) { // an observer's camera ship takes no blast damage or push
 				dist = vm_vec_dist_quick( &obj0p->pos, &obj->pos );
 				// Make damage be from 'maxdamage' to 0.0, where 0.0 is 'maxdistance' away;
 				if ( dist < maxdistance ) {

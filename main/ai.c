@@ -3112,6 +3112,18 @@ void do_ai_frame_all(void)
     set_player_awareness_all();
 #ifdef NETWORK
     multi_blend_robot_positions();
+
+    // do_ai_frame skips a boss another player owns (and every robot for an observer), and the
+    // death roll lives there, so play it here for those screens. Your own or unowned boss
+    // keeps doing it through do_boss_stuff.
+    if ((Game_mode & GM_MULTI) && Boss_dying) {
+        int i;
+
+        for (i = 0; i <= Highest_object_index; i++)
+            if ((Objects[i].type == OBJ_ROBOT) && Robot_info[Objects[i].id].boss_flag &&
+                (is_observer() || ((Objects[i].ctype.ai_info.REMOTE_OWNER != Player_num) && (Objects[i].ctype.ai_info.REMOTE_OWNER != -1))))
+                do_boss_dying_frame(&Objects[i]);
+    }
 #endif
 }
 
