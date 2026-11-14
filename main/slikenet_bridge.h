@@ -20,6 +20,8 @@ extern "C" {
 #define SLIKENET_SEQUENCED        1
 #define SLIKENET_RELIABLE_ORDERED 2
 #define SLIKENET_RELIABLE         3
+/* slikenet_send_to_peer(): the player's link isn't up and there is no plain UDP fallback, so it was not sent */
+#define SLIKENET_DROPPED         (-2)
 
 /* bind_ip is the local address to bind (NULL = all addresses). */
 int  slikenet_startup(unsigned short game_port, const char *bind_ip);

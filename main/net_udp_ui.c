@@ -23,6 +23,7 @@
 #include "effects.h"
 #include "rbaudio.h"
 #include "vers_id.h"
+#include "mouse.h"
 void menu_frame_delay(void); // game.c
 
 #define PRESET_EXT ".ngs"
@@ -911,6 +912,11 @@ static int manual_join_game_handler(newmenu *menu, d_event *event, direct_join *
             }
             break;
 
+        // A left click works like Enter: join with what is typed (not while already connecting)
+        case EVENT_MOUSE_BUTTON_UP:
+            if (event_mouse_get_button(event) != MBTN_LEFT || dj->connecting)
+                break;
+            // fall through
         case EVENT_NEWMENU_SELECTED:
         {
             int sockres = -1;

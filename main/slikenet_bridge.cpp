@@ -375,6 +375,10 @@ extern "C" int slikenet_send_to_peer(const void *addr, int addr_len, const void 
         return -1; // not a lane peer (observers, strangers): plain UDP, and not counted as a fallback
     if (!p->ready)
     {
+        // No plain UDP fallback for gameplay: until the link is up it is not sent. Only a joiner's
+        // object download still goes by plain UDP, since its link is never up that early
+        if (mode != SLIKENET_RELIABLE_ORDERED)
+            return SLIKENET_DROPPED;
         packets_fallback++;
         return -1;
     }
@@ -394,6 +398,8 @@ extern "C" int slikenet_send_to_peer(const void *addr, int addr_len, const void 
     // its own so a resend there can't interact with the sequenced movement stream.
     if (!peer->Send((const char *)frame, len + 1, mode == SLIKENET_SEQUENCED ? IMMEDIATE_PRIORITY : HIGH_PRIORITY, reliability, channel, p->system, false))
     {
+        if (mode != SLIKENET_RELIABLE_ORDERED)
+            return SLIKENET_DROPPED;
         packets_fallback++;
         return -1;
     }

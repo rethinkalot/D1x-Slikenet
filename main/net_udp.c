@@ -3913,7 +3913,7 @@ static void net_udp_slikenet_report(const char *prefix, const char *word, int pn
 // (the grace keeps a player who quits from being reported); if it comes back, the success line follows.
 static void net_udp_slikenet_announce(void)
 {
-    static fix64 seen[MAX_PLAYERS], lost_at[MAX_PLAYERS];
+    static fix64 seen[MAX_PLAYERS], lost_at[MAX_PLAYERS], down_since[MAX_PLAYERS];
     static ubyte shown[MAX_PLAYERS]; // 1 = failure or drop shown, 2 = success shown
     fix64 now = timer_query();
     int i;
@@ -3923,6 +3923,7 @@ static void net_udp_slikenet_announce(void)
         memset(seen, 0, sizeof(seen));
         memset(shown, 0, sizeof(shown));
         memset(lost_at, 0, sizeof(lost_at));
+        memset(down_since, 0, sizeof(down_since));
         return;
     }
     for (i = 0; i < MAX_PLAYERS; i++)
@@ -3936,11 +3937,31 @@ static void net_udp_slikenet_announce(void)
             seen[i] = 0;
             shown[i] = 0;
             lost_at[i] = 0;
+            down_since[i] = 0;
             continue;
         }
         if (!seen[i])
             seen[i] = now;
         link = slikenet_peer_state(&Netgame.players[i].protocol.udp.addr, sizeof(struct _sockaddr));
+        if (link == SLIKENET_LINK_READY)
+            down_since[i] = 0;
+        else if (!down_since[i])
+            down_since[i] = now;
+        // No plain UDP fallback: a player whose link to the host failed or dropped gets no game traffic.
+        // Once that was reported and the link has been down 5 s, the host removes them for everyone.
+        // An idle or paused player keeps the link, so is never removed here.
+        if (multi_i_am_master() && shown[i] == 1 && down_since[i] && now >= down_since[i] + F1_0*5)
+        {
+            multibuf[0] = (char)MULTI_QUIT; // same message multi_send_quit() sends
+            multibuf[1] = (char)i;
+            multi_send_data(multibuf, 2, 2);
+            multi_disconnect_player(i);
+            seen[i] = 0;
+            shown[i] = 0;
+            lost_at[i] = 0;
+            down_since[i] = 0;
+            continue;
+        }
         if (shown[i] == 2)
         {
             if (link == SLIKENET_LINK_READY)
@@ -3952,15 +3973,6 @@ static void net_udp_slikenet_announce(void)
                 net_udp_slikenet_report("Peer Link ", "Dropped", i, NULL);
                 shown[i] = 1;
                 lost_at[i] = 0;
-                // Link gone and nothing heard for 5 s: their game is gone (crash, closed). The host removes
-                // them for everyone. An idle or paused player keeps the link, so is never dropped here.
-                if (multi_i_am_master() && now - Netgame.players[i].LastPacketTime >= F1_0*5)
-                {
-                    multibuf[0] = (char)MULTI_QUIT; // same message multi_send_quit() sends
-                    multibuf[1] = (char)i;
-                    multi_send_data(multibuf, 2, 2);
-                    multi_disconnect_player(i);
-                }
             }
             continue;
         }

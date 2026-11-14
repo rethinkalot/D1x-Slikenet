@@ -84,6 +84,8 @@ ssize_t dxx_sendto(int sockfd, const void *msg, int len, unsigned int flags,
 
 #ifndef IPv6
     result = udp_send_slikenet(sockfd, msg, len, to, tolen);
+    if (result == SLIKENET_DROPPED)
+        return len; // no link, no plain UDP fallback: not sent and not counted as traffic
     if (result < 0)
 #endif
     result = sendto(sockfd, (const char*)msg, len, flags, to, tolen);
