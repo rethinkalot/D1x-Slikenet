@@ -108,3 +108,15 @@ A player who starts joining but never arrives (wrong level file, crash, closed g
 Closing the game no longer crashes in OpenGL, so the last gamelog lines are kept.
 - **Right Names In The Memlog**
 Closing the game window after leaving no longer writes a second memlog with your own name in place of the host's.
+- **Robot Messages Checked**
+Robot messages with an impossible robot type, gun or segment are ignored, an update for an unknown robot no longer moves a different one, and a full object list no longer breaks robot respawns.
+- **Boss Death Roll For Everyone**
+The boss spins, explodes and starts the countdown on every screen, observers included, not only for the player who controlled it.
+- **No Crash On Rejoin**
+Leaving a game and rejoining right away no longer crashes while the game waits for the host's settings.
+- **Observer Stays Listed**
+An observer stays on the HUD list, shown once, across map changes, gets every packet once, and can rejoin without "game is full".
+- **Robot Drops Land Together**
+Items a robot drops start out the same on every screen, so they land in the same place for everyone.
+- **Observer Ignores Blasts**
+Explosions no longer push or damage the observer's camera.
