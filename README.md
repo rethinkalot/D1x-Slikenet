@@ -40,6 +40,8 @@ Ship positions and game messages only travel over SLikeNet. A player whose link 
 In Enter Game Address, a left click works like Enter.
 - **SLikeNet Handshake Sound**
 Your "SLikeNet Peer Link Success" line shows 2 seconds after a player appears and plays its own sound, slikenetmsg.wav. The chat line telling everyone else follows at 3 seconds with the same sound, and observer chat uses it too. No Player Chat Sound mutes it.
+- **New Sound for SLikeNet Peer Link and Chat Message sends at 2 and 3 seconds**
+Your "SLikeNet Peer Link Success" line plays slikenetmsg.wav 2 seconds after a player appears, and the chat line for everyone follows at 3 seconds with the same sound.
 
 ## Running several copies on one PC
 
@@ -65,6 +67,8 @@ Start a copy with -slikenet_nolink and it refuses every SLikeNet link while stil
 The OBSERVERS list and streaks sit above the FPS line in every view, live and in observer demo playback, instead of at the bottom right over the weapon rows.
 - **Observer Ping**
 Observers now get the host's ping table, so with F6 network stats and the kill list on, the kill list shows real pings instead of 0. In a normal game they are from the followed player's point of view; with Retro Protocol they are the host's ping to each player.
+- **Observer Chat Message SLikeNet Message Sound Included in D1-SFX.DXA**
+Observer chat plays the slikenetmsg.wav sound, which comes in D1-SFX.DXA as well as XTEXTURES.DXA.
 
 ## Demos
 
@@ -99,6 +103,12 @@ A new bounty target is never the host who is observing, and a leaving player is 
 A host option, and a Misc option for single player, that turns the Vulcan cannon into D2's Gauss: slower, harder-hitting shots with a tight spread and no splash, using Vulcan ammo. It comes with its own sound, HUD icon, pickup sprite and 3D model.
 - **Gauss HUD, Textures And Sound**
 The D1 Models-Textures pack now carries the Gauss art: the gauge21b HUD icon and 16-frame pickup sprite in XTEXTURES.DXA, the 3D pickup model in XPOWERUPS.DXA, and the gauss.wav firing sound in both XTEXTURES.DXA and D1-SFX.DXA. The Gauss art shows even with custom textures off.
+- **Gauss Replaces Vulcan in D1 Host Option (no changes made to game files)**
+The host can tick "Vulcan Becomes Gauss" so the Vulcan cannon plays as D2's Gauss for everyone. The original game data is not changed.
+- **Single Player Menu Toggle for Gauss Replace Vulcan**
+Misc options has "Vulcan Becomes Gauss (SP)" for single player.
+- **New Gauss Image for HUD and Cockpit in XTEXTURES.DXA**
+The Gauss weapon picture for the HUD and cockpit is gauge21b.png in XTEXTURES.DXA.
 
 ## BugFixes
 
