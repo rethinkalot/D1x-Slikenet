@@ -88,9 +88,14 @@ struct newmenu
 	int				is_scroll_box;   // Is this a scrolling box? Set to false at init
 	int				max_on_menu;
 	int				mouse_state, dblclick_flag;
+	int				left_down;		// a left button press started in this menu
+	int				no_click_anywhere;	// message boxes: a click must land on a button
 	int				*rval;			// Pointer to return value (for polling newmenus)
 	void			*userdata;		// For whatever - like with window system
 };
+
+// Set by the message boxes just before they open their menu, so it doesn't take a click anywhere as Enter
+static int next_menu_no_click_anywhere;
 
 grs_bitmap nm_background, nm_background1;
 grs_bitmap *nm_background_sub = NULL;
@@ -635,6 +640,29 @@ void newmenu_scroll(newmenu *menu, int amount)
 	}
 }
 
+// Is the mouse on one of this menu's scroll arrows? (the same boxes the scroll code below uses)
+static int newmenu_over_scroll_arrow(newmenu *menu, int mx, int my)
+{
+	int arrow_width, arrow_height, aw, x1, y1;
+
+	if (!menu->is_scroll_box)
+		return 0;
+	x1 = grd_curcanv->cv_bitmap.bm_x+BORDERX-FSPACX(12);
+	if (menu->scroll_offset != 0) {
+		gr_get_string_size(UP_ARROW_MARKER, &arrow_width, &arrow_height, &aw);
+		y1 = grd_curcanv->cv_bitmap.bm_y + menu->items[menu->scroll_offset].y-(((int)LINE_SPACING)*menu->scroll_offset);
+		if ((mx > x1) && (mx < x1 + arrow_width) && (my > y1) && (my < y1 + arrow_height))
+			return 1;
+	}
+	if (menu->scroll_offset+menu->max_displayable<menu->nitems) {
+		gr_get_string_size(DOWN_ARROW_MARKER, &arrow_width, &arrow_height, &aw);
+		y1 = grd_curcanv->cv_bitmap.bm_y + menu->items[menu->scroll_offset+menu->max_displayable-1].y-(((int)LINE_SPACING)*menu->scroll_offset);
+		if ((mx > x1) && (mx < x1 + arrow_width) && (my > y1) && (my < y1 + arrow_height))
+			return 1;
+	}
+	return 0;
+}
+
 int newmenu_mouse(window *wind, d_event *event, newmenu *menu, int button)
 {
 	int old_choice, i, mx=0, my=0, mz=0, x1 = 0, x2, y1, y2, changed = 0;
@@ -647,6 +675,9 @@ int newmenu_mouse(window *wind, d_event *event, newmenu *menu, int button)
 			gr_set_current_canvas(menu_canvas);
 
 			old_choice = menu->citem;
+
+			if (event->type == EVENT_MOUSE_BUTTON_DOWN)
+				menu->left_down = 1;
 
 			if ((event->type == EVENT_MOUSE_BUTTON_DOWN) && !menu->all_text)
 			{
@@ -795,13 +826,27 @@ int newmenu_mouse(window *wind, d_event *event, newmenu *menu, int button)
 
 			if ((event->type == EVENT_MOUSE_BUTTON_UP) && !menu->all_text && (menu->citem != -1) && (menu->items[menu->citem].type == NM_TYPE_MENU) )
 			{
+				// Click anywhere = Enter: a left click that lands on no item picks the highlighted one.
+				// Not in message boxes, not on the scroll arrows, and only for a press that started in this menu.
+				int click_anywhere;
+
 				mouse_get_pos(&mx, &my, &mz);
+				click_anywhere = menu->left_down && !menu->no_click_anywhere && !newmenu_over_scroll_arrow(menu, mx, my);
+				for (i=menu->scroll_offset; click_anywhere && i<menu->max_on_menu+menu->scroll_offset; i++ )	{
+					x1 = grd_curcanv->cv_bitmap.bm_x + menu->items[i].x-FSPACX(13);
+					x2 = x1 + menu->items[i].w+FSPACX(13);
+					y1 = grd_curcanv->cv_bitmap.bm_y + menu->items[i].y - (((int)LINE_SPACING)*menu->scroll_offset);
+					y2 = y1 + menu->items[i].h;
+					if (((mx > x1) && (mx < x2)) && ((my > y1) && (my < y2)))
+						click_anywhere = 0;
+				}
+				menu->left_down = 0;
 				for (i=menu->scroll_offset; i<menu->max_on_menu+menu->scroll_offset; i++ )	{
 					x1 = grd_curcanv->cv_bitmap.bm_x + menu->items[i].x-FSPACX(13);
 					x2 = x1 + menu->items[i].w+FSPACX(13);
 					y1 = grd_curcanv->cv_bitmap.bm_y + menu->items[i].y - (((int)LINE_SPACING)*menu->scroll_offset);
 					y2 = y1 + menu->items[i].h;
-					if (((mx > x1) && (mx < x2)) && ((my > y1) && (my < y2))) {
+					if ((((mx > x1) && (mx < x2)) && ((my > y1) && (my < y2))) || (click_anywhere && i == menu->citem)) {
 						if (Hack_DblClick_MenuMode) {
 							if (menu->dblclick_flag)
 							{
@@ -1587,6 +1632,8 @@ newmenu *newmenu_do4( char * title, char * subtitle, int nitems, newmenu_item * 
 	menu->is_scroll_box = 0;
 	menu->max_on_menu = TinyMode?MAXDISPLAYABLEITEMSTINY:MAXDISPLAYABLEITEMS;
 	menu->dblclick_flag = 0;
+	menu->no_click_anywhere = next_menu_no_click_anywhere;
+	next_menu_no_click_anywhere = 0; // only for this menu, not ones opened from inside it
 	menu->title = title;
 	menu->subtitle = subtitle;
 	menu->nitems = nitems;
@@ -1652,6 +1699,7 @@ int nm_messagebox1( char *title, int (*subfunction)(newmenu *menu, d_event *even
 
 	Assert(strlen(nm_text) < MESSAGEBOX_TEXT_SIZE);
 
+	next_menu_no_click_anywhere = 1;
 	return newmenu_do( title, nm_text, nchoices, nm_message_items, subfunction, userdata );
 }
 
@@ -1679,6 +1727,7 @@ int nm_messagebox( char *title, int nchoices, ... )
 
 	Assert(strlen(nm_text) < MESSAGEBOX_TEXT_SIZE );
 
+	next_menu_no_click_anywhere = 1;
 	return newmenu_do( title, nm_text, nchoices, nm_message_items, NULL, NULL );
 }
 
@@ -1719,6 +1768,7 @@ struct listbox
 	int box_w, height, box_x, box_y, title_height;
 	short swidth, sheight; float fntscalex, fntscaley; // with these we check if resolution or fonts have changed so listbox structure can be recreated
 	int mouse_state;
+	int left_down; // a left button press started in this list
 	void *userdata;
 };
 
@@ -1790,6 +1840,8 @@ int listbox_mouse(window *wind, d_event *event, listbox *lb, int button)
 	{
 		case MBTN_LEFT:
 		{
+			if (event->type == EVENT_MOUSE_BUTTON_DOWN)
+				lb->left_down = 1;
 			if (lb->mouse_state)
 			{
 				int w, h, aw;
@@ -1812,17 +1864,25 @@ int listbox_mouse(window *wind, d_event *event, listbox *lb, int button)
 			else if (event->type == EVENT_MOUSE_BUTTON_UP)
 			{
 				int w, h, aw;
+				int click_anywhere = lb->left_down; // a click on no row picks the highlighted one, like Enter
 
+				lb->left_down = 0;
 				if (lb->citem < 0)
 					return 0;
 
 				mouse_get_pos(&mx, &my, &mz);
+				for (i=lb->first_item; click_anywhere && i<lb->first_item+LB_ITEMS_ON_SCREEN && i<lb->nitems; i++ )	{
+					gr_get_string_size(lb->item[i], &w, &h, &aw  );
+					y1 = (i-lb->first_item)*LINE_SPACING+lb->box_y;
+					if ( ((mx > lb->box_x) && (mx < lb->box_x + lb->box_w)) && ((my > y1) && (my < y1+h)) )
+						click_anywhere = 0;
+				}
 				gr_get_string_size(lb->item[lb->citem], &w, &h, &aw  );
 				x1 = lb->box_x;
 				x2 = lb->box_x + lb->box_w;
 				y1 = (lb->citem-lb->first_item)*LINE_SPACING+lb->box_y;
 				y2 = y1+h;
-				if ( ((mx > x1) && (mx < x2)) && ((my > y1) && (my < y2)) )
+				if ( (((mx > x1) && (mx < x2)) && ((my > y1) && (my < y2))) || click_anywhere )
 				{
 					// Tell callback, allow staying in menu
 					event->type = EVENT_NEWMENU_SELECTED;
@@ -2011,6 +2071,7 @@ void listbox_create_structure( listbox *lb)
 	update_scroll_position(lb);
 
 	lb->mouse_state = 0;	//dblclick_flag = 0;
+	lb->left_down = 0;
 	lb->swidth = SWIDTH;
 	lb->sheight = SHEIGHT;
 	lb->fntscalex = FNTScaleX;
