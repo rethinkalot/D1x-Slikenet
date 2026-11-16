@@ -62,6 +62,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "titles.h"
 #include "collide.h"
 #include "weapon.h"
+#include "gauss.h"
 #include "sounds.h"
 #include "args.h"
 #include "gameseq.h"
@@ -761,6 +762,8 @@ void update_player_stats()
     }
 }
 
+#define SOUND_FAN 121 // the fan hum (eclip sound in the D1 and D2 data), played at 48.75% of the other wall sounds
+
 //go through this level and start any eclip sounds
 void set_sound_sources()
 {
@@ -779,7 +782,7 @@ void set_sound_sources()
                         vms_vector pnt;
 
                         compute_center_point_on_side(&pnt,seg,sidenum);
-                        digi_link_sound_to_pos(sn,segnum,sidenum,&pnt,1, F1_0/2);
+                        digi_link_sound_to_pos(sn,segnum,sidenum,&pnt,1, (sn == SOUND_FAN) ? fixmul(F1_0/2, fl2f(0.4875)) : F1_0/2);
 
                     }
         }
@@ -947,6 +950,7 @@ void LoadLevel(int level_num,int page_in_textures)
 
     Players[Player_num] = save_player;
 
+    gauss_apply(); // Vulcan or Gauss for this game
     set_sound_sources();
 
     songs_play_level_song( Current_level_num, 0 );

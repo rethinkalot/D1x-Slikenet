@@ -76,7 +76,8 @@ enum modelnums {
 	model_pow_goldkey,
 	model_pow_vulcanammo,
 	model_pow_shield,
-	model_pow_energy
+	model_pow_energy,
+	model_pow_gauss	// "Vulcan becomes Gauss": drawn in place of the Vulcan powerup
 };
 
 const char *xmodelnames[] = {
@@ -108,7 +109,8 @@ const char *xmodelnames[] = {
 	"goldkey.ase",
 	"vulcanammo.ase",
 	"shield.ase",
-	"energy.ase"
+	"energy.ase",
+	"gauss.ase"
 };
 
 #define NUM_XMODELS ((int)(sizeof(xmodelnames) / sizeof(xmodelnames[0])))

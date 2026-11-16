@@ -44,6 +44,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "aistruct.h"
 #include "robot.h"
 #include "weapon.h"
+#include "customsnd.h"
+#include "gauss.h"
 #include "gauges.h"
 #include "player.h"
 #include "fuelcen.h"
@@ -131,6 +133,8 @@ int gamedata_init()
 		gamedata_read_tbl(retval == PIGGY_PC_SHAREWARE);
 
 	piggy_read_sounds(retval == PIGGY_PC_SHAREWARE);
+	gauss_init_assets(); // "Vulcan becomes Gauss" art and sound slots
+	custom_sounds_init(); // slikenetmsg.wav
 
 #ifdef OGL
 	if (GameCfg.UseCustomModels)

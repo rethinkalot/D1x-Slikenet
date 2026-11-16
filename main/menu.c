@@ -2316,8 +2316,7 @@ void do_misc_menu()
 		ADD_CHECK(27, "No Player Chat Sound",PlayerCfg.NoChatSound);
 		ADD_CHECK(28, "Show Observer Messages",PlayerCfg.ShowObsMessages);
 
-		m[29].type = NM_TYPE_TEXT;
-		m[29].text = "";
+		ADD_CHECK(29, "Vulcan Becomes Gauss (SP)", PlayerCfg.SPGauss); // takes effect at the next level start
 
 		m[30].type = NM_TYPE_TEXT;
 		m[30].text = "";
@@ -2406,6 +2405,7 @@ void do_misc_menu()
 		PlayerCfg.ShieldWarnings = m[26].value;
 		PlayerCfg.NoChatSound = m[27].value;
 		PlayerCfg.ShowObsMessages = m[28].value;
+		PlayerCfg.SPGauss = m[29].value;
 		PlayerCfg.ShowCustomColors = m[34].value;
 		PlayerCfg.PreferMyTeamColors = (PlayerCfg.MyTeamColor == 8 && PlayerCfg.OtherTeamColor == 8) ? 0 : m[39].value;
 

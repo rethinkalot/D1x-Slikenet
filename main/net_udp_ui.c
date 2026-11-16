@@ -82,7 +82,7 @@ void save_preset(void);
 
 
 
-static int opt_cinvul, opt_show_on_map;
+static int opt_cinvul, opt_show_on_map, opt_gauss;
 static int opt_show_on_map, opt_difficulty, opt_setpower, opt_playtime, opt_killgoal, opt_port, opt_packets, opt_shortpack, opt_show_names, opt_bright, opt_ffire, opt_retroproto, opt_respawnconcs, opt_allowcolor, opt_faircolors, opt_blackwhite;
 static int opt_primary_dup, opt_secondary_dup, opt_secondary_cap; 
 static int opt_spawn_no_invul, opt_spawn_short_invul, opt_spawn_long_invul, opt_spawn_preview; 
@@ -127,9 +127,9 @@ void net_udp_more_game_options ()
     char PrimDupText[80],SecDupText[80],SecCapText[80]; 
     char HomingUpdateRateText[80];
 #ifdef USE_TRACKER
-    newmenu_item m[45];
+    newmenu_item m[46];
 #else
-    newmenu_item m[44];
+    newmenu_item m[45];
 #endif
 
     snprintf(packstring,sizeof(char)*4,"%d",Netgame.PacketsPerSec);
@@ -243,6 +243,9 @@ void net_udp_more_game_options ()
     opt_show_on_map=opt;
     m[opt].type = NM_TYPE_CHECK; m[opt].text = TXT_SHOW_ON_MAP; m[opt].value=(Netgame.game_flags & NETGAME_FLAG_SHOW_MAP); opt_show_on_map=opt; opt++;
 
+    opt_gauss=opt;
+    m[opt].type = NM_TYPE_CHECK; m[opt].text = "Vulcan Becomes Gauss"; m[opt].value=(Netgame.game_flags & NETGAME_FLAG_GAUSS) != 0; opt++;
+
     opt_bright = opt;
     m[opt].type = NM_TYPE_CHECK; m[opt].text = "Bright player ships"; m[opt].value=Netgame.BrightPlayers; opt++;
 
@@ -313,6 +316,10 @@ menu:
         Netgame.game_flags |= NETGAME_FLAG_SHOW_MAP;
     else
         Netgame.game_flags &= ~NETGAME_FLAG_SHOW_MAP;
+    if (m[opt_gauss].value)
+        Netgame.game_flags |= NETGAME_FLAG_GAUSS;
+    else
+        Netgame.game_flags &= ~NETGAME_FLAG_GAUSS;
     Netgame.NoFriendlyFire = m[opt_ffire].value;
 #ifdef USE_TRACKER
     Netgame.Tracker = m[opt_tracker].value;

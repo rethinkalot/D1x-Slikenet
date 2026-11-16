@@ -377,6 +377,7 @@ extern char *RankStrings[];
 #define NETGAME_FLAG_CLOSED             1
 #define NETGAME_FLAG_SHOW_ID            2
 #define NETGAME_FLAG_SHOW_MAP           4
+#define NETGAME_FLAG_GAUSS              8 // "Vulcan becomes Gauss" (gauss.c)
 
 #define NETGAME_NAME_LEN                15
 

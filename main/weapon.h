@@ -183,6 +183,7 @@ extern void reset_auto_select();
  * reads n weapon_info structs from a PHYSFS_file
  */
 extern int weapon_info_read_n(weapon_info *wi, int n, PHYSFS_file *fp, int file_version);
+extern int gauss_mode(void); // "Vulcan becomes Gauss" (gauss.c), also used by the weapon name macros in text.h
 
 //return which bomb will be dropped next time the bomb key is pressed
 static inline int which_bomb(void)

@@ -46,6 +46,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "playsave.h"
 #ifdef OGL
 #include "xmodel.h"
+#include "gauss.h"
 #endif
 
 int N_powerup_types = 0;
@@ -116,6 +117,8 @@ void draw_powerup(object *obj)
             angles.p = (obj->id == POW_SHIELD_BOOST) ? F1_0 * 44 / 360 : 0;
         } else if (obj->id == POW_QUAD_FIRE) {
             angles.p = F1_0 / 12;
+        } else if (obj->id == POW_VULCAN_WEAPON && gauss_mode()) {
+            angles.p = -F1_0 * 103 / 360; // gauss.ase: D2's tilt for the same model (it is authored upside down for the Vulcan's tilt)
         } else { 
             angles.p = obj->id == POW_LASER ||
                 (obj->id >= POW_VULCAN_WEAPON && obj->id <= POW_FUSION_WEAPON) ?

@@ -63,6 +63,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "state.h"
 #ifdef USE_UDP
 #include "net_udp.h"
+#include "customsnd.h"
 #endif
 #include "args.h"
 
@@ -2149,6 +2150,20 @@ multi_do_fire(const ubyte *buf)
     }
 }
 
+// The handshake line "SLikeNet Link Success: name" (net_udp.c)
+static int multi_is_link_message(const char *text)
+{
+    return !strncmp(text, "SLikeNet Link Success", 21);
+}
+
+// Chat sound: the SLikeNet handshake line and observer chat play slikenetmsg.wav when it is there, other chat the usual beep
+static void multi_chat_sound(int slikenet)
+{
+    if (PlayerCfg.NoChatSound)
+        return;
+    digi_play_sample((slikenet && Sound_slikenet_msg >= 0) ? Sound_slikenet_msg : SOUND_HUD_MESSAGE, F1_0);
+}
+
 void multi_do_message(const ubyte *cbuf)
 {
     const char *buf = (const char*)cbuf;
@@ -2194,8 +2209,7 @@ void multi_do_message(const ubyte *cbuf)
         mesbuf[t+2] = from_obs_host ? BM_XRGB(8, 8, 32) : BM_XRGB(0, 31, 0);
         mesbuf[t+3] = 0;
 
-        if (!PlayerCfg.NoChatSound)
-            digi_play_sample(SOUND_HUD_MESSAGE, F1_0);
+        multi_chat_sound(from_obs_host || multi_is_link_message((const char *)cbuf + 2));
         HUD_init_message(HM_MULTI, "%s %s", mesbuf, buf+2);
         multi_sending_message[(int)buf[1]] = 0;
     }
@@ -2216,8 +2230,7 @@ void multi_do_message(const ubyte *cbuf)
         mesbuf[t+2] = from_obs_host ? BM_XRGB(8, 8, 32) : BM_XRGB(0, 31, 0);
         mesbuf[t+3] = 0;
 
-        if (!PlayerCfg.NoChatSound)
-            digi_play_sample(SOUND_HUD_MESSAGE, F1_0);
+        multi_chat_sound(from_obs_host || multi_is_link_message((const char *)cbuf + 2));
         HUD_init_message(HM_MULTI, "%s %s", mesbuf, colon+2);
         multi_sending_message[(int)buf[1]] = 0;
     }
@@ -2230,7 +2243,8 @@ void multi_do_obs_message(const ubyte *cbuf)
         return;
     }
     const char *buf = (const char*)cbuf;
-
+
+    multi_chat_sound(1);
     HUD_init_message(HM_MULTI, "%c%c%s", CC_COLOR, BM_XRGB(8, 8, 32), buf+2);
 }
 

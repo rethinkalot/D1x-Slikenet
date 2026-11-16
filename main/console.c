@@ -329,6 +329,12 @@ void con_init(void)
 {
 	memset(con_buffer,0,sizeof(con_buffer));
 
+	// Keep the previous run's log as gamelog-prev.txt (one gamelog per game start, rejoins included)
+	if (!GameArg.GameLogTimeStamp)
+	{
+		PHYSFS_delete("gamelog-prev.txt");
+		PHYSFSX_rename("gamelog.txt", "gamelog-prev.txt");
+	}
 	con_switch_log(NULL);
 
 	atexit(con_close);

@@ -44,6 +44,7 @@
 #include "texmerge.h"
 #include "effects.h"
 #include "weapon.h"
+#include "gauss.h"
 #include "powerup.h"
 #include "laser.h"
 #include "player.h"
@@ -1666,7 +1667,7 @@ void ogl_loadbmtexture_f(grs_bitmap *bm, int texfilt, const char *bitmapname)
 		return;
 	buf=bm->bm_data;
 #ifdef HAVE_LIBPNG
-	if (ogl_allow_png() && bitmapname)
+	if ((ogl_allow_png() || gauss_png_always(bitmapname)) && bitmapname) // the Gauss art has no PIG fallback
 	{
 		char filename[64];
 		png_data pdata;

@@ -125,6 +125,7 @@ int new_player_config()
     PlayerCfg.ShowCustomColors = 1; 
     PlayerCfg.ShowSpeedrunTimers = 1;
     PlayerCfg.ShowVelocityMeter = 1;
+    PlayerCfg.SPGauss = 0;
     PlayerCfg.PreferMyTeamColors = 0;
     PlayerCfg.QuietPlasma = 1; 
     PlayerCfg.maxFps = GameArg.SysMaxFPS; 
@@ -469,6 +470,8 @@ int read_player_d1x(char *filename)
                     PlayerCfg.ShowSpeedrunTimers = atoi(line);	
                 if(!strcmp(word,"SHOWVELOCITYMETER"))
                     PlayerCfg.ShowVelocityMeter = atoi(line);
+                if(!strcmp(word,"SPGAUSS"))
+                    PlayerCfg.SPGauss = atoi(line);
                 if(!strcmp(word,"SHIPCOLOR"))
                     PlayerCfg.ShipColor = atoi(line);	
                 if(!strcmp(word,"MISSILECOLOR"))
@@ -975,6 +978,7 @@ int write_player_d1x(char *filename)
         PHYSFSX_printf(fout,"showcustomcolors=%i\n",PlayerCfg.ShowCustomColors);	
         PHYSFSX_printf(fout,"showspeedruntimers=%i\n",PlayerCfg.ShowSpeedrunTimers);	
         PHYSFSX_printf(fout,"showvelocitymeter=%i\n",PlayerCfg.ShowVelocityMeter);
+        PHYSFSX_printf(fout,"spgauss=%i\n",PlayerCfg.SPGauss);
         PHYSFSX_printf(fout,"shipcolor=%i\n",PlayerCfg.ShipColor);	
         PHYSFSX_printf(fout,"missilecolor=%i\n",PlayerCfg.MissileColor);
         PHYSFSX_printf(fout, "overrideteamcolors=%i\n", PlayerCfg.PreferMyTeamColors);

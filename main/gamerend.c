@@ -392,7 +392,7 @@ void show_netplayerinfo()
 	gr_printf(base_flags_left, y, "Items: "); 
 	draw_flag("L", Netgame.AllowedItems & NETFLAG_DOLASER,     flags_x, y);  flags_x += letter_spacing; 
 	draw_flag("Q", Netgame.AllowedItems & NETFLAG_DOQUAD,      flags_x, y);  flags_x += letter_spacing; 
-	draw_flag("V", Netgame.AllowedItems & NETFLAG_DOVULCAN,    flags_x, y);  flags_x += letter_spacing; 
+	draw_flag(gauss_mode() ? "G" : "V", Netgame.AllowedItems & NETFLAG_DOVULCAN,    flags_x, y);  flags_x += letter_spacing; 
 	draw_flag("A", Netgame.AllowedItems & NETFLAG_DOVULCANAMMO,flags_x, y);  flags_x += letter_spacing; 
 	draw_flag("S", Netgame.AllowedItems & NETFLAG_DOSPREAD,    flags_x, y);  flags_x += letter_spacing; 
 	draw_flag("P", Netgame.AllowedItems & NETFLAG_DOPLASMA,    flags_x, y);  flags_x += letter_spacing; 

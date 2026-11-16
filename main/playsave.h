@@ -101,6 +101,7 @@ typedef struct player_config
 	ubyte ShowCustomColors; 
 	ubyte ShowSpeedrunTimers;  // show the IGT/RTA speedrun timers on the HUD
 ubyte ShowVelocityMeter;   // show the velocity/rotation HUD readout
+	ubyte SPGauss;             // "Vulcan becomes Gauss" in single player (gauss.c)
 	ubyte PreferMyTeamColors;
 	ubyte QuietPlasma; 
 	int AlphaEffects;

@@ -11,6 +11,7 @@ add_executable (d1x-redux
     controls.c
     credits.c
     custom.c
+    customsnd.c
     digiobj.c
     dumpmine.c
     effects.c
@@ -27,6 +28,7 @@ add_executable (d1x-redux
     gameseg.c
     gameseq.c
     gauges.c
+    gauss.c
     hostage.c
     hud.c
     inferno.c

@@ -49,6 +49,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "sounds.h"
 #include "robot.h"
 #include "weapon.h"
+#include "gauss.h"
 #include "player.h"
 #include "gauges.h"
 #include "powerup.h"
@@ -838,8 +839,10 @@ void collide_weapon_and_controlcen( object * weapon, object *controlcen, vms_vec
 
 		if ( Weapon_info[weapon->id].damage_radius )
 			explode_badass_weapon(weapon);
-		else
+		else {
 			object_create_explosion( controlcen->segnum, collision_point, ((controlcen->size/3)*3)/4, VCLIP_SMALL_EXPLOSION );
+			gauss_fireball(weapon, collision_point);
+		}
 
 		digi_link_sound_to_pos( SOUND_CONTROL_CENTER_HIT, controlcen->segnum, 0, collision_point, 0, F1_0 );
 
@@ -1385,7 +1388,7 @@ char* weapon_id_to_name(int weapon_id) {
 		case 2:
 		case 3:
 			return "laser";
-		case VULCAN_ID: return "vulcan";
+		case VULCAN_ID: return gauss_mode() ? "gauss" : "vulcan";
 		case XSPREADFIRE_ID:
 		case SPREADFIRE_ID: return "spreadfire";
 		case PLASMA_ID: return "plasma";
@@ -1479,6 +1482,8 @@ void collide_player_and_weapon( object * player, object * weapon, vms_vector *co
 
 		explode_badass_weapon(weapon);
 	}
+	else
+		gauss_fireball(weapon, collision_point);
 
 	maybe_kill_weapon(weapon,player);
 
@@ -1760,6 +1765,8 @@ void collide_weapon_and_debris( object * weapon, object * debris, vms_vector *co
 		explode_object(debris,0);
 		if ( Weapon_info[weapon->id].damage_radius )
 			explode_badass_weapon(weapon);
+		else
+			gauss_fireball(weapon, collision_point);
 		maybe_kill_weapon(weapon,debris);
 		if (!(weapon->mtype.phys_info.flags & PF_PERSISTENT))
 			weapon->flags |= OF_SHOULD_BE_DEAD;

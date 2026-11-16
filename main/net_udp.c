@@ -47,6 +47,7 @@
 #include "vers_id.h"
 #include "gamefont.h"
 #include "playsave.h"
+#include "customsnd.h"
 #include "rbaudio.h"
 #include "byteswap.h"
 #include "config.h"
@@ -396,7 +397,11 @@ static void net_udp_telemetry_log_summary(void)
     else if (GameArg.MemLogTimeStamp)
         snprintf(filename, sizeof(filename), "memlog-%s.txt", file_timestamp);
     else
+    {
         strcpy(filename, "memlog.txt");
+        PHYSFS_delete("memlog-prev.txt"); // keep the previous session's memlog as memlog-prev.txt
+        PHYSFSX_rename("memlog.txt", "memlog-prev.txt");
+    }
 
     memlog = PHYSFSX_openWriteBuffered(filename);
     if (!memlog)
@@ -3915,6 +3920,7 @@ static void net_udp_slikenet_announce(void)
 {
     static fix64 seen[MAX_PLAYERS], lost_at[MAX_PLAYERS], down_since[MAX_PLAYERS];
     static ubyte shown[MAX_PLAYERS]; // 1 = failure or drop shown, 2 = success shown
+    static ubyte chat_sent[MAX_PLAYERS]; // the success chat line went out (1 s after the HUD line)
     fix64 now = timer_query();
     int i;
 
@@ -3924,6 +3930,7 @@ static void net_udp_slikenet_announce(void)
         memset(shown, 0, sizeof(shown));
         memset(lost_at, 0, sizeof(lost_at));
         memset(down_since, 0, sizeof(down_since));
+        memset(chat_sent, 0, sizeof(chat_sent));
         return;
     }
     for (i = 0; i < MAX_PLAYERS; i++)
@@ -3938,6 +3945,7 @@ static void net_udp_slikenet_announce(void)
             shown[i] = 0;
             lost_at[i] = 0;
             down_since[i] = 0;
+            chat_sent[i] = 0;
             continue;
         }
         if (!seen[i])
@@ -3960,10 +3968,20 @@ static void net_udp_slikenet_announce(void)
             shown[i] = 0;
             lost_at[i] = 0;
             down_since[i] = 0;
+            chat_sent[i] = 0;
             continue;
         }
         if (shown[i] == 2)
         {
+            // Everyone else hears about the handshake in chat at 3 s, after this PC's own line at 2 s
+            if (!chat_sent[i] && link == SLIKENET_LINK_READY && now >= seen[i] + F1_0 * 3)
+            {
+                char msg[MAX_MESSAGE_LEN];
+
+                snprintf(msg, sizeof(msg), "SLikeNet Link Success: %s", Players[i].callsign);
+                net_udp_slikenet_chat(msg);
+                chat_sent[i] = 1;
+            }
             if (link == SLIKENET_LINK_READY)
                 lost_at[i] = 0;
             else if (!lost_at[i])
@@ -3972,17 +3990,20 @@ static void net_udp_slikenet_announce(void)
             {
                 net_udp_slikenet_report("Peer Link ", "Dropped", i, NULL);
                 shown[i] = 1;
+                chat_sent[i] = 0; // a link that comes back is announced again
                 lost_at[i] = 0;
             }
             continue;
         }
         if (link == SLIKENET_LINK_READY)
         {
-            char msg[MAX_MESSAGE_LEN];
-
+            // This PC's handshake line waits until 2 s after the player appeared (after joining, for the joiner),
+            // so it is not lost while the level is still coming up; the chat line for everyone follows at 3 s
+            if (now < seen[i] + F1_0 * 2)
+                continue;
             HUD_init_message(HM_MULTI, "SLikeNet Peer Link Success: %s", Players[i].callsign);
-            snprintf(msg, sizeof(msg), "SLikeNet Link Success: %s", Players[i].callsign);
-            net_udp_slikenet_chat(msg);
+            if (!PlayerCfg.NoChatSound)
+                digi_play_sample(Sound_slikenet_msg >= 0 ? Sound_slikenet_msg : SOUND_HUD_MESSAGE, F1_0);
             shown[i] = 2;
         }
         else if (!shown[i] && (link == SLIKENET_LINK_FAILED || now >= seen[i] + F1_0 * 8))

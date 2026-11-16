@@ -1,8 +1,6 @@
 name: Zip notify
-on:
-  push:
-    branches: [D1-SlikeNet-WorkBranch]
-    paths: ['download/D1x-Redux-SLikeNet.zip']
+# Manual only (Actions tab, Run workflow): a D1-only post. The D2 zip push posts both games in one message.
+on: workflow_dispatch
 jobs:
   notify:
     runs-on: ubuntu-latest
@@ -15,12 +13,12 @@ jobs:
           ZIP: download/D1x-Redux-SLikeNet.zip
           URL: https://github.com/${{ github.repository }}/raw/${{ github.ref_name }}/download/D1x-Redux-SLikeNet.zip
         run: |
-          # Bold titles of README entries added or changed since the previous zip, one "- **Title**" per line.
+          # Bold titles of README entries added since the previous zip (edits of existing ones are skipped), one "- **Title**" per line.
           # No new titles since then: walk back to the last build that had some, so every post lists titles.
           notes=""
           cur=HEAD
           for prev in $(git log -n 10 --format=%H -- "$ZIP" | tail -n +2); do
-            notes=$(git diff "$prev" "$cur" -- README.md | { grep '^+- \*\*' || true; } |
+            notes=$(git diff "$prev" "$cur" -- README.md | awk '/^(@@| )/ { p = 0 } /^-- \*\*/ { p++ } /^\+- \*\*/ { if (p > 0) p--; else print }' |
               sed -E 's/^\+- \*\*([^*]+)\*\*.*/\1/; s/[.:]+$//; s/^/- **/; s/$/**/' | awk '!seen[$0]++' |
               awk '{ if (n + length($0) + 1 > 1800) { print "- ...and more in the README"; exit } print; n += length($0) + 1 }')
             [ -n "$notes" ] && break

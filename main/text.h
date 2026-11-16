@@ -667,7 +667,7 @@ static inline char *dxx_gettext(unsigned idx, const char *text)
 
 #define PRIMARY_WEAPON_NAMES(u)	(	\
 	((u) == LASER_INDEX) ? TXT_W_LASER :	\
-	((u) == VULCAN_INDEX) ? TXT_W_VULCAN :	\
+	((u) == VULCAN_INDEX) ? (gauss_mode() ? "Gauss Cannon" : TXT_W_VULCAN) :	\
 	((u) == SPREADFIRE_INDEX) ? TXT_W_SPREADFIRE :	\
 	((u) == PLASMA_INDEX) ? TXT_W_PLASMA :	\
 	((u) == FUSION_INDEX) ? TXT_W_FUSION :	\
@@ -685,7 +685,7 @@ static inline char *dxx_gettext(unsigned idx, const char *text)
 
 #define PRIMARY_WEAPON_NAMES_SHORT(u)	(	\
 	((u) == LASER_INDEX) ? TXT_W_LASER_S :	\
-	((u) == VULCAN_INDEX) ? TXT_W_VULCAN_S :	\
+	((u) == VULCAN_INDEX) ? (gauss_mode() ? "Gauss" : TXT_W_VULCAN_S) :	\
 	((u) == SPREADFIRE_INDEX) ? TXT_W_SPREADFIRE_S :	\
 	((u) == PLASMA_INDEX) ? TXT_W_PLASMA_S :	\
 	((u) == FUSION_INDEX) ? TXT_W_FUSION_S :	\

@@ -18,6 +18,8 @@ extern "C" {
 #include "polyobj.h"
 #include "texmap.h"
 #include "laser.h"
+#include "powerup.h"
+#include "gauss.h"
 }
 
 struct CGameFolders gameFolders;
@@ -309,6 +311,8 @@ void xmodel_free_gl_all() {
 static int xmodel_xlate(enum xmodel_type mt, int modelnum) {
 	if (mt == XM_POLYOBJ && modelnum >= 0 && modelnum < SDL_arraysize(xmodel_polyobj_xlate))
 		return xmodel_polyobj_xlate[modelnum];
+	if (mt == XM_POWERUP && modelnum == POW_VULCAN_WEAPON && gauss_mode() && xmodels[model_pow_gauss])
+		return model_pow_gauss; // "Vulcan becomes Gauss" (falls back to vulcan.ase without gauss.ase)
 	if (mt == XM_POWERUP && modelnum >= 0 && modelnum < SDL_arraysize(xmodel_powerup_xlate))
 		return xmodel_powerup_xlate[modelnum];
 	if (mt == XM_WEAPON && modelnum == PROXIMITY_ID)

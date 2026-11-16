@@ -38,6 +38,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "polyobj.h"
 #include "robot.h"
 #include "weapon.h"
+#include "gauss.h"
 #include "timer.h"
 #include "player.h"
 #include "sounds.h"
@@ -337,7 +338,7 @@ int Laser_create_new( vms_vector * direction, vms_vector * position, int segnum,
 	if (Weapon_info[obj->id].flash_sound > -1 )	{
 		if (make_sound)	{
 			if ( fire_sound_is_local(parent) )	{
-				if (weapon_type == VULCAN_ID)	// Make your own vulcan gun  1/2 as loud.
+				if (weapon_type == VULCAN_ID && !gauss_mode())	// Make your own vulcan gun  1/2 as loud. (Gauss: full, as in D2)
 					volume = F1_0 / 2;
 				if(weapon_type == PLASMA_ID && PlayerCfg.QuietPlasma)  // Plasma's a bit loud, too
 					volume = F1_0  * 3 / 4; 
@@ -1292,13 +1293,14 @@ int do_laser_firing(int objnum, int weapon_num, int level, int flags, int nfires
 		case VULCAN_INDEX: {
 			//	Only make sound for 1/4 of vulcan bullets.
 			int	make_sound = 1;
+			int	spread = gauss_mode() ? 5 : 1; // Gauss fires with 1/5 of the Vulcan's spread, as in D2
 			//if (d_rand() > 24576)
 			//	make_sound = 1;
-			Laser_player_fire_spread( objp, VULCAN_ID, 6, d_rand()/8 - 32767/16, d_rand()/8 - 32767/16, make_sound, 0, shot_orientation);
+			Laser_player_fire_spread( objp, VULCAN_ID, 6, (d_rand()/8 - 32767/16)/spread, (d_rand()/8 - 32767/16)/spread, make_sound, 0, shot_orientation);
 			if (nfires > 1) {
-				Laser_player_fire_spread( objp, VULCAN_ID, 6, d_rand()/8 - 32767/16, d_rand()/8 - 32767/16, 0, 0, shot_orientation);
+				Laser_player_fire_spread( objp, VULCAN_ID, 6, (d_rand()/8 - 32767/16)/spread, (d_rand()/8 - 32767/16)/spread, 0, 0, shot_orientation);
 				if (nfires > 2) {
-					Laser_player_fire_spread( objp, VULCAN_ID, 6, d_rand()/8 - 32767/16, d_rand()/8 - 32767/16, 0, 0, shot_orientation);
+					Laser_player_fire_spread( objp, VULCAN_ID, 6, (d_rand()/8 - 32767/16)/spread, (d_rand()/8 - 32767/16)/spread, 0, 0, shot_orientation);
 				}
 			}
 			break;
