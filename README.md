@@ -38,6 +38,8 @@ In co-op every player starts on their own spot. Levels without co-op starts use 
 Ship positions and game messages only travel over SLikeNet. A player whose link to the host fails or drops is removed after 5 seconds. Joining, game lists and observers still use plain UDP.
 - **Click To Join**
 In Enter Game Address, a left click works like Enter.
+- **SLikeNet Handshake Sound**
+Your "SLikeNet Peer Link Success" line shows 2 seconds after a player appears and plays its own sound, slikenetmsg.wav. The chat line telling everyone else follows at 3 seconds with the same sound, and observer chat uses it too. No Player Chat Sound mutes it.
 
 ## Running several copies on one PC
 
@@ -89,6 +91,12 @@ Prox bombs picked up or dropped while another secondary is selected now show in 
 A live proximity bomb now draws with when custom models are on.
 - **Fixed HUD Rows**
 Full screen keeps FPS, DEMO, RTA, IGT and velocity stacked above the weapon rows, so nothing overlaps and nothing moves when you switch HUD modes. Multiplayer and multiplayer demo playback use the same layout, and Alt HUD #1 now shows the bomb count.
+- **Click Anywhere acts as Enter on Menus**
+In menus and file or pilot lists, a left click on empty space picks the highlighted item, like Enter. Yes/No and other message boxes still need a click on a button.
+- **Bounty Skips Observing Host**
+A new bounty target is never the host who is observing, and a leaving player is never picked as the target that replaces them.
+- **Vulcan Becomes Gauss**
+A host option, and a Misc option for single player, that turns the Vulcan cannon into D2's Gauss: slower, harder-hitting shots with a tight spread and no splash, using Vulcan ammo. It comes with its own sound, HUD icon, pickup sprite and 3D model.
 
 ## BugFixes
 
@@ -138,7 +146,5 @@ A player whose game crashed or was closed is removed for everyone about 10 to 15
 A player who backs out of the waiting box while joining is taken out at once, so nobody keeps sending to them.
 - **Observers See Joins**
 Observers now see players who join or rejoin while they watch, and a game that switches from observing to playing no longer stays on the observer list.
-- **Click Anywhere Picks**
-In menus and file or pilot lists, a left click on empty space picks the highlighted item, like Enter. Yes/No and other message boxes still need a click on a button.
-- **Bounty Skips Observing Host**
-A new bounty target is never the host who is observing, and a leaving player is never picked as the target that replaces them.
+- **Bounty Mode Endless Loop**
+Picking a new bounty target can no longer hang the game when there is no player left to pick.
