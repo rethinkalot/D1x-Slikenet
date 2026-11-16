@@ -97,6 +97,8 @@ In menus and file or pilot lists, a left click on empty space picks the highligh
 A new bounty target is never the host who is observing, and a leaving player is never picked as the target that replaces them.
 - **Vulcan Becomes Gauss**
 A host option, and a Misc option for single player, that turns the Vulcan cannon into D2's Gauss: slower, harder-hitting shots with a tight spread and no splash, using Vulcan ammo. It comes with its own sound, HUD icon, pickup sprite and 3D model.
+- **Gauss HUD, Textures And Sound**
+The D1 Models-Textures pack now carries the Gauss art: the gauge21b HUD icon and 16-frame pickup sprite in XTEXTURES.DXA, the 3D pickup model in XPOWERUPS.DXA, and the gauss.wav firing sound in both XTEXTURES.DXA and D1-SFX.DXA. The Gauss art shows even with custom textures off.
 
 ## BugFixes
 
