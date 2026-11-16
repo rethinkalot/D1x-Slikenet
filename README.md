@@ -138,3 +138,7 @@ A player whose game crashed or was closed is removed for everyone about 10 to 15
 A player who backs out of the waiting box while joining is taken out at once, so nobody keeps sending to them.
 - **Observers See Joins**
 Observers now see players who join or rejoin while they watch, and a game that switches from observing to playing no longer stays on the observer list.
+- **Click Anywhere Picks**
+In menus and file or pilot lists, a left click on empty space picks the highlighted item, like Enter. Yes/No and other message boxes still need a click on a button.
+- **Bounty Skips Observing Host**
+A new bounty target is never the host who is observing, and a leaving player is never picked as the target that replaces them.
