@@ -24,6 +24,24 @@ extern void mouse_cursor_autohide();
 
 static int initialised=0;
 
+// Mouse hook. Windowed and borderless: the game only takes the mouse after it is clicked on, and lets
+// go as soon as it loses focus (a click elsewhere, alt-tab), never pulling the mouse back by itself.
+// Fullscreen exclusive keeps the mouse trapped.
+static int mouse_hooked = 1;  // clicked onto the game since it last lost focus
+static int focus_wanted = 0;  // the game wants the mouse (playing, not in a menu)
+
+static int event_exclusive_fullscreen(void)
+{
+	SDL_Surface *s = SDL_GetVideoSurface();
+	return s && (s->flags & SDL_FULLSCREEN);
+}
+
+static void event_apply_grab(void)
+{
+	int grab = event_exclusive_fullscreen() || (focus_wanted && GameCfg.Grabinput && mouse_hooked);
+	SDL_WM_GrabInput(grab ? SDL_GRAB_ON : SDL_GRAB_OFF);
+}
+
 void event_poll()
 {
 	SDL_Event event;
@@ -44,15 +62,37 @@ void event_poll()
 				key_handler((SDL_KeyboardEvent *)&event);
 				idle = 0;
 				break;
+			case SDL_ACTIVEEVENT:
+				if (event.active.state & SDL_APPINPUTFOCUS)
+				{
+					if (!event.active.gain) // clicked off the game or alt-tabbed away: let the mouse go
+						mouse_hooked = 0;
+					else if (event_exclusive_fullscreen()) // back in fullscreen exclusive: trap it again
+						mouse_hooked = 1;
+					event_apply_grab();
+				}
+				break;
 			case SDL_MOUSEBUTTONDOWN:
 			case SDL_MOUSEBUTTONUP:
 				if (GameArg.CtlNoMouse)
 					break;
+				if (!mouse_hooked)
+				{
+					if (event.type == SDL_MOUSEBUTTONDOWN) // clicked onto the game: it takes the mouse again
+					{
+						mouse_hooked = 1;
+						event_apply_grab();
+					}
+					if (focus_wanted) // while playing, that click only takes the mouse back; it doesn't fire
+						break;
+				}
 				mouse_button_handler((SDL_MouseButtonEvent *)&event);
 				idle = 0;
 				break;
 			case SDL_MOUSEMOTION:
 				if (GameArg.CtlNoMouse)
+					break;
+				if (!mouse_hooked && focus_wanted) // playing but not clicked onto: the ship ignores the mouse
 					break;
 				mouse_motion_handler((SDL_MouseMotionEvent *)&event);
 				idle = 0;
@@ -191,10 +231,8 @@ void event_process(void)
 
 void event_toggle_focus(int activate_focus)
 {
-	if (activate_focus && GameCfg.Grabinput)
-		SDL_WM_GrabInput(SDL_GRAB_ON);
-	else
-		SDL_WM_GrabInput(SDL_GRAB_OFF);
+	focus_wanted = activate_focus;
+	event_apply_grab();
 	mouse_toggle_cursor(!activate_focus);
 }
 

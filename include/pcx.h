@@ -67,6 +67,10 @@ extern int bald_guy_load( char * filename, grs_bitmap * bmp,int bitmap_type ,uby
 
 extern int pcx_read_bitmap( char * filename, grs_bitmap * bmp, int bitmap_type, ubyte * palette );
 
+// Reads a 24-bit PCX (3 colour planes, 8 bits each) into a new d_malloc'd buffer of
+// w*h RGB pixels, 3 bytes each. Returns PCX_ERROR_WRONG_VERSION for any other PCX.
+extern int pcx_read_rgb( const char * filename, int * w, int * h, ubyte ** rgb );
+
 // Writes the bitmap bmp to filename, using palette. Returns error code.
 
 extern int pcx_write_bitmap( char * filename, grs_bitmap * bmp, ubyte * palette );

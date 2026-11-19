@@ -117,8 +117,11 @@ int newmenu_get_nitems(newmenu *menu);
 int newmenu_get_citem(newmenu *menu);
 struct window *newmenu_get_window(newmenu *menu);
 void newmenu_set_rval(newmenu *menu, int rval);
-void nm_draw_background(int x1, int y1, int x2, int y2);
+void nm_draw_background_at(int x1, int y1, int x2, int y2, const char *file, int line);
+// Temporary: passes the caller so each new menu box size is logged with where it came from
+#define nm_draw_background(x1,y1,x2,y2) nm_draw_background_at(x1,y1,x2,y2,__FILE__,__LINE__)
 void nm_restore_background(int x, int y, int w, int h);
+void nm_draw_background1(char * filename); // full-screen menu background, e.g. menuh.pcx
 
 extern const char *Newmenu_allowed_chars;
 

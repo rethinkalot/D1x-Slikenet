@@ -859,7 +859,9 @@ int	Connected_segment_distance;
 //	Determine whether seg0 and seg1 are reachable in a way that allows sound to pass.
 //	Search up to a maximum depth of max_depth.
 //	Return the distance.
-fix find_connected_distance(vms_vector *p0, int seg0, vms_vector *p1, int seg1, int max_depth, int wid_flag)
+// check_side: also require the side between two touching segments to be passable, like D2. Sound uses it,
+// so a closed door or a wall right beside you blocks a sound; robot AI keeps D1's original behaviour.
+static fix find_connected_distance_internal(vms_vector *p0, int seg0, vms_vector *p1, int seg1, int max_depth, int wid_flag, int check_side)
 {
     int		cur_seg;
     int		sidenum;
@@ -881,9 +883,12 @@ fix find_connected_distance(vms_vector *p0, int seg0, vms_vector *p1, int seg1, 
     if (seg0 == seg1) {
         Connected_segment_distance = 0;
         return vm_vec_dist_quick(p0, p1);
-    } else if (find_connect_side(&Segments[seg0], &Segments[seg1]) != -1) {
+    } else {
+        int conn_side = find_connect_side(&Segments[seg0], &Segments[seg1]);
+        if (conn_side != -1 && (!check_side || (WALL_IS_DOORWAY(&Segments[seg0], conn_side) & wid_flag))) {
                 Connected_segment_distance = 1;
                 return vm_vec_dist_quick(p0, p1);
+        }
     }
 
     num_points = 0;
@@ -893,7 +898,7 @@ fix find_connected_distance(vms_vector *p0, int seg0, vms_vector *p1, int seg1, 
 //		depth[i] = 0;
 //	}
     memset(visited, 0, Highest_segment_index+1);
-    memset(depth, 0, Highest_segment_index+1);
+    memset(depth, 0, sizeof(depth[0]) * (Highest_segment_index+1)); // depth is short: clear all of it
 
     cur_seg = seg0;
     visited[cur_seg] = 1;
@@ -987,6 +992,17 @@ fcd_done1: ;
     Connected_segment_distance = num_points;
     return dist;
 
+}
+
+fix find_connected_distance(vms_vector *p0, int seg0, vms_vector *p1, int seg1, int max_depth, int wid_flag)
+{
+	return find_connected_distance_internal(p0, seg0, p1, seg1, max_depth, wid_flag, 0);
+}
+
+// For sounds: a closed door or wall between touching segments blocks the sound (D2's occlusion)
+fix find_connected_distance_sound(vms_vector *p0, int seg0, vms_vector *p1, int seg1, int max_depth, int wid_flag)
+{
+	return find_connected_distance_internal(p0, seg0, p1, seg1, max_depth, wid_flag, 1);
 }
 
 sbyte convert_to_byte(fix f)

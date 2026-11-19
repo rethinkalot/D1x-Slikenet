@@ -421,6 +421,9 @@ extern void gr_set_draw_buffer(int buf);
  */
 int gr_check_fullscreen(void);
 
+// Size of the monitor the game window is on; 0 if it can't be told (not Windows)
+int gr_monitor_size(int *w, int *h);
+
 /*
  * returns state after toggling (ie, same as if you had called
  * check_fullscreen immediatly after)

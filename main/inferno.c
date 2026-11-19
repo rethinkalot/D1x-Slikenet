@@ -441,6 +441,7 @@ int main(int argc, char *argv[])
 	select_tmap(GameArg.DbgTexMap);
 
 	con_printf(CON_VERBOSE, "Going into graphics mode...\n");
+	res_startup_check(); // a saved resolution far bigger than the monitor starts at 960x540 instead
 	gr_set_mode(Game_screen_mode);
 
 	// Load the palette stuff. Returns non-zero if error.
@@ -455,6 +456,7 @@ int main(int argc, char *argv[])
 	show_titles();
 
 	set_screen_mode(SCREEN_MENU);
+	res_startup_ask(); // ...and asks here whether to go back to it
 
 	con_printf( CON_DEBUG, "\nDoing gamedata_init..." );
 	gamedata_init();

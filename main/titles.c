@@ -29,6 +29,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "palette.h"
 #include "iff.h"
 #include "pcx.h"
+#include "config.h"
 #include "u_mem.h"
 #include "joy.h"
 #include "gamefont.h"
@@ -80,6 +81,7 @@ typedef struct title_screen
 	grs_bitmap title_bm;
 	fix64 timer;
 	int allow_keys;
+	int rgb; // 24-bit PCX: title_bm holds RGB pixels and is drawn in full colour, no palette
 } title_screen;
 
 static int title_handler(window *wind, d_event *event, title_screen *ts)
@@ -114,6 +116,15 @@ static int title_handler(window *wind, d_event *event, title_screen *ts)
 
 		case EVENT_WINDOW_DRAW:
 			gr_set_current_canvas( NULL );
+#ifdef OGL
+			if (ts->rgb)
+			{
+				if (!ts->title_bm.gltexture || ts->title_bm.gltexture->handle <= 0)
+					ogl_loadrgbtexture(&ts->title_bm, ts->title_bm.bm_data, GameCfg.TexFilt);
+				ogl_ubitmapm_cs(0, 0, -1, -1, &ts->title_bm, -1, F1_0);
+				break;
+			}
+#endif
 			show_fullscr(&ts->title_bm);
 			break;
 
@@ -151,7 +162,21 @@ static int show_title_screen( char * filename, int allow_keys, int from_hog_only
 	filename = new_filename;
 
 	gr_init_bitmap_data (&ts->title_bm);
+	ts->rgb = 0;
 
+#ifdef OGL
+	{
+		// a 24-bit title is shown in full colour, like the main menu picture
+		int rw, rh;
+		ubyte *rgb;
+		if (pcx_read_rgb(filename, &rw, &rh, &rgb) == PCX_ERROR_NONE)
+		{
+			gr_init_bitmap(&ts->title_bm, BM_LINEAR, 0, 0, rw, rh, rw, rgb);
+			ts->rgb = 1;
+		}
+	}
+	if (!ts->rgb)
+#endif
 	if ((pcx_error=pcx_read_bitmap( filename, &ts->title_bm, BM_LINEAR, gr_palette ))!=PCX_ERROR_NONE)	{
 		Error( "Error loading briefing screen <%s>, PCX load error: %s (%i)\n",filename, pcx_errormsg(pcx_error), pcx_error);
 	}

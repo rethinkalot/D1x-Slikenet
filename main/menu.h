@@ -25,6 +25,8 @@ extern void show_menus(void);
 
 // called once at program startup to get the player's name
 extern int RegisterPlayer();
+extern void res_startup_check(void); // startup: hold back a saved resolution far bigger than the monitor
+extern void res_startup_ask(void);   // then ask whether to use it
 
 // returns number of item chosen
 extern int DoMenu();

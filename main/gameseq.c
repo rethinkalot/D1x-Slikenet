@@ -1101,15 +1101,16 @@ void DoEndLevelScoreGlitz(int network)
         newmenu_do2(NULL, title, c, m, NULL, NULL, 0, Menu_pcx_name);
 }
 
-int draw_rock(newmenu *menu, d_event *event, grs_bitmap *background)
+int draw_rock(newmenu *menu, d_event *event, void *userdata)
 {
     menu = menu;
+    userdata = userdata;
 
     switch (event->type)
     {
         case EVENT_WINDOW_DRAW:
             gr_set_current_canvas(NULL);
-            show_fullscr(background);
+            nm_draw_background1(Menu_pcx_name); // same loader as the main menu: 24-bit or own palette, game palette untouched
             break;
             
         default:
@@ -1122,24 +1123,16 @@ int draw_rock(newmenu *menu, d_event *event, grs_bitmap *background)
 void do_screen_message(char *fmt, ...)
 {
     va_list arglist;
-    grs_bitmap background;
     char msg[1024];
-    
+
     if (Game_mode & GM_MULTI)
         return;
-    
-    gr_init_bitmap_data(&background);
-    if (pcx_read_bitmap(Menu_pcx_name, &background, BM_LINEAR, gr_palette) != PCX_ERROR_NONE)
-        return;
-
-    gr_palette_load(gr_palette);
 
     va_start(arglist, fmt);
     vsprintf(msg, fmt, arglist);
     va_end(arglist);
-    
-    nm_messagebox1(NULL, (int (*)(newmenu *, d_event *, void *))draw_rock, &background, 1, TXT_OK, msg);
-    gr_free_bitmap_data(&background);
+
+    nm_messagebox1(NULL, draw_rock, NULL, 1, TXT_OK, msg);
 }
 
 //called when the player has finished a level

@@ -135,6 +135,7 @@ int gamedata_init()
 	piggy_read_sounds(retval == PIGGY_PC_SHAREWARE);
 	gauss_init_assets(); // "Vulcan becomes Gauss" art and sound slots
 	custom_sounds_init(); // slikenetmsg.wav
+	hd_sounds_init(); // D2 quality versions of the shared sounds
 
 #ifdef OGL
 	if (GameCfg.UseCustomModels)

@@ -12,5 +12,6 @@ int custom_sound_load(const char *name, int loud);
 
 extern int Sound_slikenet_msg; // slikenetmsg.wav: SLikeNet link and observer chat lines, -1 if missing
 void custom_sounds_init(void); // once, after the game sounds are read
+void hd_sounds_init(void); // once, after the game sounds are read: D2 quality replacements from Sounds/HD/
 
 #endif

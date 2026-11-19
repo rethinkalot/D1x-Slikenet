@@ -168,7 +168,7 @@ void reset_palette_add()
 }
 
 
-u_int32_t Game_screen_mode = SM(640,480);
+u_int32_t Game_screen_mode = SM(960,540);
 
 //initialize the various canvases on the game screen
 //called every time the screen mode or cockpit changes

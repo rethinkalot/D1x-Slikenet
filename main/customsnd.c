@@ -169,3 +169,76 @@ void custom_sounds_init(void)
 {
 	Sound_slikenet_msg = custom_sound_load("slikenetmsg.wav", 1); // a quiet recording, so raise it
 }
+
+// HD sounds: D2's 22 kHz recordings of the sounds D1 shares with D2, converted to 44.1 kHz 16-bit mono,
+// replace D1's 8-bit 11 kHz originals. Matched by sound number through the robot, weapon and named-sound
+// tables of both games. Each file is Sounds/HD/<D2 name>.wav (in D1-SFX.DXA); a missing file keeps D1's own.
+// The reactor countdown voices are left out on purpose: D2 renumbered them.
+static const struct { short id; const char *name; } hd_sound_map[] = {
+	{ 10, "laser03" }, { 11, "explode1" }, { 12, "laser05" }, { 13, "laser03" }, { 14, "laser04" },
+	{ 15, "laser02" }, { 16, "laser01" }, { 17, "ramfast" }, { 18, "laser06" }, { 19, "laser12" },
+	{ 20, "explode1" }, { 21, "explode1" }, { 22, "laser07d" }, { 23, "flare" }, { 24, "fusionc" },
+	{ 25, "plasma3" }, { 26, "dropbomb" }, { 27, "doorhit" }, { 28, "explode1" }, { 30, "explode1" },
+	{ 31, "explode2" }, { 32, "siren01" }, { 33, "nuke01" }, { 34, "fusion2a" }, { 62, "power04" },
+	{ 70, "ramfast" }, { 71, "shit01" }, { 80, "power03" }, { 81, "power03" }, { 82, "exlife" },
+	{ 83, "power03" }, { 91, "gothost" }, { 92, "mtrl01" }, { 93, "mtrl02" }, { 115, "vulcan" },
+	{ 117, "message" }, { 118, "death" }, { 121, "fan01alt" }, { 122, "misslock" }, { 130, "missile1" },
+	{ 131, "missile1" }, { 132, "missle3c" }, { 140, "opdor02b" }, { 141, "cldoor02" }, { 142, "ddoorop5" },
+	{ 143, "ddoorcl8" }, { 144, "opdoor05" }, { 145, "ddoorcl2" }, { 146, "vdoorop5" }, { 147, "vdoorcl5" },
+	{ 148, "opdor02b" }, { 149, "cldoor02" }, { 151, "lava" }, { 153, "change1" }, { 154, "change2" },
+	{ 155, "message" }, { 156, "beep02" }, { 157, "monitor" }, { 160, "cloakon" }, { 161, "cloakoff" },
+	{ 162, "invon" }, { 163, "invoff" }, { 168, "robot19" }, { 169, "robot15" }, { 170, "robot01" },
+	{ 171, "thiefbep" }, { 172, "robot03" }, { 173, "robot04" }, { 176, "robot07" }, { 178, "fourclaw" },
+	{ 180, "minotaur" }, { 181, "robot12" }, { 183, "boss3seb" }, { 184, "boss1_2" }, { 185, "boss02" },
+	{ 186, "boss2_1" }, { 187, "boss2_2" }, { 188, "bossdied" }, { 190, "tear01" }, { 200, "cheater" },
+	{ 201, "robot17" }, { 202, "robot16" }, { 203, "robot19" }, { 204, "robot20" }, { 205, "robot21" },
+	{ 209, "robot25" }, { 211, "sloth" }, { 219, "frog" },
+};
+
+extern int digi_using_mixer(void);
+
+void hd_sounds_init(void)
+{
+	ubyte done[MAX_SOUND_FILES];
+	int i, n = 0;
+
+	if (!digi_using_mixer()) // only SDL_mixer plays 16-bit sounds
+		return;
+	memset(done, 0, sizeof(done));
+	for (i = 0; i < (int)(sizeof(hd_sound_map) / sizeof(hd_sound_map[0])); i++)
+	{
+		int f = Sounds[hd_sound_map[i].id], file_len = 0, channels, rate, bytes, frames, k;
+		char path[64];
+		ubyte *file;
+		const ubyte *wav;
+		short *pcm;
+
+		if (f == 255 || f >= MAX_SOUND_FILES || done[f])
+			continue;
+		snprintf(path, sizeof(path), "HD/%s.wav", hd_sound_map[i].name);
+		if (!(file = custom_sound_read(path, &file_len)))
+			continue;
+		if (!custom_sound_parse(file, file_len, &channels, &rate, &bytes, &wav, &frames))
+		{
+			d_free(file);
+			continue;
+		}
+		pcm = d_malloc(frames * sizeof(short)); // mono 16-bit at the file's own rate
+		for (k = 0; k < frames; k++)
+		{
+			int c, sum = 0;
+			for (c = 0; c < channels; c++)
+				sum += custom_sound_sample(wav + (k * channels + c) * bytes, bytes);
+			pcm[k] = sum / channels;
+		}
+		d_free(file);
+		GameSounds[f].data = (ubyte *)pcm; // the old data may live inside the PIG buffer, so it is left alone
+		GameSounds[f].length = frames * sizeof(short);
+		GameSounds[f].bits = 16;
+		GameSounds[f].freq = rate;
+		done[f] = 1;
+		n++;
+	}
+	if (n)
+		con_printf(CON_NORMAL, "HD sounds: %d D1 sounds replaced with D2's higher quality recordings\n", n);
+}

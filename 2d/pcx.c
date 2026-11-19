@@ -181,6 +181,79 @@ int bald_guy_load( char * filename, grs_bitmap * bmp,int bitmap_type ,ubyte * pa
 	return PCX_ERROR_NONE;
 }
 
+int pcx_read_rgb( const char * filename, int * w, int * h, ubyte ** rgb )
+{
+	PCXHeader header;
+	PHYSFS_file * PCXfile;
+	int xsize, ysize, bpl, line, total, len, p = 0, i = 0;
+	ubyte *file, *out;
+
+	PCXfile = PHYSFSX_openReadBuffered( filename );
+	if ( !PCXfile )
+		return PCX_ERROR_OPENING;
+	if (PCXHeader_read_n( &header, 1, PCXfile )!=1) {
+		PHYSFS_close( PCXfile );
+		return PCX_ERROR_NO_HEADER;
+	}
+	if ((header.Manufacturer != 10)||(header.Encoding != 1)||(header.Nplanes != 3)||(header.BitsPerPixel != 8)) {
+		PHYSFS_close( PCXfile );
+		return PCX_ERROR_WRONG_VERSION;
+	}
+	xsize = header.Xmax - header.Xmin + 1;
+	ysize = header.Ymax - header.Ymin + 1;
+	bpl = header.BytesPerLine;
+	if (xsize <= 0 || ysize <= 0 || bpl < xsize) {
+		PHYSFS_close( PCXfile );
+		return PCX_ERROR_WRONG_VERSION;
+	}
+
+	// The rest of the file in one read, then decode from memory
+	len = PHYSFS_fileLength( PCXfile ) - PCXHEADER_SIZE;
+	file = len > 0 ? d_malloc( len ) : NULL;
+	if (!file || PHYSFS_read( PCXfile, file, 1, len ) != len) {
+		if (file)
+			d_free( file );
+		PHYSFS_close( PCXfile );
+		return PCX_ERROR_READING;
+	}
+	PHYSFS_close( PCXfile );
+
+	out = d_malloc( xsize * ysize * 3 );
+	if (!out) {
+		d_free( file );
+		return PCX_ERROR_MEMORY;
+	}
+
+	// Each scanline is the red plane, then green, then blue, bpl bytes each. Runs can cross
+	// plane and line ends, so decode as one stream and place each byte by its position.
+	line = bpl * 3;
+	total = line * ysize;
+	while (p < total && i < len) {
+		ubyte data = file[i++], count = 1;
+		if ((data & 0xC0) == 0xC0) {
+			count = data & 0x3F;
+			if (i >= len)
+				break;
+			data = file[i++];
+		}
+		for (; count && p < total; count--, p++) {
+			int x = (p % line) % bpl;
+			if (x < xsize)
+				out[((p / line) * xsize + x) * 3 + (p % line) / bpl] = data;
+		}
+	}
+	d_free( file );
+	if (p < total) {
+		d_free( out );
+		return PCX_ERROR_READING;
+	}
+
+	*w = xsize;
+	*h = ysize;
+	*rgb = out;
+	return PCX_ERROR_NONE;
+}
+
 int pcx_read_bitmap( char * filename, grs_bitmap * bmp,int bitmap_type ,ubyte * palette )
 {
 	PCXHeader header;

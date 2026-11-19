@@ -891,101 +891,267 @@ int gcd(int a, int b)
 	return gcd(b, a%b);
 }
 
-void change_res()
+// Screen Resolution menu. "use custom values" is a checkbox: while it is ticked the aspect field is a
+// live filter on the list, custom resolutions autofill to that shape and up to 2 of them stay in the
+// list. Unticking it clears all that and puts the menu back to default. Saved in descent.cfg.
+#define RES_REBUILD_TOGGLE 1 // the checkbox changed
+#define RES_REBUILD_ASPECT 2 // Enter on the aspect field
+static int res_opt_custom, res_opt_res, res_opt_aspect, res_num_list;
+static int res_rebuild, res_focus, res_apply_custom, res_enter_item;
+static int res_click_ticked = -1; // the resolution that was ticked when the mouse button went down
+// The highlighted item, kept across rebuilds: a list line by its index, an item below the list by
+// its place after the list, so the cursor stays on the same field when the list grows or shrinks
+#define RES_FOCUS(citem) ((citem) < res_num_list ? (citem) : 1000 + (citem) - res_num_list)
+
+// Reads "16x9", "16:9" or "1600x900" into a and b; 0 if it isn't a pair of positive numbers
+static int res_parse_pair(const char *s, int *a, int *b)
 {
-	u_int32_t modes[50], new_mode = 0;
-	int i = 0, mc = 0, num_presets = 0, citem = -1, opt_cval = -1, opt_fullscr = -1, opt_borderless = -1;
-	int cur_borderless, new_borderless;
+	const char *sep = strpbrk(s, "xX:");
+	if (!sep)
+		return 0;
+	*a = atoi(s);
+	*b = atoi(sep + 1);
+	return *a > 0 && *b > 0;
+}
 
-	num_presets = gr_list_modes( modes );
+// Whether a mode has the filter's shape, within 3% (1360x768 counts as 16:9, 2560x1080 as 21:9)
+static int res_in_filter(u_int32_t mode)
+{
+	float want, got;
+	if (!GameCfg.ResCustom || !GameCfg.ResFilterW || !GameCfg.ResFilterH)
+		return 1;
+	want = (float)GameCfg.ResFilterW / GameCfg.ResFilterH;
+	got = (float)SM_W(mode) / SM_H(mode);
+	return got >= want * 0.97f && got <= want * 1.03f;
+}
 
+// The shapes the arrow keys step through in the aspect field; 0x0 = every shape
+static const char *const res_aspect_presets[] = { "0x0", "4x3", "5x4", "16x10", "16x9", "21x9" };
+#define RES_NUM_ASPECT_PRESETS (sizeof(res_aspect_presets) / sizeof(res_aspect_presets[0]))
+
+// 1 while the aspect field is 0x0: the aspect then follows the typed resolution instead of filling it
+static int res_aspect_auto;
+
+// 1 after the right arrow moved past the x: the typed height fills in the width. Typing x yourself
+// instead means your own height, with no autofill.
+static int res_height_first;
+
+// Fills the other side of the resolution for the filter's shape, from what has been typed so far
+// (the text before the edit position):
+// - a width: 555 -> 555x312, edit position stays after the width
+// - past the x (typed x, or the right arrow), a height: x312 -> 555x312, edit position stays at the end
+// so typing and backspace carry on from there.
+static void res_autofill(newmenu_item *it, int aw, int ah)
+{
+	char digits[6], *x;
+	int i, n = 0, len = (it->value < 0) ? (int)strlen(it->text) : it->value;
+
+	it->text[len] = 0;
+	x = strpbrk(it->text, "xX");
+	for (i = x ? (int)(x - it->text) + 1 : 0; it->text[i] && n < 5; i++)
+		if (it->text[i] >= '0' && it->text[i] <= '9')
+			digits[n++] = it->text[i];
+	digits[n] = 0;
+
+	if (x) // the height was typed: fill in the width
 	{
-	newmenu_item m[50+9];
-	char restext[50][12], crestext[12], casptext[12];
-
-	for (i = 0; i <= num_presets-1; i++)
-	{
-		snprintf(restext[mc], sizeof(restext[mc]), "%ix%i", SM_W(modes[i]), SM_H(modes[i]));
-		m[mc].type = NM_TYPE_RADIO;
-		m[mc].text = restext[mc];
-		m[mc].value = ((citem == -1) && (Game_screen_mode == modes[i]) && GameCfg.AspectY == SM_W(modes[i])/gcd(SM_W(modes[i]),SM_H(modes[i])) && GameCfg.AspectX == SM_H(modes[i])/gcd(SM_W(modes[i]),SM_H(modes[i])));
-		m[mc].group = 0;
-		if (m[mc].value)
-			citem = mc;
-		mc++;
+		if (n)
+			snprintf(it->text, it->text_len + 1, "%ix%s", (atoi(digits) * aw + ah / 2) / ah, digits);
+		else
+			x[1] = 0; // just the x so far: keep the width, wait for the height
+		it->value = strlen(it->text);
 	}
+	else // the width was typed: fill in the height
+	{
+		if (n)
+			snprintf(it->text, it->text_len + 1, "%sx%i", digits, (atoi(digits) * ah + aw / 2) / aw);
+		else
+			it->text[0] = 0;
+		it->value = n;
+	}
+}
 
-	m[mc].type = NM_TYPE_TEXT; m[mc].text = ""; mc++; // little space for overview
-	// the fields for custom resolution and aspect
-	opt_cval = mc;
-	m[mc].type = NM_TYPE_RADIO; m[mc].text = "use custom values"; m[mc].value = (citem == -1); m[mc].group = 0; mc++;
-	m[mc].type = NM_TYPE_TEXT; m[mc].text = "resolution:"; mc++;
-	snprintf(crestext, sizeof(crestext), "%ix%i", SM_W(Game_screen_mode), SM_H(Game_screen_mode));
-	m[mc].type = NM_TYPE_INPUT; m[mc].text = crestext; m[mc].text_len = 11; modes[mc] = 0; mc++;
-	m[mc].type = NM_TYPE_TEXT; m[mc].text = "aspect:"; mc++;
-	snprintf(casptext, sizeof(casptext), "%ix%i", GameCfg.AspectY, GameCfg.AspectX);
-	m[mc].type = NM_TYPE_INPUT; m[mc].text = casptext; m[mc].text_len = 11; modes[mc] = 0; mc++;
-	m[mc].type = NM_TYPE_TEXT; m[mc].text = ""; mc++; // little space for overview
-	// fullscreen
-	opt_fullscr = mc;
-	m[mc].type = NM_TYPE_CHECK; m[mc].text = "Fullscreen"; m[mc].value = gr_check_fullscreen(); mc++;
+// The shape in the aspect field, if it holds one and isn't following the typed resolution
+static int res_field_aspect(newmenu_item *items, int *aw, int *ah)
+{
+	return !res_aspect_auto && res_parse_pair(items[res_opt_aspect].text, aw, ah);
+}
 
-	opt_borderless = mc;
-	m[mc].type = NM_TYPE_CHECK; m[mc].text = "Borderless window"; m[mc].value = GameCfg.BorderlessWindow; mc++;
+// Re-fills the resolution field from its width after the aspect changed
+static void res_refill(newmenu_item *items)
+{
+	newmenu_item *it = &items[res_opt_res];
+	char *x = strpbrk(it->text, "xX");
+	int aw, ah;
 
-	Assert(mc <= SDL_arraysize(m));
+	if (!res_field_aspect(items, &aw, &ah))
+		return;
+	it->value = x ? (int)(x - it->text) : (int)strlen(it->text);
+	res_autofill(it, aw, ah);
+	it->value = -1; // the next key typed starts over, as on entering the field
+}
 
-	// create the menu
-	newmenu_do1(NULL, "Screen Resolution", mc, m, NULL, NULL, 0);
+static int change_res_handler(newmenu *menu, d_event *event, void *userdata)
+{
+	newmenu_item *items = newmenu_get_items(menu);
+	int citem = newmenu_get_citem(menu), i, aw, ah, key;
 
-	// menu is done, now do what we need to do
+	userdata = userdata;
 
-	// check which resolution field was selected
-	for (i = 0; i <= mc; i++)
-		if ((m[i].type == NM_TYPE_RADIO) && (m[i].group==0) && (m[i].value == 1))
+	switch (event->type)
+	{
+		// Mouse: a click ticks a resolution; a click on the one already ticked applies it, like Enter
+		case EVENT_MOUSE_BUTTON_DOWN:
+			if (event_mouse_get_button(event) == MBTN_LEFT)
+				for (res_click_ticked = -1, i = 0; i < res_num_list; i++)
+					if (items[i].value)
+						res_click_ticked = i;
 			break;
 
-	cur_borderless = GameCfg.BorderlessWindow;
-	new_borderless = GameCfg.BorderlessWindow = m[opt_borderless].value;
+		case EVENT_MOUSE_BUTTON_UP:
+			if (event_mouse_get_button(event) == MBTN_LEFT && citem < res_num_list && citem == res_click_ticked && items[citem].value)
+			{
+				res_focus = RES_FOCUS(citem);
+				res_enter_item = citem;
+				window_close(newmenu_get_window(menu));
+				return 1;
+			}
+			break;
+
+		case EVENT_KEY_COMMAND:
+			key = event_key_get(event);
+			if (citem == res_opt_aspect && (key == KEY_LEFT || key == KEY_PAD4 || key == KEY_RIGHT || key == KEY_PAD6))
+			{
+				// arrows step through the preset shapes
+				int idx = -1, n = RES_NUM_ASPECT_PRESETS, w = 0, h = 0, pw, ph;
+				res_parse_pair(items[citem].text, &w, &h);
+				for (i = 0; i < n; i++)
+				{
+					if (!res_parse_pair(res_aspect_presets[i], &pw, &ph))
+						pw = ph = 0;
+					if ((w == 0 && pw == 0) || (w && pw && w * ph == h * pw))
+						idx = i;
+				}
+				if (key == KEY_RIGHT || key == KEY_PAD6)
+					idx = (idx + 1) % n;
+				else
+					idx = (idx < 0) ? n - 1 : (idx + n - 1) % n;
+				strcpy(items[citem].text, res_aspect_presets[idx]);
+				items[citem].value = -1;
+				res_aspect_auto = (idx == 0);
+				res_refill(items);
+				return 1;
+			}
+			if (citem == res_opt_res)
+			{
+				char *x = strpbrk(items[citem].text, "xX");
+				if (key == KEY_RIGHT || key == KEY_PAD6) // move past the x to type the height
+				{
+					res_height_first = 1;
+					if (x)
+					{
+						x[1] = 0;
+						items[citem].value = strlen(items[citem].text);
+					}
+					return 1;
+				}
+				// first backspace in the field: take a digit off the width, not the filled-in height
+				if ((key == KEY_BACKSP || key == KEY_LEFT || key == KEY_PAD4) && items[citem].value == -1 && x && !res_aspect_auto)
+					items[citem].value = x - items[citem].text;
+			}
+			break;
+
+		case EVENT_NEWMENU_CHANGED:
+			if (citem == res_opt_custom) // ticked or unticked: rebuild the menu for it
+			{
+				res_rebuild = RES_REBUILD_TOGGLE;
+				res_focus = RES_FOCUS(citem);
+				window_close(newmenu_get_window(menu));
+				return 1;
+			}
+			if (citem == res_opt_res)
+			{
+				newmenu_item *it = &items[citem];
+				char *x = strpbrk(it->text, "xX");
+				int typed = (it->value < 0) ? (int)strlen(it->text) : it->value;
+				int past_x = x && (x - it->text) < typed;
+				if (!past_x)
+					res_height_first = 0; // back on the width
+				if (res_field_aspect(items, &aw, &ah)) // the shape fills in the other side
+				{
+					if (!past_x || res_height_first) // typed x yourself: your own height, no autofill
+						res_autofill(it, aw, ah);
+				}
+				else if (res_aspect_auto && res_parse_pair(items[citem].text, &aw, &ah)) // 0x0: the aspect follows the resolution
+					snprintf(items[res_opt_aspect].text, items[res_opt_aspect].text_len + 1, "%ix%i", aw / gcd(aw, ah), ah / gcd(aw, ah));
+			}
+			if (citem == res_opt_aspect) // typed a shape: the resolution follows it; typed 0x0: the other way round
+			{
+				if (res_parse_pair(items[citem].text, &aw, &ah))
+				{
+					res_aspect_auto = 0;
+					res_refill(items);
+				}
+				else if (strpbrk(items[citem].text, "xX:") && atoi(items[citem].text) == 0)
+					res_aspect_auto = 1;
+			}
+			break;
+
+		case EVENT_NEWMENU_SELECTED: // Enter. Only the ticked, highlighted resolution changes the screen.
+			res_focus = RES_FOCUS(citem);
+			if (citem == res_opt_custom)
+			{
+				items[citem].value = !items[citem].value;
+				res_rebuild = RES_REBUILD_TOGGLE;
+			}
+			else if (citem == res_opt_aspect)
+				res_rebuild = RES_REBUILD_ASPECT;
+			else if (citem == res_opt_res)
+			{
+				if (items[res_opt_custom].value)
+					res_apply_custom = 1; // box ticked: apply the typed resolution
+				else
+				{
+					items[res_opt_custom].value = 1; // box unticked: tick it first
+					res_rebuild = RES_REBUILD_TOGGLE;
+				}
+			}
+			else if (citem < res_num_list)
+			{
+				if (items[citem].value)
+					res_enter_item = citem; // already ticked: apply it
+				else
+				{
+					for (i = 0; i < res_num_list; i++) // not ticked yet: tick it and stay
+						items[i].value = (i == citem);
+					return 1;
+				}
+			}
+			else
+				return 1; // anything else: stay in the menu
+			break;
+
+		default:
+			break;
+	}
+	return 0;
+}
+
+// Applies a screen mode plus the fullscreen and borderless settings
+static void res_apply(u_int32_t new_mode, int fullscr, int borderless)
+{
+	int cur_borderless = GameCfg.BorderlessWindow;
+
+	GameCfg.BorderlessWindow = borderless;
 
 	// now check for fullscreen toggle and apply if necessary
-	if (m[opt_fullscr].value != gr_check_fullscreen())
+	if (fullscr != gr_check_fullscreen())
 		gr_toggle_fullscreen();
-
-	if (i == opt_cval) // set custom resolution and aspect
-	{
-		u_int32_t cmode = Game_screen_mode, casp = Game_screen_mode;
-
-		if (!strchr(crestext, 'x'))
-			return;
-
-		cmode = SM(atoi(crestext), atoi(strchr(crestext, 'x')+1));
-		if (SM_W(cmode) < 320 || SM_H(cmode) < 200) // oh oh - the resolution is too small. Revert!
-		{
-			nm_messagebox( TXT_WARNING, 1, "OK", "Entered resolution is too small.\nReverting ..." );
-			cmode = new_mode;
-		}
-
-		casp = cmode;
-		if (strchr(casptext, 'x')) // we even have a custom aspect set up
-		{
-			casp = SM(atoi(casptext), atoi(strchr(casptext, 'x')+1));
-		}
-		GameCfg.AspectY = SM_W(casp)/gcd(SM_W(casp),SM_H(casp));
-		GameCfg.AspectX = SM_H(casp)/gcd(SM_W(casp),SM_H(casp));
-		new_mode = cmode;
-	}
-	else if (i >= 0 && i < num_presets) // set preset resolution
-	{
-		new_mode = modes[i];
-		GameCfg.AspectY = SM_W(new_mode)/gcd(SM_W(new_mode),SM_H(new_mode));
-		GameCfg.AspectX = SM_H(new_mode)/gcd(SM_W(new_mode),SM_H(new_mode));
-	}
 
 	// clean up and apply everything
 	newmenu_free_background();
 	set_screen_mode(SCREEN_MENU);
-	if (new_mode != Game_screen_mode || cur_borderless != new_borderless)
+	if (new_mode != Game_screen_mode || cur_borderless != borderless)
 	{
 		gr_set_mode(new_mode);
 		Game_screen_mode = new_mode;
@@ -997,7 +1163,332 @@ void change_res()
 		}
 	}
 	game_init_render_buffers(SM_W(Game_screen_mode), SM_H(Game_screen_mode));
+}
+
+// Whether a mode is far bigger than the largest mode the monitor lists: more than 1.5x on a side, so with
+// a 1920x1080 monitor 2560x1440 and 2880x1620 pass and anything bigger asks first. Never if it lists none.
+static int res_too_big(u_int32_t mode, const u_int32_t *modes, int n, int *maxw, int *maxh)
+{
+	int i;
+	*maxw = *maxh = 0;
+	for (i = 0; i < n; i++)
+	{
+		if (SM_W(modes[i]) > *maxw)
+			*maxw = SM_W(modes[i]);
+		if (SM_H(modes[i]) > *maxh)
+			*maxh = SM_H(modes[i]);
 	}
+	return n > 0 && (SM_W(mode) * 2 > *maxw * 3 || SM_H(mode) * 2 > *maxh * 3);
+}
+
+// Startup: a saved resolution far bigger than the monitor isn't opened straight away. The game
+// starts at the default 960x540 and asks, once menus can show, whether to go back to it.
+static u_int32_t res_startup_big;
+
+void res_startup_check(void) // before the first gr_set_mode
+{
+	u_int32_t modes[50];
+	int maxw, maxh;
+
+	res_startup_big = 0;
+	if (res_too_big(Game_screen_mode, modes, gr_list_modes(modes), &maxw, &maxh))
+	{
+		res_startup_big = Game_screen_mode;
+		Game_screen_mode = SM(960, 540);
+	}
+}
+
+void res_startup_ask(void) // once menus can show
+{
+	if (!res_startup_big)
+		return;
+	if (nm_messagebox(NULL, 2, "Yes", "Default", "Your last game reported a larger than\nmonitor resolution selected.\n\nContinue with %ix%i?",
+		SM_W(res_startup_big), SM_H(res_startup_big)) == 0)
+	{
+		gr_set_mode(res_startup_big);
+		Game_screen_mode = res_startup_big;
+		set_screen_mode(SCREEN_MENU);
+	}
+	else // Default (or Esc): stay at 960x540, 16:9
+	{
+		GameCfg.AspectY = 16;
+		GameCfg.AspectX = 9;
+	}
+	res_startup_big = 0;
+}
+
+// "Keep this resolution?" countdown: Revert is highlighted, Keep must be picked on purpose,
+// and Esc or running out of time reverts
+#define RES_KEEP_SECONDS 15
+static fix64 res_keep_start;
+static int res_keep_expired;
+static char res_keep_text[40];
+
+static int res_keep_handler(newmenu *menu, d_event *event, void *userdata)
+{
+	userdata = userdata;
+	if (event->type == EVENT_IDLE)
+	{
+		int left = RES_KEEP_SECONDS - (int)((timer_query() - res_keep_start) / F1_0);
+		if (left <= 0)
+		{
+			res_keep_expired = 1;
+			window_close(newmenu_get_window(menu));
+			return 1;
+		}
+		snprintf(res_keep_text, sizeof(res_keep_text), "Reverting in %i seconds", left);
+	}
+	return 0;
+}
+
+static int res_keep_countdown(void)
+{
+	newmenu_item m[3];
+	int choice;
+
+	res_keep_start = timer_query();
+	res_keep_expired = 0;
+	snprintf(res_keep_text, sizeof(res_keep_text), "Reverting in %i seconds", RES_KEEP_SECONDS);
+	m[0].type = NM_TYPE_TEXT; m[0].text = res_keep_text;
+	m[1].type = NM_TYPE_MENU; m[1].text = "Revert";
+	m[2].type = NM_TYPE_MENU; m[2].text = "Keep";
+	choice = newmenu_do1(NULL, "Keep this resolution?", 3, m, res_keep_handler, NULL, 1);
+	return !res_keep_expired && choice == 2;
+}
+
+// Applies a mode. One bigger than the monitor needs "Are you sure?" first (No or Esc cancels), then
+// Keep within the countdown, else it switches back. Returns 1 if the new mode is in use.
+static int res_apply_checked(u_int32_t new_mode, int fullscr, int borderless, const u_int32_t *modes, int n)
+{
+	u_int32_t old_mode = Game_screen_mode;
+	int maxw, maxh, i;
+
+	if (fullscr && !borderless) // fullscreen exclusive: only the modes the monitor lists
+	{
+		for (i = 0; i < n && modes[i] != new_mode; i++)
+			;
+		if (n > 0 && i == n)
+		{
+			nm_messagebox("Screen Resolution", 1, "OK", "Fullscreen only runs at resolutions\nyour monitor lists.\n\nTick Borderless window, or untick\nFullscreen, for other sizes.");
+			return 0;
+		}
+		res_apply(new_mode, fullscr, borderless);
+		return 1;
+	}
+	if (fullscr) // fullscreen borderless: no bigger than the monitor it runs on
+	{
+		if (gr_monitor_size(&maxw, &maxh) && (SM_W(new_mode) > maxw || SM_H(new_mode) > maxh))
+		{
+			nm_messagebox("Screen Resolution", 1, "OK", "Fullscreen Borderless can't be bigger\nthan the monitor it runs on (%ix%i).", maxw, maxh);
+			return 0;
+		}
+		res_apply(new_mode, fullscr, borderless);
+		return 1;
+	}
+	if (!res_too_big(new_mode, modes, n, &maxw, &maxh)) // windowed: anything, far bigger than the monitor asks first
+	{
+		res_apply(new_mode, fullscr, borderless);
+		return 1;
+	}
+	if (nm_messagebox("Screen Resolution", 2, "Yes", "No", "%ix%i is larger than\nyour monitor (%ix%i).\n\nAre you sure?",
+		SM_W(new_mode), SM_H(new_mode), maxw, maxh) != 0)
+		return 0;
+	res_apply(new_mode, fullscr, borderless);
+	if (res_keep_countdown())
+		return 1;
+	res_apply(old_mode, fullscr, borderless);
+	return 0;
+}
+
+// Sets the render aspect for a mode: the filter's shape while the box is ticked, else the mode's own
+static void res_set_aspect(u_int32_t casp)
+{
+	if (GameCfg.ResCustom && GameCfg.ResFilterW && res_in_filter(casp)) // a size you typed with your own height keeps its own shape
+		casp = SM(GameCfg.ResFilterW, GameCfg.ResFilterH);
+	GameCfg.AspectY = SM_W(casp)/gcd(SM_W(casp),SM_H(casp));
+	GameCfg.AspectX = SM_H(casp)/gcd(SM_W(casp),SM_H(casp));
+}
+
+void change_res()
+{
+	u_int32_t modes[50], list[52], new_mode;
+	int i, k, mc, num_presets, nlist, citem, opt_fullscr, opt_borderless, fullscr, borderless, ax, ay;
+	newmenu_item m[52+10];
+	char restext[52][12], crestext[12], casptext[12];
+
+	num_presets = gr_list_modes( modes );
+	fullscr = gr_check_fullscreen();
+	borderless = GameCfg.BorderlessWindow;
+	res_focus = 0;
+	snprintf(crestext, sizeof(crestext), "%ix%i", SM_W(Game_screen_mode), SM_H(Game_screen_mode));
+
+	// The menu stays open: Enter ticks, rebuilds or applies, and the menu is built again each time.
+	// Esc leaves it.
+	for (;;)
+	{
+		// The list: the modes of the filter's shape (or every mode), then the saved custom resolutions
+		nlist = 0;
+		for (i = 0; i < num_presets; i++)
+			if (res_in_filter(modes[i]))
+				list[nlist++] = modes[i];
+		if (GameCfg.ResCustom)
+			for (k = 0; k < 2; k++)
+			{
+				for (i = 0; i < nlist && list[i] != GameCfg.ResExtra[k]; i++)
+					;
+				if (GameCfg.ResExtra[k] && i == nlist)
+					list[nlist++] = GameCfg.ResExtra[k];
+			}
+
+		mc = 0;
+		citem = -1;
+		for (i = 0; i < nlist; i++)
+		{
+			snprintf(restext[mc], sizeof(restext[mc]), "%ix%i", SM_W(list[i]), SM_H(list[i]));
+			m[mc].type = NM_TYPE_RADIO;
+			m[mc].text = restext[mc];
+			m[mc].value = (citem == -1 && Game_screen_mode == list[i]);
+			m[mc].group = 0;
+			if (m[mc].value)
+				citem = mc;
+			mc++;
+		}
+		res_num_list = nlist;
+
+		m[mc].type = NM_TYPE_TEXT; m[mc].text = ""; mc++; // little space for overview
+		// the custom checkbox and its resolution and aspect fields
+		res_opt_custom = mc;
+		m[mc].type = NM_TYPE_CHECK; m[mc].text = "use custom values"; m[mc].value = GameCfg.ResCustom; mc++;
+		m[mc].type = NM_TYPE_TEXT; m[mc].text = "resolution:"; mc++;
+		res_opt_res = mc;
+		m[mc].type = NM_TYPE_INPUT; m[mc].text = crestext; m[mc].text_len = 11; mc++;
+		m[mc].type = NM_TYPE_TEXT; m[mc].text = "aspect:"; mc++;
+		res_opt_aspect = mc;
+		if (GameCfg.ResCustom && GameCfg.ResFilterW)
+			snprintf(casptext, sizeof(casptext), "%ix%i", GameCfg.ResFilterW, GameCfg.ResFilterH); // the live filter
+		else if (GameCfg.ResCustom)
+			snprintf(casptext, sizeof(casptext), "0x0"); // every shape: the aspect follows the typed resolution
+		else
+			snprintf(casptext, sizeof(casptext), "%ix%i", GameCfg.AspectY, GameCfg.AspectX); // placeholder: the current aspect
+		res_aspect_auto = (GameCfg.ResCustom && !GameCfg.ResFilterW);
+		m[mc].type = NM_TYPE_INPUT; m[mc].text = casptext; m[mc].text_len = 11; mc++;
+		m[mc].type = NM_TYPE_TEXT; m[mc].text = ""; mc++; // little space for overview
+		// fullscreen
+		opt_fullscr = mc;
+		m[mc].type = NM_TYPE_CHECK; m[mc].text = "Fullscreen"; m[mc].value = fullscr; mc++;
+
+		opt_borderless = mc;
+		m[mc].type = NM_TYPE_CHECK; m[mc].text = "Borderless window"; m[mc].value = borderless; mc++;
+
+		Assert(mc <= SDL_arraysize(m));
+
+		// create the menu
+		res_rebuild = res_apply_custom = 0;
+		res_enter_item = -1;
+		newmenu_do1(NULL, "Screen Resolution", mc, m, change_res_handler, NULL,
+			(res_focus >= 1000) ? nlist + res_focus - 1000 : min(res_focus, max(nlist - 1, 0)));
+
+		fullscr = m[opt_fullscr].value;
+		borderless = m[opt_borderless].value;
+
+		if (res_rebuild == RES_REBUILD_ASPECT) // Enter on the aspect field ticks the box; the typed shape becomes the filter
+		{
+			int w, h;
+			GameCfg.ResCustom = 1;
+			if (res_parse_pair(casptext, &w, &h))
+			{
+				GameCfg.ResFilterW = w / gcd(w, h);
+				GameCfg.ResFilterH = h / gcd(w, h);
+			}
+			else if (strtol(casptext, NULL, 10) == 0) // 0x0: every shape again
+				GameCfg.ResFilterW = GameCfg.ResFilterH = 0;
+			continue;
+		}
+		if (res_rebuild == RES_REBUILD_TOGGLE)
+		{
+			GameCfg.ResCustom = m[res_opt_custom].value;
+			if (!GameCfg.ResCustom) // unticked: no filter, no custom entries, default menu
+			{
+				GameCfg.ResFilterW = GameCfg.ResFilterH = 0;
+				GameCfg.ResExtra[0] = GameCfg.ResExtra[1] = 0;
+			}
+			continue;
+		}
+		if (res_apply_custom) // Enter on a typed resolution with the box ticked
+		{
+			int w, h;
+			if (!res_parse_pair(crestext, &w, &h))
+				continue;
+			if (w < 320 || h < 200) // oh oh - the resolution is too small. Revert!
+			{
+				nm_messagebox( TXT_WARNING, 1, "OK", "Entered resolution is too small.\nReverting ..." );
+				snprintf(crestext, sizeof(crestext), "%ix%i", SM_W(Game_screen_mode), SM_H(Game_screen_mode));
+				continue;
+			}
+			new_mode = SM(w, h);
+			ax = GameCfg.AspectX;
+			ay = GameCfg.AspectY;
+			if (GameCfg.ResFilterW || !res_parse_pair(casptext, &w, &h)) // the filter's shape, or the mode's own
+				res_set_aspect(new_mode);
+			else // we even have a custom aspect set up
+			{
+				GameCfg.AspectY = w / gcd(w, h);
+				GameCfg.AspectX = h / gcd(w, h);
+			}
+			if (!res_apply_checked(new_mode, fullscr, borderless, modes, num_presets))
+			{
+				GameCfg.AspectX = ax; // cancelled or reverted
+				GameCfg.AspectY = ay;
+				continue;
+			}
+			if (new_mode != GameCfg.ResExtra[0]) // keep it in the list, newest first, at most 2
+			{
+				GameCfg.ResExtra[1] = GameCfg.ResExtra[0];
+				GameCfg.ResExtra[0] = new_mode;
+			}
+			continue;
+		}
+		if (res_enter_item >= 0) // Enter on the ticked, highlighted resolution
+		{
+			new_mode = list[res_enter_item];
+			ax = GameCfg.AspectX;
+			ay = GameCfg.AspectY;
+			GameCfg.AspectY = SM_W(new_mode)/gcd(SM_W(new_mode),SM_H(new_mode)); // a listed mode keeps its true shape
+			GameCfg.AspectX = SM_H(new_mode)/gcd(SM_W(new_mode),SM_H(new_mode));
+			if (!res_apply_checked(new_mode, fullscr, borderless, modes, num_presets))
+			{
+				GameCfg.AspectX = ax; // cancelled or reverted
+				GameCfg.AspectY = ay;
+			}
+			snprintf(crestext, sizeof(crestext), "%ix%i", SM_W(Game_screen_mode), SM_H(Game_screen_mode));
+			continue;
+		}
+		break; // Esc: leave, keeping the resolution
+	}
+
+	// Leaving: apply Fullscreen / Borderless changes, moving to a size the new mode allows if needed
+	new_mode = Game_screen_mode;
+	if (fullscr && !borderless && num_presets > 0) // fullscreen exclusive: a listed mode, else the monitor's largest
+	{
+		for (i = 0; i < num_presets && modes[i] != new_mode; i++)
+			;
+		if (i == num_presets)
+			for (new_mode = modes[0], i = 1; i < num_presets; i++)
+				if (SM_W(modes[i]) * SM_H(modes[i]) > SM_W(new_mode) * SM_H(new_mode))
+					new_mode = modes[i];
+	}
+	else if (fullscr) // fullscreen borderless: no bigger than the monitor
+	{
+		int monw, monh;
+		if (gr_monitor_size(&monw, &monh) && (SM_W(new_mode) > monw || SM_H(new_mode) > monh))
+			new_mode = SM(monw, monh);
+	}
+	if (new_mode != Game_screen_mode)
+	{
+		GameCfg.AspectY = SM_W(new_mode)/gcd(SM_W(new_mode),SM_H(new_mode));
+		GameCfg.AspectX = SM_H(new_mode)/gcd(SM_W(new_mode),SM_H(new_mode));
+	}
+	res_apply(new_mode, fullscr, borderless);
 }
 
 //	Sensitivity & Deadzone menu.

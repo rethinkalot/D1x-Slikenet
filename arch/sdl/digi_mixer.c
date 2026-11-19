@@ -138,7 +138,8 @@ void mixdigi_convert_sound(int i)
 	if (data)
 	{
 		if (MIX_DIGI_DEBUG) con_printf(CON_DEBUG,"converting %d (%d)\n", i, dlen);
-		SDL_BuildAudioCVT(&cvt, AUDIO_U8, 1, freq, MIX_OUTPUT_FORMAT, MIX_OUTPUT_CHANNELS, digi_sample_rate);
+		// 8-bit unsigned (the original sounds) or 16-bit signed (HD replacements), mono, at the sound's own rate
+		SDL_BuildAudioCVT(&cvt, GameSounds[i].bits == 16 ? AUDIO_S16LSB : AUDIO_U8, 1, freq, MIX_OUTPUT_FORMAT, MIX_OUTPUT_CHANNELS, digi_sample_rate);
 
 		cvt.buf = malloc(dlen * cvt.len_mult);
 		cvt.len = dlen;

@@ -1245,6 +1245,7 @@ int pow2ize(int x){
 }
 
 GLubyte *texbuf = NULL;
+static int texbuf_w = 0, texbuf_h = 0; // texbuf size in texels, checked by ogl_filltexbuf
 
 // Allocate the pixel buffers 'pixels' and 'texbuf' based on current screen resolution
 void ogl_init_pixel_buffers(int w, int h)
@@ -1258,7 +1259,11 @@ void ogl_init_pixel_buffers(int w, int h)
 
 	if (texbuf)
 		d_free(texbuf);
-	texbuf = d_malloc(max(w, 1024)*max(h, 1024)*4);	// must also fit big font texture
+	// At least 4096x2048 (32 MB), so HD menu art up to 2560x1440 fits at any resolution;
+	// this also fits the big font texture
+	texbuf_w = max(w, 4096);
+	texbuf_h = max(h, 2048);
+	texbuf = d_malloc(texbuf_w*texbuf_h*4);
 
 	if ((pixels == NULL) || (texbuf == NULL))
 		Error("Not enough memory for current resolution");
@@ -1274,7 +1279,7 @@ void ogl_filltexbuf(unsigned char *data, GLubyte *texp, int truewidth, int width
 {
 	int x,y,c,i;
 
-	if ((width > max(grd_curscreen->sc_w, 1024)) || (height > max(grd_curscreen->sc_h, 1024)))
+	if (pow2ize(width) > texbuf_w || pow2ize(height) > texbuf_h)
 		Error("Texture is too big: %ix%i", width, height);
 
 	if (data_format) { // true color bitmap?
@@ -1653,6 +1658,14 @@ void ogl_loadpngmask(png_data *pdata, grs_bitmap *bm, int texfilt)
 	d_free(mask);
 }
 #endif
+
+void ogl_loadrgbtexture(grs_bitmap *bm, unsigned char *rgb, int texfilt)
+{
+	if (bm->gltexture == NULL)
+		bm->gltexture = ogl_get_free_texture();
+	ogl_init_texture(bm->gltexture, bm->bm_w, bm->bm_h, 0);
+	ogl_loadtexture(rgb, 0, 0, bm->gltexture, bm->bm_flags, 3, texfilt);
+}
 
 void ogl_loadbmtexture_f(grs_bitmap *bm, int texfilt, const char *bitmapname)
 {

@@ -303,6 +303,112 @@ void ogles_destroy(void)
 }
 #endif
 
+// The Fullscreen and Borderless window checkboxes give four modes:
+//   Fullscreen only        -> fullscreen exclusive (SDL_FULLSCREEN)
+//   Fullscreen + Borderless -> fullscreen borderless: a borderless window at the top-left of its monitor
+//   Borderless only        -> a borderless window, left where the window was
+//   neither                -> a bordered, movable window, kept on screen
+static int gr_fullscreen_ticked = 0;
+
+static void gr_apply_window_flags(void)
+{
+	sdl_video_flags &= ~(SDL_FULLSCREEN | SDL_NOFRAME);
+	if (gr_fullscreen_ticked && !GameCfg.BorderlessWindow)
+		sdl_video_flags |= SDL_FULLSCREEN;
+	if (GameCfg.BorderlessWindow || GameArg.SysNoBorders)
+		sdl_video_flags |= SDL_NOFRAME;
+}
+
+#ifdef _WIN32
+#include <windows.h>
+#include <SDL_syswm.h>
+
+static HWND gr_hwnd(void)
+{
+	SDL_SysWMinfo info;
+	SDL_VERSION(&info.version);
+	return (SDL_GetWMInfo(&info) > 0) ? info.window : NULL;
+}
+
+// Where the game picture (the window's client area) last sat in a window, in screen coordinates
+static POINT gr_last_client;
+static int gr_have_last_client = 0;
+
+// Before a mode change: remember where a windowed game sits, so the new window can go back there
+static void gr_window_remember(void)
+{
+	SDL_Surface *s = SDL_GetVideoSurface();
+	HWND h = gr_hwnd();
+	POINT p = { 0, 0 };
+
+	if (h && s && !(s->flags & SDL_FULLSCREEN) && !IsIconic(h) && ClientToScreen(h, &p))
+	{
+		gr_last_client = p;
+		gr_have_last_client = 1;
+	}
+}
+
+// After a mode change: place the window for its mode. Exclusive fullscreen is left alone.
+static void gr_window_place(void)
+{
+	HWND h = gr_hwnd();
+	RECT wr;
+	POINT c = { 0, 0 };
+	MONITORINFO mi;
+	int x, y, ww, wh;
+
+	if (!h || (sdl_video_flags & SDL_FULLSCREEN) || !GetWindowRect(h, &wr) || !ClientToScreen(h, &c))
+		return;
+	ww = wr.right - wr.left;
+	wh = wr.bottom - wr.top;
+	x = wr.left;
+	y = wr.top;
+	if (gr_have_last_client) // keep the game picture where it was; the border goes around it
+	{
+		x = gr_last_client.x - (c.x - wr.left);
+		y = gr_last_client.y - (c.y - wr.top);
+	}
+
+	mi.cbSize = sizeof(mi);
+	if (!GetMonitorInfo(MonitorFromPoint(gr_have_last_client ? gr_last_client : c, MONITOR_DEFAULTTONEAREST), &mi))
+		return;
+	if (gr_fullscreen_ticked) // fullscreen borderless: the top-left of its monitor, never moving
+	{
+		x = mi.rcMonitor.left;
+		y = mi.rcMonitor.top;
+	}
+	else if (!(sdl_video_flags & SDL_NOFRAME)) // bordered: keep it on screen; too big: top-left, so the title bar shows
+	{
+		if (x + ww > mi.rcWork.right)
+			x = mi.rcWork.right - ww;
+		if (y + wh > mi.rcWork.bottom)
+			y = mi.rcWork.bottom - wh;
+		if (x < mi.rcWork.left)
+			x = mi.rcWork.left;
+		if (y < mi.rcWork.top)
+			y = mi.rcWork.top;
+	}
+	SetWindowPos(h, NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+int gr_monitor_size(int *w, int *h)
+{
+	HWND hw = gr_hwnd();
+	MONITORINFO mi;
+
+	mi.cbSize = sizeof(mi);
+	if (!hw || !GetMonitorInfo(MonitorFromWindow(hw, MONITOR_DEFAULTTONEAREST), &mi))
+		return 0;
+	*w = mi.rcMonitor.right - mi.rcMonitor.left;
+	*h = mi.rcMonitor.bottom - mi.rcMonitor.top;
+	return 1;
+}
+#else
+static void gr_window_remember(void) {}
+static void gr_window_place(void) {}
+int gr_monitor_size(int *w, int *h) { w = w; h = h; return 0; }
+#endif
+
 int ogl_init_window(int x, int y)
 {
 	int use_x,use_y,use_bpp;
@@ -358,6 +464,7 @@ int ogl_init_window(int x, int y)
 		}
 	}
 
+	gr_window_remember();
 	if (!SDL_SetVideoMode(use_x, use_y, use_bpp, use_flags))
 	{
 #ifdef RPI
@@ -367,6 +474,7 @@ int ogl_init_window(int x, int y)
 		Error("Could not set %dx%dx%d opengl video mode: %s\n", x, y, GameArg.DbgBpp, SDL_GetError());
 #endif
 	}
+	gr_window_place();
 
 #ifdef OGLES
 #ifndef RPI
@@ -459,15 +567,13 @@ int ogl_init_window(int x, int y)
 
 int gr_check_fullscreen(void)
 {
-	return (sdl_video_flags & SDL_FULLSCREEN)?1:0;
+	return gr_fullscreen_ticked; // the Fullscreen checkbox, exclusive or borderless
 }
 
 int gr_toggle_fullscreen(void)
 {
-	if (sdl_video_flags & SDL_FULLSCREEN)
-		sdl_video_flags &= ~SDL_FULLSCREEN;
-	else
-		sdl_video_flags |= SDL_FULLSCREEN;
+	gr_fullscreen_ticked = !gr_fullscreen_ticked;
+	gr_apply_window_flags();
 
 	if (gl_initialized)
 	{
@@ -477,10 +583,12 @@ int gr_toggle_fullscreen(void)
 				con_printf(CON_URGENT,"Cannot set %ix%i. Fallback to 640x480\n",SM_W(Game_screen_mode), SM_H(Game_screen_mode));
 				Game_screen_mode=SM(640,480);
 			}
+			gr_window_remember();
 			if (!SDL_SetVideoMode(SM_W(Game_screen_mode), SM_H(Game_screen_mode), GameArg.DbgBpp, sdl_video_flags))
 			{
 				Error("Could not set %dx%dx%d opengl video mode: %s\n", SM_W(Game_screen_mode), SM_H(Game_screen_mode), GameArg.DbgBpp, SDL_GetError());
 			}
+			gr_window_place();
 		}
 #ifdef RPI
 		if (rpi_setup_element(SM_W(Game_screen_mode), SM_H(Game_screen_mode), sdl_video_flags, 1)) {
@@ -509,8 +617,8 @@ int gr_toggle_fullscreen(void)
 		if (Game_wind)
 			ogl_cache_level_textures();
 	}
-	GameCfg.WindowMode = (sdl_video_flags & SDL_FULLSCREEN)?0:1;
-	return (sdl_video_flags & SDL_FULLSCREEN)?1:0;
+	GameCfg.WindowMode = gr_fullscreen_ticked?0:1;
+	return gr_fullscreen_ticked;
 }
 
 static void ogl_init_state(void)
@@ -679,7 +787,7 @@ int gr_set_mode(u_int32_t mode)
 	gr_init_canvas(&grd_curscreen->sc_canvas, d_realloc(gr_bm_data,w*h), BM_OGL, w, h);
 	gr_set_current_canvas(NULL);
 
-	sdl_video_flags = (sdl_video_flags & ~SDL_NOFRAME) | (GameCfg.BorderlessWindow ? SDL_NOFRAME : 0);
+	gr_apply_window_flags();
 
 	ogl_init_window(w,h);//platform specific code
 	ogl_get_verinfo();
@@ -795,11 +903,9 @@ int gr_init(int mode)
 	ogl_init_load_library();
 #endif
 
-	if (!GameCfg.WindowMode && !GameArg.SysWindow)
-		sdl_video_flags|=SDL_FULLSCREEN;
-
-	if (GameArg.SysNoBorders)
-		sdl_video_flags|=SDL_NOFRAME;
+	gr_fullscreen_ticked = (!GameCfg.WindowMode && !GameArg.SysWindow);
+	gr_apply_window_flags();
+	SDL_putenv("SDL_VIDEO_CENTERED=1"); // a window opens in the middle of the screen; later mode changes keep it in place
 
 	gr_set_attributes();
 

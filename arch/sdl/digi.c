@@ -86,6 +86,16 @@ void digi_select_system(int n) {
 	}
 }
 
+// 1 when SDL_mixer plays the sounds (it can play 16-bit sounds; plain SDL audio cannot)
+int digi_using_mixer(void)
+{
+#ifdef USE_SDLMIXER
+	return fptr_start_sound == digi_mixer_start_sound;
+#else
+	return 0;
+#endif
+}
+
 /* Common digi functions */
 #ifndef NDEBUG
 static int digi_initialised = 0;

@@ -72,6 +72,12 @@ int VSync;
 	int ClassicDepth;
 	int BorderlessWindow;
 	int GamePort; // Join Manually GAME PORT: the port games are searched on; 0 = use -udp_gameport or the default
+	// Screen Resolution menu "use custom values": while on, the list shows only the ResFilterW:ResFilterH
+	// shape (0 = every shape) plus up to 2 custom resolutions (SM() modes, 0 = empty)
+	int ResCustom;
+	int ResFilterW;
+	int ResFilterH;
+	u_int32_t ResExtra[2];
 } __pack__ Cfg;
 
 extern struct Cfg GameCfg;
