@@ -103,10 +103,34 @@ A new bounty target is never the host who is observing, and a leaving player is 
 A host option, and a Misc option for single player, that turns the Vulcan cannon into D2's Gauss: slower, harder-hitting shots with a tight spread and no splash, using Vulcan ammo. It comes with its own sound, HUD icon, pickup sprite and 3D model.
 - **Gauss HUD, Textures And Sound**
 The D1 Models-Textures pack now carries the Gauss art: the gauge21b HUD icon and 16-frame pickup sprite in XTEXTURES.DXA, the 3D pickup model in XPOWERUPS.DXA, and the gauss.wav firing sound in both XTEXTURES.DXA and D1-SFX.DXA. The Gauss art shows even with custom textures off.
+- **960x540 Default Resolution**
+Fresh installs now start at 960x540 (16:9) instead of the old 640x480, and so does the Default answer when the game asks about a too-big resolution at startup. Your saved resolution in descent.cfg is kept as it is.
+
+## Features
+
+- **Fullscreen, Borderless And Windowed Modes**
+The Fullscreen and Borderless window boxes in Screen Resolution now give four real modes. Fullscreen alone is exclusive and keeps the mouse trapped. Fullscreen with Borderless is a borderless window pinned to the top-left of its monitor, never bigger than that monitor. Borderless alone stays exactly where your window was, and a bordered window slides back on screen after a resolution change. Before, Borderless did nothing in fullscreen and a resized window could open half off the screen.
+- **24-Bit PCX Menu Backgrounds**
+Menu boxes, the main menu (menuh.pcx) and the level-end message screen now read 24-bit PCX files: millions of colours instead of 256. A 24-bit picture goes straight to the screen with no palette, so it can never change the colours of the menu text. That is what used to turn menu lettering the wrong colour after changing resolution or graphics settings. 8-bit PCX files still work and keep their own palette.
+- **Safer Resolution Changes**
+A resolution more than 1.5 times your monitor (above 2880x1620 on a 1920x1080 screen) asks "Are you sure?" first, then gives you 15 seconds to pick Keep before it switches back on its own. If the game is closed on one anyway, the next start opens at 960x540 and asks whether to go back to it, so nobody gets stuck on a screen they can't see.
+
+## Options
+
+- **Screen Resolution Aspect Filter**
+"use custom values" is now a checkbox. Type an aspect such as 16x9, or step through 4x3, 5x4, 16x10, 16x9 and 21x9 with the arrow keys, press Enter, and the list shows only that shape. Typing a width fills in the height for that shape (555 becomes 555x312), typing past the x fills in the width, and with 0x0 the aspect follows whatever you type. The last 2 custom resolutions you applied stay in the list until you untick the box, and it is all saved in descent.cfg.
+
+## Menu Options
+
 - **Gauss Replaces Vulcan in D1 Host Option (no changes made to game files)**
 The host can tick "Vulcan Becomes Gauss" so the Vulcan cannon plays as D2's Gauss for everyone. The original game data is not changed.
-- **Single Player Menu Toggle for Gauss Replace Vulcan**
-Misc options has "Vulcan Becomes Gauss (SP)" for single player.
+- **Toggle Vulcan To Gauss Option**
+Misc options has "Vulcan Becomes Gauss (SP)" for single player, so you don't need a host to try it. Why, you might ask? Because Gauss!
+
+## DXA Graphics
+
+- **New HD Menu Box Pictures In D1-GFX.DXA**
+Five new stone pictures, one per box shape: scoresb-tall (648x720), scoresb-square (900x720), scoresb-std (1152x720), scoresb-wide (1440x720) and scoresb-strip (2160x720). Each menu box picks the one closest to its shape and fits it corner to corner, so the bevel shows on all four sides instead of the picture being zoomed into its top-left corner. Download the new D1-GFX.DXA from the Models-n-Textures pack to get them; without it the boxes use the plain scoresb.pcx.
 - **New Gauss Image for HUD and Cockpit in XTEXTURES.DXA**
 The Gauss weapon picture for the HUD and cockpit is gauge21b.png in XTEXTURES.DXA.
 
@@ -160,3 +184,9 @@ A player who backs out of the waiting box while joining is taken out at once, so
 Observers now see players who join or rejoin while they watch, and a game that switches from observing to playing no longer stays on the observer list.
 - **Bounty Mode Endless Loop**
 Picking a new bounty target can no longer hang the game when there is no player left to pick.
+- **Game Stops Grabbing The Mouse**
+In windowed and borderless modes, clicking off the game or alt-tabbing now lets the mouse go straight away, and the game only takes it back when you click on it. It no longer pulls the cursor back while you use another window or monitor, and hovering over the game doesn't turn your ship. "Keep Keyboard/Mouse focus" only holds the cursor while you are playing, never in menus or after Esc.
+- **Enter In Screen Resolution Keeps You In The Menu**
+Pressing Enter on a resolution used to change it and throw you out of the menu straight away. Now the menu stays open: Enter ticks a resolution, and only Enter on the one already ticked changes it.
+- **Mouse Clicks On Resolutions**
+Clicking a resolution ticks it without changing your screen, and clicking the ticked one again applies it, so a stray click can't switch resolutions on you.
