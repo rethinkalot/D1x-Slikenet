@@ -102,23 +102,34 @@ A new bounty target is never the host who is observing, and a leaving player is 
 - **Vulcan Becomes Gauss**
 A host option, and a Misc option for single player, that turns the Vulcan cannon into D2's Gauss: slower, harder-hitting shots with a tight spread and no splash, using Vulcan ammo. It comes with its own sound, HUD icon, pickup sprite and 3D model.
 - **Gauss HUD, Textures And Sound**
-The D1 Models-Textures pack now carries the Gauss art: the gauge21b HUD icon and 16-frame pickup sprite in XTEXTURES.DXA, the 3D pickup model in XPOWERUPS.DXA, and the gauss.wav firing sound in both XTEXTURES.DXA and D1-SFX.DXA. The Gauss art shows even with custom textures off.
+The D1 Models-Textures pack now carries the Gauss art: the gauge21b HUD icon and 16-frame pickup sprite in XTEXTURES.DXA, the 3D pickup model in XPOWERUPS.DXA, and the gauss.wav firing sound, a new recording, in XHDSOUNDS.DXA. The Gauss art shows even with custom textures off.
 - **960x540 Default Resolution**
 Fresh installs now start at 960x540 (16:9) instead of the old 640x480, and so does the Default answer when the game asks about a too-big resolution at startup. Your saved resolution in descent.cfg is kept as it is.
 
 ## Features
 
 - **Fullscreen, Borderless And Windowed Modes**
-The Fullscreen and Borderless window boxes in Screen Resolution now give four real modes. Fullscreen alone is exclusive and keeps the mouse trapped. Fullscreen with Borderless is a borderless window pinned to the top-left of its monitor, never bigger than that monitor. Borderless alone stays exactly where your window was, and a bordered window slides back on screen after a resolution change. Before, Borderless did nothing in fullscreen and a resized window could open half off the screen.
+The Fullscreen and Borderless window boxes in Screen Resolution now give four real modes. Fullscreen alone is exclusive and keeps the mouse trapped. Fullscreen with Borderless covers your whole monitor and shows the game picture pixel for pixel in the middle, with black around it; a resolution bigger than the monitor is shrunk to fit. Borderless alone stays exactly where your window was, and a bordered window slides back on screen after a resolution change. Before, Borderless did nothing in fullscreen and a resized window could open half off the screen.
 - **24-Bit PCX Menu Backgrounds**
 Menu boxes, the main menu (menuh.pcx) and the level-end message screen now read 24-bit PCX files: millions of colours instead of 256. A 24-bit picture goes straight to the screen with no palette, so it can never change the colours of the menu text. That is what used to turn menu lettering the wrong colour after changing resolution or graphics settings. 8-bit PCX files still work and keep their own palette.
 - **Safer Resolution Changes**
-A resolution more than 1.5 times your monitor (above 2880x1620 on a 1920x1080 screen) asks "Are you sure?" first, then gives you 15 seconds to pick Keep before it switches back on its own. If the game is closed on one anyway, the next start opens at 960x540 and asks whether to go back to it, so nobody gets stuck on a screen they can't see.
+Going more than two sizes above your monitor in the list, or past 1.5 times its width or height, asks "Are you sure?" first: on a 1920x1080 screen the next two sizes up are fine and the third one asks. It then gives you 15 seconds to pick Keep before it switches back on its own. If the game is closed on one anyway, the next start opens at 960x540 and asks whether to go back to it, so nobody gets stuck on a screen they can't see.
+
+- **D2 Sound Occlusion**
+New switch in the Sound menu. On, closed doors and walls block sound like in D2, and D2's own sounds play at 44.1 kHz 16-bit from XHDSOUNDS.DXA, with new recordings of Laser 1, Fusion and Spreadfire levelled to match D2. Off is the original D1 sound, carrying through closed doors. Download XHDSOUNDS.DXA from the Models-n-Textures pack to hear the D2 sounds; without it the switch still changes the occlusion.
+- **D2 Briefing Sounds**
+Briefings now sound like D2's: a beep while the text types, and D2's hum under the briefing when no music is heard (music volume 0 or no music playing), two FX steps below your other sounds. Both sounds come in XHDSOUNDS.DXA from the Models-n-Textures pack.
 
 ## Options
 
 - **Screen Resolution Aspect Filter**
 "use custom values" is now a checkbox. Type an aspect such as 16x9, or step through 4x3, 5x4, 16x10, 16x9 and 21x9 with the arrow keys, press Enter, and the list shows only that shape. Typing a width fills in the height for that shape (555 becomes 555x312), typing past the x fills in the width, and with 0x0 the aspect follows whatever you type. The last 2 custom resolutions you applied stay in the list until you untick the box, and it is all saved in descent.cfg.
+- **More Resolutions In The List**
+960x540 and 854x480 (16:9) and the 16:10 sizes 1024x640, 1152x720, 1280x800, 1440x900 and 1680x1050 are now in the Screen Resolution list, so they are easy to pick. The list is sorted by size, biggest first, like your monitor's own list.
+- **Resolution Box Works Like A Text Box**
+The resolution box has a normal cursor: Left and Right move it, Home and End jump to either end, Backspace deletes before the cursor and Delete after it. Right at the end steps to the next bigger resolution of the current shape, and Left at the start to the next smaller one.
+- **Enter On Fullscreen And Borderless**
+Space ticks the boxes as before. Enter on a ticked box applies the window mode straight away, Enter on an empty box does nothing, and a quick double Enter ticks it and applies it.
 
 ## Menu Options
 
@@ -190,3 +201,5 @@ In windowed and borderless modes, clicking off the game or alt-tabbing now lets 
 Pressing Enter on a resolution used to change it and throw you out of the menu straight away. Now the menu stays open: Enter ticks a resolution, and only Enter on the one already ticked changes it.
 - **Mouse Clicks On Resolutions**
 Clicking a resolution ticks it without changing your screen, and clicking the ticked one again applies it, so a stray click can't switch resolutions on you.
+- **Screen Sharing Fullscreen Borderless**
+Discord and OBS screen capture no longer freeze on one frame in Fullscreen Borderless. Windows took the monitor-sized window for real fullscreen and skipped the desktop that capture reads from, so the window is now one pixel taller than the screen.
