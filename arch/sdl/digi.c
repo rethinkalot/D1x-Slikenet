@@ -96,6 +96,15 @@ int digi_using_mixer(void)
 #endif
 }
 
+// After GameSounds[] data is swapped: stop the sounds and drop SDL_mixer's converted copies of the old data
+void digi_flush_sounds(void)
+{
+#ifdef USE_SDLMIXER
+	if (digi_using_mixer())
+		digi_mixer_flush_sounds();
+#endif
+}
+
 /* Common digi functions */
 #ifndef NDEBUG
 static int digi_initialised = 0;

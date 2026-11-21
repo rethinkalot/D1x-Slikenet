@@ -475,9 +475,10 @@ void nm_rstring( int w1,int x, int y, char * s )
 	gr_string( x-w, y, s );
 }
 
-void nm_string_inputbox( int w, int x, int y, char * text, int current )
+void nm_string_inputbox( int w, int x, int y, char * text, int current, int cursor )
 {
 	int w1,h1,aw;
+	char *start = text;
 
 	// even with variable char widths and a box that goes over the whole screen, we maybe never get more than 75 chars on the line
 	if (strlen(text)>75)
@@ -495,7 +496,21 @@ void nm_string_inputbox( int w, int x, int y, char * text, int current )
 	nm_string_black( w, x, y, text );
 
 	if ( current && timer_query() & 0x8000 )
+	{
+		if (cursor >= 0 && cursor < (int)strlen(start)) // a cursor inside the text (the resolution field): draw it there
+		{
+			char prefix[80];
+			int n = cursor - (int)(text - start);
+
+			if (n < 0)
+				n = 0;
+			snprintf(prefix, sizeof(prefix), "%.*s", n, text);
+			w1 = 0;
+			if (n)
+				gr_get_string_size(prefix, &w1, &h1, &aw);
+		}
 		gr_string( x+w1, y, CURSOR_STRING );
+	}
 }
 
 void draw_item( newmenu_item *item, int is_current, int tiny, int tabs_flag, int scroll_offset )
@@ -541,11 +556,11 @@ void draw_item( newmenu_item *item, int is_current, int tiny, int tabs_flag, int
 			{
 				nm_string( item->w, item->x, item->y-(((int)LINE_SPACING)*scroll_offset), item->text, tabs_flag );
 			} else {
-				nm_string_inputbox( item->w, item->x, item->y-(((int)LINE_SPACING)*scroll_offset), item->text, is_current );
+				nm_string_inputbox( item->w, item->x, item->y-(((int)LINE_SPACING)*scroll_offset), item->text, is_current, item->value );
 			}
 			break;
 		case NM_TYPE_INPUT:
-			nm_string_inputbox( item->w, item->x, item->y-(((int)LINE_SPACING)*scroll_offset), item->text, is_current );
+			nm_string_inputbox( item->w, item->x, item->y-(((int)LINE_SPACING)*scroll_offset), item->text, is_current, item->value );
 			break;
 		case NM_TYPE_CHECK:
 			nm_string( item->w, item->x, item->y-(((int)LINE_SPACING)*scroll_offset), item->text, tabs_flag );

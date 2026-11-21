@@ -16,6 +16,7 @@ void digi_mixer_reset();
 void digi_set_max_channels(int);
 int digi_get_max_channels();
 void digi_mixer_stop_all_channels();
+void digi_mixer_flush_sounds();
 void digi_mixer_set_digi_volume(int);
 void digi_mixer_debug();
 

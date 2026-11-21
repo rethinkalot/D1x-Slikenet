@@ -14,6 +14,9 @@
 #include "mouse.h"
 #include "playsave.h"
 #include "args.h"
+#ifdef OGL
+#include "gr.h"
+#endif
 
 static struct mouseinfo {
 	ubyte  button_state[MOUSE_MAX_BUTTONS];
@@ -173,17 +176,24 @@ void mouse_get_pos( int *x, int *y, int *z )
 	*x=Mouse.x;
 	*y=Mouse.y;
 	*z=Mouse.z;
+#ifdef OGL
+	gr_window_to_game(x, y);
+#endif
 }
 
 int mouse_in_window(window *wind)
 {
 	grs_canvas *canv;
-	
+	int mx = Mouse.x, my = Mouse.y;
+
+#ifdef OGL
+	gr_window_to_game(&mx, &my);
+#endif
 	canv = window_get_canvas(wind);
-	return	(Mouse.x >= canv->cv_bitmap.bm_x) &&
-			(Mouse.x <= canv->cv_bitmap.bm_x + canv->cv_bitmap.bm_w) && 
-			(Mouse.y >= canv->cv_bitmap.bm_y) && 
-			(Mouse.y <= canv->cv_bitmap.bm_y + canv->cv_bitmap.bm_h);
+	return	(mx >= canv->cv_bitmap.bm_x) &&
+			(mx <= canv->cv_bitmap.bm_x + canv->cv_bitmap.bm_w) &&
+			(my >= canv->cv_bitmap.bm_y) &&
+			(my <= canv->cv_bitmap.bm_y + canv->cv_bitmap.bm_h);
 }
 
 void mouse_get_delta( int *dx, int *dy, int *dz )

@@ -40,6 +40,7 @@ static const char DigiVolumeStr[] = "DigiVolume";
 static const char MusicVolumeStr[] = "MusicVolume";
 static const char ReverseStereoStr[] = "ReverseStereo";
 static const char OrigTrackOrderStr[] = "OrigTrackOrder";
+static const char HDSoundsStr[] = "HDSounds";
 static const char MusicTypeStr[] = "MusicType";
 static const char CMLevelMusicPlayOrderStr[] = "CMLevelMusicPlayOrder";
 static const char CMLevelMusicTrack0Str[] = "CMLevelMusicTrack0";
@@ -99,6 +100,7 @@ int ReadConfigFile()
 	GameCfg.MusicVolume = 8;
 	GameCfg.ReverseStereo = 0;
 	GameCfg.OrigTrackOrder = 0;
+	GameCfg.HDSounds = 1;
 #if defined(__APPLE__) && defined(__MACH__)
 	GameCfg.MusicType = MUSIC_TYPE_REDBOOK;
 #else
@@ -176,6 +178,8 @@ int ReadConfigFile()
 				GameCfg.ReverseStereo = strtol(value, NULL, 10);
 			else if (!strcmp(token, OrigTrackOrderStr))
 				GameCfg.OrigTrackOrder = strtol(value, NULL, 10);
+			else if (!strcmp(token, HDSoundsStr))
+				GameCfg.HDSounds = strtol(value, NULL, 10);
 			else if (!strcmp(token, MusicTypeStr))
 				GameCfg.MusicType = strtol(value, NULL, 10);
 			else if (!strcmp(token, CMLevelMusicPlayOrderStr))
@@ -310,6 +314,7 @@ int WriteConfigFile()
 	PHYSFSX_printf(infile, "%s=%d\n", MusicVolumeStr, GameCfg.MusicVolume);
 	PHYSFSX_printf(infile, "%s=%d\n", ReverseStereoStr, GameCfg.ReverseStereo);
 	PHYSFSX_printf(infile, "%s=%d\n", OrigTrackOrderStr, GameCfg.OrigTrackOrder);
+	PHYSFSX_printf(infile, "%s=%d\n", HDSoundsStr, GameCfg.HDSounds);
 	PHYSFSX_printf(infile, "%s=%d\n", MusicTypeStr, GameCfg.MusicType);
 	PHYSFSX_printf(infile, "%s=%d\n", CMLevelMusicPlayOrderStr, GameCfg.CMLevelMusicPlayOrder);
 	PHYSFSX_printf(infile, "%s=%d\n", CMLevelMusicTrack0Str, GameCfg.CMLevelMusicTrack[0]);

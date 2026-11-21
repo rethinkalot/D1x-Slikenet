@@ -40,6 +40,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "multi.h"
 #include "player.h"
 #include "digi.h"
+#include "customsnd.h"
 #include "text.h"
 #include "kmatrix.h"
 #include "piggy.h"
@@ -351,6 +352,8 @@ typedef struct briefing
 	sbyte	guy_bitmap_show;
 	sbyte   door_dir, door_div_count, animating_bitmap_type;
 	sbyte	prev_ch;
+	int		hum_channel, printing_channel; // D2's briefing sounds; -1 when not playing
+	ubyte	chattering;
 } briefing;
 
 static void briefing_init(briefing *br, short level_num)
@@ -370,6 +373,8 @@ static void briefing_init(briefing *br, short level_num)
 	br->door_dir = 1;
 	br->door_div_count = 0;
 	br->animating_bitmap_type = 0;
+	br->hum_channel = br->printing_channel = -1;
+	br->chattering = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -509,7 +514,21 @@ static void put_char_delay(briefing *br, int ch)
 	gr_get_string_size(str, &w, &h, &aw );
 	br->text_x += w;
 
+	if (!br->chattering && Sound_briefing_printing >= 0) // D2's printing beep, looping until the page ends
+	{
+		br->printing_channel = digi_start_sound(digi_xlat_sound(Sound_briefing_printing), F1_0, 0xFFFF/2, 1, -1, -1, -1);
+		br->chattering = 1;
+	}
+
 	br->start_time = timer_query();
+}
+
+static void briefing_stop_printing(briefing *br)
+{
+	br->chattering = 0;
+	if (br->printing_channel > -1)
+		digi_stop_sound(br->printing_channel);
+	br->printing_channel = -1;
 }
 
 static void init_spinning_robot(briefing *br);
@@ -599,9 +618,11 @@ static int briefing_process_char(briefing *br)
 			br->guy_bitmap_show=1;
 			br->prev_ch = 10;
 		} else if (ch == 'S') {
+			briefing_stop_printing(br);
 			br->new_screen = 1;
 			return 1;
 		} else if (ch == 'P') {		//	New page.
+			briefing_stop_printing(br);
 			br->new_page = 1;
 
 			while (*br->message != 10) {
@@ -971,6 +992,7 @@ static int load_briefing_screen(briefing *br, char *fname)
 
 static void free_briefing_screen(briefing *br)
 {
+	briefing_stop_printing(br);
 	if (br->robot_canv != NULL)
 		d_free(br->robot_canv);
 
@@ -1023,6 +1045,11 @@ static int new_briefing_screen(briefing *br, int first)
 	br->bitmap_name[0] = 0;
 	br->guy_bitmap_show = 0;
 	br->prev_ch = -1;
+
+	// D2's hum, in place of the music: only when no music is heard (volume 0 or nothing playing),
+	// 2 FX-slider steps below the other sounds, never under 1
+	if (br->hum_channel == -1 && Sound_briefing_hum >= 0 && GameCfg.DigiVolume && (!GameCfg.MusicVolume || songs_is_playing() == -1))
+		br->hum_channel = digi_start_sound(digi_xlat_sound(Sound_briefing_hum), F1_0 * max(1, GameCfg.DigiVolume - 2) / GameCfg.DigiVolume, 0xFFFF/2, 1, -1, -1, -1);
 
 	return 1;
 }
@@ -1133,6 +1160,9 @@ static int briefing_handler(window *wind, d_event *event, briefing *br)
 
 		case EVENT_WINDOW_CLOSE:
 			free_briefing_screen(br);
+			if (br->hum_channel > -1)
+				digi_stop_sound(br->hum_channel);
+			br->hum_channel = -1;
 			d_free(br->text);
 			d_free(br);
 			break;

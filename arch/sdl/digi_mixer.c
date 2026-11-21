@@ -35,11 +35,7 @@
 #define MIX_OUTPUT_CHANNELS	2
 
 #define MAX_SOUND_SLOTS 64
-#if !((defined(__APPLE__) && defined(__MACH__)) || defined(macintosh))
-#define SOUND_BUFFER_SIZE 2048
-#else
-#define SOUND_BUFFER_SIZE 1024
-#endif
+#define SOUND_BUFFER_SIZE 2048 // about 46 ms at 44.1 kHz
 #define MIN_VOLUME 10
 
 static int digi_initialised = 0;
@@ -222,6 +218,21 @@ int digi_mixer_is_sound_playing(int soundno) { return 0; }
 int digi_mixer_is_channel_playing(int channel) { return 0; }
 
 void digi_mixer_reset() {}
+
+// Stop every sound and drop the converted copies, so the next play converts GameSounds[] again
+void digi_mixer_flush_sounds()
+{
+	int i;
+
+	if (!digi_initialised) return;
+	digi_mixer_stop_all_channels();
+	for (i = 0; i < MAX_SOUNDS; i++)
+		if (SoundChunks[i].abuf)
+		{
+			free(SoundChunks[i].abuf);
+			SoundChunks[i].abuf = NULL;
+		}
+}
 void digi_mixer_stop_all_channels()
 {
 	Mix_HaltChannel(-1);

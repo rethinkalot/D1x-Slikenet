@@ -30,6 +30,7 @@ typedef struct Cfg
 	ubyte MusicVolume;
 	int ReverseStereo;
 	int OrigTrackOrder;
+	int HDSounds; // D1: D2 Sound Occlusion: closed doors block sound, and Sounds/HD/d2_*.wav versions play
 	int MusicType;
 	int CMLevelMusicPlayOrder;
 	int CMLevelMusicTrack[2];

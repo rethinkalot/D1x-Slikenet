@@ -103,6 +103,12 @@ void gauss_init_assets(void)
 	gauss_add_powerup_vclip();
 	gauss_picture = gauss_add_bitmap(Weapon_info[VULCAN_ID].picture, "gauge21b");
 	gauss_sound = custom_sound_load("gauss.wav", 0);
+	if (gauss_sound >= 0)
+	{
+		hd_sound_attach(gauss_sound, "gauss.wav", 1); // the same recording at full quality, switch on or off
+		hd_sound_attach(gauss_sound, "d2_gauss.wav", 0); // D2 Sound Occlusion on
+		hd_sound_attach(gauss_sound, "HD/d2_gauss.wav", 0);
+	}
 }
 
 void gauss_apply(void)

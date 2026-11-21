@@ -13,12 +13,14 @@
 #include "sounds.h"
 #include "digi.h"
 #include "customsnd.h"
+#include "config.h"
 
 #define CUSTOM_SOUND_RATE	11025	// D1's own sounds are 8-bit mono 11 kHz
 
 extern int Num_sound_files; // piggy.c
 
 int Sound_slikenet_msg = -1;
+int Sound_briefing_printing = -1, Sound_briefing_hum = -1;
 
 // Read 'name' from the search path into memory.
 static ubyte *custom_sound_read(const char *name, int *len)
@@ -168,11 +170,19 @@ int custom_sound_load(const char *name, int loud)
 void custom_sounds_init(void)
 {
 	Sound_slikenet_msg = custom_sound_load("slikenetmsg.wav", 1); // a quiet recording, so raise it
+
+	// D2's briefing sounds: the beep while text types, the hum under the spinning robot
+	if ((Sound_briefing_printing = custom_sound_load("br_beep2.wav", 0)) >= 0)
+		hd_sound_attach(Sound_briefing_printing, "br_beep2.wav", 1);
+	if ((Sound_briefing_hum = custom_sound_load("de_hum_2.wav", 0)) >= 0)
+		hd_sound_attach(Sound_briefing_hum, "de_hum_2.wav", 1);
 }
 
 // HD sounds: D2's 22 kHz recordings of the sounds D1 shares with D2, converted to 44.1 kHz 16-bit mono,
 // replace D1's 8-bit 11 kHz originals. Matched by sound number through the robot, weapon and named-sound
-// tables of both games. Each file is Sounds/HD/<D2 name>.wav (in D1-SFX.DXA); a missing file keeps D1's own.
+// tables of both games. <D2 name>.wav (loose in Data, or in Sounds/ of a DXA) replaces D1's sound for good;
+// d2_<D2 name>.wav (the same places, or an HD/ folder; both kinds ship in XSOUNDS.DXA) plays instead while D2 Sound Occlusion is on.
+// A missing file keeps the version below it, down to D1's own.
 // The reactor countdown voices are left out on purpose: D2 renumbered them.
 static const struct { short id; const char *name; } hd_sound_map[] = {
 	{ 10, "laser03" }, { 11, "explode1" }, { 12, "laser05" }, { 13, "laser03" }, { 14, "laser04" },
@@ -196,49 +206,99 @@ static const struct { short id; const char *name; } hd_sound_map[] = {
 };
 
 extern int digi_using_mixer(void);
+extern void digi_flush_sounds(void);
+
+// Each HD sound keeps both versions; hd_sounds_set() picks which one GameSounds[] plays
+static struct { int f; digi_sound orig, hd; } hd_list[MAX_SOUND_FILES];
+static int hd_count, hd_active;
+
+// Load WAV 'path' as a mono 16-bit version of game sound file f, at the file's own rate.
+// 'fixed': it replaces the sound for good, switch on or off; otherwise it plays only with D2 Sound Occlusion on.
+static int hd_sound_add(int f, const char *path, int fixed)
+{
+	int file_len = 0, channels, rate, bytes, frames, k, i;
+	ubyte *file;
+	const ubyte *wav;
+	short *pcm;
+
+	if (!digi_using_mixer() || f < 0 || f >= MAX_SOUND_FILES) // only SDL_mixer plays 16-bit sounds
+		return 0;
+	for (i = 0; i < hd_count; i++)
+		if (hd_list[i].f == f)
+			break;
+	if (i < hd_count ? fixed || hd_list[i].hd.data != hd_list[i].orig.data : i >= MAX_SOUND_FILES) // already has this kind, or no room
+		return 0;
+	if (!(file = custom_sound_read(path, &file_len)))
+		return 0;
+	if (!custom_sound_parse(file, file_len, &channels, &rate, &bytes, &wav, &frames))
+	{
+		d_free(file);
+		return 0;
+	}
+	pcm = d_malloc(frames * sizeof(short));
+	for (k = 0; k < frames; k++)
+	{
+		int c, sum = 0;
+		for (c = 0; c < channels; c++)
+			sum += custom_sound_sample(wav + (k * channels + c) * bytes, bytes);
+		pcm[k] = sum / channels;
+	}
+	d_free(file);
+	if (i == hd_count) // new entry; a fixed one getting its switch-on version keeps its 'orig'
+	{
+		hd_list[i].f = f;
+		hd_list[i].orig = GameSounds[f]; // the old data may live inside the PIG buffer, so it is kept as is
+		hd_count++;
+	}
+	hd_list[i].hd.data = (ubyte *)pcm;
+	hd_list[i].hd.length = frames * sizeof(short);
+	hd_list[i].hd.bits = 16;
+	hd_list[i].hd.freq = rate;
+	if (fixed)
+		GameSounds[f] = hd_list[i].orig = hd_list[i].hd;
+	return 1;
+}
+
+void hd_sound_attach(int soundnum, const char *name, int fixed)
+{
+	if (soundnum >= 0 && soundnum < MAX_SOUNDS && Sounds[soundnum] != 255)
+		hd_sound_add(Sounds[soundnum], name, fixed);
+}
+
+void hd_sounds_set(int on)
+{
+	int i;
+
+	on = on && hd_count;
+	if (on == hd_active)
+		return;
+	for (i = 0; i < hd_count; i++)
+		GameSounds[hd_list[i].f] = on ? hd_list[i].hd : hd_list[i].orig;
+	hd_active = on;
+	digi_flush_sounds(); // the mixer still holds converted copies of the other version
+}
 
 void hd_sounds_init(void)
 {
-	ubyte done[MAX_SOUND_FILES];
-	int i, n = 0;
+	int i, n, pass;
 
-	if (!digi_using_mixer()) // only SDL_mixer plays 16-bit sounds
-		return;
-	memset(done, 0, sizeof(done));
-	for (i = 0; i < (int)(sizeof(hd_sound_map) / sizeof(hd_sound_map[0])); i++)
-	{
-		int f = Sounds[hd_sound_map[i].id], file_len = 0, channels, rate, bytes, frames, k;
-		char path[64];
-		ubyte *file;
-		const ubyte *wav;
-		short *pcm;
+	for (pass = 0; pass < 2; pass++) // <name>.wav: always used; d2_<name>.wav: only with D2 Sound Occlusion on
+		for (i = 0; i < (int)(sizeof(hd_sound_map) / sizeof(hd_sound_map[0])); i++)
+		{
+			char path[64];
+			int f = Sounds[hd_sound_map[i].id];
 
-		if (f == 255 || f >= MAX_SOUND_FILES || done[f])
-			continue;
-		snprintf(path, sizeof(path), "HD/%s.wav", hd_sound_map[i].name);
-		if (!(file = custom_sound_read(path, &file_len)))
-			continue;
-		if (!custom_sound_parse(file, file_len, &channels, &rate, &bytes, &wav, &frames))
-		{
-			d_free(file);
-			continue;
+			if (f == 255)
+				continue;
+			snprintf(path, sizeof(path), pass ? "d2_%s.wav" : "%s.wav", hd_sound_map[i].name);
+			if (!hd_sound_add(f, path, !pass) && pass) // d2_ files: in Data, Sounds/ or an HD/ folder
+			{
+				snprintf(path, sizeof(path), "HD/d2_%s.wav", hd_sound_map[i].name);
+				hd_sound_add(f, path, 0);
+			}
 		}
-		pcm = d_malloc(frames * sizeof(short)); // mono 16-bit at the file's own rate
-		for (k = 0; k < frames; k++)
-		{
-			int c, sum = 0;
-			for (c = 0; c < channels; c++)
-				sum += custom_sound_sample(wav + (k * channels + c) * bytes, bytes);
-			pcm[k] = sum / channels;
-		}
-		d_free(file);
-		GameSounds[f].data = (ubyte *)pcm; // the old data may live inside the PIG buffer, so it is left alone
-		GameSounds[f].length = frames * sizeof(short);
-		GameSounds[f].bits = 16;
-		GameSounds[f].freq = rate;
-		done[f] = 1;
-		n++;
-	}
+	n = hd_count;
 	if (n)
-		con_printf(CON_NORMAL, "HD sounds: %d D1 sounds replaced with D2's higher quality recordings\n", n);
+		con_printf(CON_NORMAL, "Sound replacements: %d found, D2 Sound Occlusion %s\n", n, GameCfg.HDSounds ? "on" : "off (Sound menu)");
+	hd_sounds_set(GameCfg.HDSounds);
 }
